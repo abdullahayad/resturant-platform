@@ -14,6 +14,7 @@ import { CustomerReviewsScreen } from '../screens/CustomerReviewsScreen';
 import { ReservationsScreen } from '../screens/ReservationsScreen';
 import { DeepAnalyticsScreen } from '../screens/DeepAnalyticsScreen';
 import { SettingsStaffScreen } from '../screens/SettingsStaffScreen';
+import type { AuthenticatedRestaurant } from '../lib/api';
 
 const screens: Record<ScreenKey, React.ComponentType> = {
   dashboard: OverviewDashboardScreen,
@@ -28,7 +29,12 @@ const screens: Record<ScreenKey, React.ComponentType> = {
   settings: SettingsStaffScreen,
 };
 
-export function AppShell() {
+interface AppShellProps {
+  restaurant: AuthenticatedRestaurant;
+  onSignOut: () => void;
+}
+
+export function AppShell({ restaurant, onSignOut }: AppShellProps) {
   const [active, setActive] = useState<ScreenKey>('dashboard');
   const ActiveScreen = screens[active];
 
@@ -36,7 +42,12 @@ export function AppShell() {
     <View style={styles.container}>
       <Sidebar active={active} onSelect={setActive} />
       <View style={styles.content}>
-        <Header />
+        <Header
+          nameEn={restaurant.nameEn}
+          nameAr={restaurant.nameAr}
+          codeNumber={restaurant.codeNumber}
+          onSignOut={onSignOut}
+        />
         <View style={styles.body}>
           <ActiveScreen />
         </View>

@@ -24,8 +24,26 @@ export interface RegisterRestaurantPayload {
   foodCategoryIds: string[];
 }
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`);
+export type RestaurantStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+
+export interface AuthenticatedRestaurant {
+  id: string;
+  codeNumber: string;
+  nameEn: string;
+  nameAr: string;
+  status: RestaurantStatus;
+  rejectionReason: string | null;
+}
+
+export interface PartnerLoginResult {
+  accessToken: string;
+  restaurant: AuthenticatedRestaurant;
+}
+
+async function get<T>(path: string, token?: string): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
   return res.json();
 }
@@ -48,4 +66,17 @@ export const api = {
     }
     return data;
   },
+
+  async login(email: string, password: string): Promise<PartnerLoginResult> {
+    const res = await fetch(`${API_BASE_URL}/auth/partner/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Invalid email or password');
+    return data;
+  },
+
+  me: (token: string) => get<AuthenticatedRestaurant>('/restaurants/me', token),
 };

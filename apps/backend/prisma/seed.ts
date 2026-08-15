@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -119,6 +120,42 @@ async function main() {
         },
       });
     }
+  }
+
+  if ((await db.adminUser.count()) === 0) {
+    await db.adminUser.create({
+      data: {
+        email: 'admin@platform.iq',
+        passwordHash: await bcrypt.hash('AdminPass123', 10),
+        fullName: 'Platform Super Admin',
+        role: 'SUPER_ADMIN',
+      },
+    });
+    console.log('Seeded admin login: admin@platform.iq / AdminPass123');
+  }
+
+  if ((await db.restaurant.count({ where: { ownerEmail: 'demo@restaurant.iq' } })) === 0) {
+    const [businessType] = await db.businessType.findMany({ take: 1 });
+    const [foodCategory] = await db.foodCategory.findMany({ take: 1 });
+    const [province] = await db.province.findMany({ take: 1, include: { districts: { take: 1 } } });
+
+    await db.restaurant.create({
+      data: {
+        codeNumber: '#IRQ-00001',
+        nameEn: 'Demo Restaurant',
+        nameAr: 'مطعم تجريبي',
+        phone: '07700000000',
+        ownerEmail: 'demo@restaurant.iq',
+        ownerPasswordHash: await bcrypt.hash('DemoPass123', 10),
+        status: 'APPROVED',
+        reviewedAt: new Date(),
+        provinceId: province?.id,
+        districtId: province?.districts[0]?.id,
+        businessTypes: businessType ? { create: [{ businessTypeId: businessType.id }] } : undefined,
+        foodCategories: foodCategory ? { create: [{ foodCategoryId: foodCategory.id }] } : undefined,
+      },
+    });
+    console.log('Seeded partner login: demo@restaurant.iq / DemoPass123');
   }
 
   console.log('Seed complete.');

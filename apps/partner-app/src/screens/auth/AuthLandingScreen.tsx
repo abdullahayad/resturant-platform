@@ -19,12 +19,6 @@ export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenPro
         <Pressable style={[styles.button, styles.secondaryButton]} onPress={onRegister}>
           <Text style={styles.secondaryButtonText}>Register Restaurant</Text>
         </Pressable>
-
-        {__DEV__ && (
-          <Pressable style={styles.devLink} onPress={onSignIn}>
-            <Text style={styles.devLinkText}>Quick demo login (dev only)</Text>
-          </Pressable>
-        )}
       </View>
     </View>
   );
@@ -64,6 +58,4 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   secondaryButton: { borderWidth: 1, borderColor: colors.border },
   secondaryButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 15 },
-  devLink: { marginTop: 8, alignItems: 'center' },
-  devLinkText: { color: colors.mutedForeground, fontSize: 12, textDecorationLine: 'underline' },
 });

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { api, type RestaurantListItem } from '@/lib/api'
+import { useNavigate } from 'react-router-dom'
+import { api, UnauthorizedError, type RestaurantListItem } from '@/lib/api'
 
 export function ApprovalsPage() {
+  const navigate = useNavigate()
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -12,7 +14,10 @@ export function ApprovalsPage() {
     api
       .restaurants('PENDING_REVIEW')
       .then(setRestaurants)
-      .catch(() => setError('Could not reach the server. Is the backend running on localhost:3000?'))
+      .catch((err) => {
+        if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
+        else setError('Could not reach the server. Is the backend running on localhost:3000?')
+      })
       .finally(() => setLoading(false))
   }
 
