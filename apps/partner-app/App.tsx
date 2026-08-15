@@ -7,6 +7,7 @@ import { RegisterRestaurantScreen } from './src/screens/auth/RegisterRestaurantS
 import { SignInScreen } from './src/screens/auth/SignInScreen';
 import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
 import { AppShell } from './src/navigation/AppShell';
+import { AuthContext } from './src/lib/AuthContext';
 import type { AuthenticatedRestaurant } from './src/lib/api';
 
 type View = 'landing' | 'register' | 'signIn';
@@ -29,7 +30,16 @@ export default function App() {
     <SafeAreaView style={styles.root}>
       {session ? (
         session.restaurant.status === 'APPROVED' ? (
-          <AppShell restaurant={session.restaurant} onSignOut={signOut} />
+          <AuthContext.Provider
+            value={{
+              token: session.token,
+              restaurant: session.restaurant,
+              setRestaurant: (restaurant) => setSession({ token: session.token, restaurant }),
+              signOut,
+            }}
+          >
+            <AppShell restaurant={session.restaurant} onSignOut={signOut} />
+          </AuthContext.Provider>
         ) : (
           <AccountStatusScreen restaurant={session.restaurant} onSignOut={signOut} />
         )

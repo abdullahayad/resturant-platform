@@ -6,6 +6,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { AuthModule } from './auth/auth.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { StoriesModule } from './stories/stories.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
     MasterDataModule,
     RestaurantsModule,
+    UploadsModule,
+    StoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

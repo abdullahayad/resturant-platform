@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
+import type { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 
 const restaurantListSelect = {
   id: true,
@@ -118,6 +119,47 @@ export class RestaurantsService {
       data: { status: 'SUSPENDED', reviewedAt: new Date() },
       select: restaurantListSelect,
     });
+  }
+
+  async updateProfile(id: string, dto: UpdateRestaurantProfileDto) {
+    await this.ensureExists(id);
+
+    await this.prisma.db.restaurant.update({
+      where: { id },
+      data: {
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        phone: dto.phone,
+        provinceId: dto.provinceId,
+        districtId: dto.districtId,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        logoUrl: dto.logoUrl,
+      },
+    });
+
+    if (dto.businessTypeIds) {
+      await this.prisma.db.restaurantBusinessType.deleteMany({ where: { restaurantId: id } });
+      await this.prisma.db.restaurantBusinessType.createMany({
+        data: dto.businessTypeIds.map((businessTypeId) => ({ restaurantId: id, businessTypeId })),
+      });
+    }
+
+    if (dto.foodCategoryIds) {
+      await this.prisma.db.restaurantFoodCategory.deleteMany({ where: { restaurantId: id } });
+      await this.prisma.db.restaurantFoodCategory.createMany({
+        data: dto.foodCategoryIds.map((foodCategoryId) => ({ restaurantId: id, foodCategoryId })),
+      });
+    }
+
+    if (dto.facilityIds) {
+      await this.prisma.db.restaurantFacility.deleteMany({ where: { restaurantId: id } });
+      await this.prisma.db.restaurantFacility.createMany({
+        data: dto.facilityIds.map((facilityId) => ({ restaurantId: id, facilityId })),
+      });
+    }
+
+    return this.findOne(id);
   }
 
   private async ensureExists(id: string) {

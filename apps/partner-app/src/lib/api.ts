@@ -40,6 +40,40 @@ export interface PartnerLoginResult {
   restaurant: AuthenticatedRestaurant;
 }
 
+export interface RestaurantDetail extends AuthenticatedRestaurant {
+  phone: string;
+  logoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  province: MasterDataItem | null;
+  district: MasterDataItem | null;
+  businessTypes: { businessType: MasterDataItem }[];
+  foodCategories: { foodCategory: MasterDataItem }[];
+  facilities: { facility: MasterDataItem }[];
+}
+
+export interface UpdateRestaurantProfilePayload {
+  nameEn?: string;
+  nameAr?: string;
+  phone?: string;
+  provinceId?: string;
+  districtId?: string;
+  latitude?: number;
+  longitude?: number;
+  businessTypeIds?: string[];
+  foodCategoryIds?: string[];
+  facilityIds?: string[];
+}
+
+export interface Story {
+  id: string;
+  mediaUrl: string;
+  mediaType: 'photo' | 'video';
+  caption: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
 async function get<T>(path: string, token?: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -48,9 +82,21 @@ async function get<T>(path: string, token?: string): Promise<T> {
   return res.json();
 }
 
+async function send<T>(method: 'POST' | 'PATCH', path: string, token: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || `${method} ${path} failed`);
+  return data;
+}
+
 export const api = {
   businessTypes: () => get<MasterDataItem[]>('/master-data/business-types'),
   foodCategories: () => get<MasterDataItem[]>('/master-data/food-categories'),
+  facilities: () => get<MasterDataItem[]>('/master-data/facilities'),
   provinces: () => get<Province[]>('/master-data/provinces'),
 
   async registerRestaurant(payload: RegisterRestaurantPayload) {
@@ -78,5 +124,30 @@ export const api = {
     return data;
   },
 
-  me: (token: string) => get<AuthenticatedRestaurant>('/restaurants/me', token),
+  me: (token: string) => get<RestaurantDetail>('/restaurants/me', token),
+  updateMe: (token: string, payload: UpdateRestaurantProfilePayload) =>
+    send<RestaurantDetail>('PATCH', '/restaurants/me', token, payload),
+
+  async uploadFile(token: string, file: { uri: string; name: string; type: string }): Promise<{ url: string }> {
+    const form = new FormData();
+    // React Native's FormData accepts this {uri,name,type} shape directly; web (Expo web) uses a Blob instead.
+    if (file.uri.startsWith('blob:') || file.uri.startsWith('data:')) {
+      const blob = await (await fetch(file.uri)).blob();
+      form.append('file', blob, file.name);
+    } else {
+      form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+    }
+    const res = await fetch(`${API_BASE_URL}/uploads`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
+  },
+
+  activeStories: (token: string) => get<Story[]>('/restaurants/me/stories', token),
+  createStory: (token: string, mediaUrl: string, mediaType: 'photo' | 'video', caption?: string) =>
+    send<Story>('POST', '/restaurants/me/stories', token, { mediaUrl, mediaType, caption }),
 };

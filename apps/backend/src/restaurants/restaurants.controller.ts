@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from
 import { RestaurantsService } from './restaurants.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
 import { ListRestaurantsQuery, RejectRestaurantDto } from './dto/update-restaurant-status.dto';
+import { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -19,6 +20,12 @@ export class RestaurantsController {
   @Get('me')
   me(@Req() req: { user: PartnerJwtPayload }) {
     return this.restaurants.findOne(req.user.sub);
+  }
+
+  @UseGuards(PartnerAuthGuard)
+  @Patch('me')
+  updateMe(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateRestaurantProfileDto) {
+    return this.restaurants.updateProfile(req.user.sub, dto);
   }
 
   @UseGuards(AdminAuthGuard)
