@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { StoriesModule } from './stories/stories.module';
 import { DishesModule } from './dishes/dishes.module';
+import { GalleryModule } from './gallery/gallery.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DishesModule } from './dishes/dishes.module';
     UploadsModule,
     StoriesModule,
     DishesModule,
+    GalleryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

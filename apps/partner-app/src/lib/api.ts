@@ -93,6 +93,26 @@ export interface DishPayload {
   isMostOrdered?: boolean;
 }
 
+export type GalleryAlbum = 'FOOD' | 'MENU' | 'AMBIENCE';
+export type AmbienceSubCategory = 'OUTDOOR' | 'INDOOR' | 'OTHER';
+
+export interface GalleryPhoto {
+  id: string;
+  album: GalleryAlbum;
+  url: string;
+  caption: string | null;
+  ambienceSubCategory: AmbienceSubCategory | null;
+  dish: { id: string; nameEn: string; isMostOrdered: boolean; menuCategory: MasterDataItem | null } | null;
+}
+
+export interface CreateGalleryPhotoPayload {
+  album: GalleryAlbum;
+  url: string;
+  caption?: string;
+  dishId?: string;
+  ambienceSubCategory?: AmbienceSubCategory;
+}
+
 async function get<T>(path: string, token?: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -183,4 +203,11 @@ export const api = {
     send<Dish>('PATCH', `/restaurants/me/dishes/${id}`, token, payload),
   deleteDish: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/dishes/${id}`, token),
+
+  gallery: (token: string, album?: GalleryAlbum) =>
+    get<GalleryPhoto[]>(`/restaurants/me/gallery${album ? `?album=${album}` : ''}`, token),
+  addGalleryPhoto: (token: string, payload: CreateGalleryPhotoPayload) =>
+    send<GalleryPhoto>('POST', '/restaurants/me/gallery', token, payload),
+  deleteGalleryPhoto: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/gallery/${id}`, token),
 };
