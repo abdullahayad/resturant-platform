@@ -2,10 +2,38 @@ import 'dotenv/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { randomUUID } from 'node:crypto';
 
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
+
+const storageBucket = process.env.STORAGE_BUCKET ?? 'restaurant-platform';
+const storageEndpoint = process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000';
+const s3 = new S3Client({
+  endpoint: storageEndpoint,
+  region: process.env.STORAGE_REGION ?? 'us-east-1',
+  forcePathStyle: (process.env.STORAGE_FORCE_PATH_STYLE ?? 'true') === 'true',
+  credentials: {
+    accessKeyId: process.env.STORAGE_ACCESS_KEY ?? 'restaurant',
+    secretAccessKey: process.env.STORAGE_SECRET_KEY ?? 'restaurant123',
+  },
+});
+
+// Small solid-color placeholder JPEGs so seeded gallery photos render as
+// something other than a broken-image icon. Real partners upload real photos.
+const placeholderColors: Record<string, string> = {
+  amber: '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
+};
+
+async function uploadPlaceholder(key: string): Promise<string> {
+  const buffer = Buffer.from(placeholderColors.amber, 'base64');
+  await s3.send(
+    new PutObjectCommand({ Bucket: storageBucket, Key: key, Body: buffer, ContentType: 'image/jpeg' }),
+  );
+  return `${storageEndpoint}/${storageBucket}/${key}`;
+}
 
 const businessTypes = [
   ['Restaurant', 'مطعم'],
@@ -204,6 +232,66 @@ async function main() {
       })),
     });
     console.log(`Seeded ${demoReviews.length} demo reviews.`);
+  }
+
+  if (demoRestaurant && (await db.dish.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
+    const categoryByName = Object.fromEntries(
+      (await db.menuCategory.findMany()).map((c) => [c.nameEn, c.id]),
+    );
+
+    const demoDishes = [
+      { nameEn: 'Hummus Plate', nameAr: 'صحن حمص', price: 4000, category: 'Appetizer' },
+      { nameEn: 'Lentil Soup', nameAr: 'شوربة عدس', price: 3000, category: 'Soup' },
+      { nameEn: 'Chicken Tikka', nameAr: 'دجاج مشوي', price: 12000, category: 'Grill', mostOrdered: true },
+      { nameEn: 'Mixed BBQ Platter', nameAr: 'طبق باربكيو مشكل', price: 18000, category: 'BBQ', mostOrdered: true },
+      { nameEn: 'Lamb Quzi', nameAr: 'قوزي لحم', price: 20000, category: 'Main Course' },
+      { nameEn: 'Grilled Vegetables', nameAr: 'خضار مشوية', price: 5000, category: 'Side Dish' },
+      { nameEn: 'Baklava', nameAr: 'بقلاوة', price: 4000, category: 'Sweet' },
+      { nameEn: 'Fresh Lemon Mint', nameAr: 'ليمون بالنعناع', price: 3000, category: 'Drink' },
+    ];
+
+    const createdDishes: { id: string; nameEn: string }[] = [];
+    for (const d of demoDishes) {
+      const photoUrl = await uploadPlaceholder(`dishes/${randomUUID()}.jpg`);
+      const created = await db.dish.create({
+        data: {
+          restaurantId: demoRestaurant.id,
+          nameEn: d.nameEn,
+          nameAr: d.nameAr,
+          price: d.price,
+          menuCategoryId: categoryByName[d.category],
+          isMostOrdered: d.mostOrdered ?? false,
+          photoUrl,
+        },
+      });
+      createdDishes.push({ id: created.id, nameEn: created.nameEn });
+    }
+    console.log(`Seeded ${demoDishes.length} demo dishes.`);
+
+    const dishId = (nameEn: string) => createdDishes.find((d) => d.nameEn === nameEn)!.id;
+    const galleryPhotos = [
+      { album: 'FOOD' as const, dishId: dishId('Chicken Tikka'), key: 'gallery/food-1.jpg' },
+      { album: 'FOOD' as const, dishId: dishId('Mixed BBQ Platter'), key: 'gallery/food-2.jpg' },
+      { album: 'FOOD' as const, dishId: dishId('Hummus Plate'), key: 'gallery/food-3.jpg' },
+      { album: 'MENU' as const, caption: 'Paper menu, page 1', key: 'gallery/menu-1.jpg' },
+      { album: 'AMBIENCE' as const, ambienceSubCategory: 'OUTDOOR' as const, caption: 'Garden seating', key: 'gallery/ambience-1.jpg' },
+      { album: 'AMBIENCE' as const, ambienceSubCategory: 'INDOOR' as const, caption: 'Main dining hall', key: 'gallery/ambience-2.jpg' },
+    ];
+
+    for (const g of galleryPhotos) {
+      const url = await uploadPlaceholder(g.key);
+      await db.galleryPhoto.create({
+        data: {
+          restaurantId: demoRestaurant.id,
+          album: g.album,
+          url,
+          caption: 'caption' in g ? g.caption : undefined,
+          dishId: 'dishId' in g ? g.dishId : undefined,
+          ambienceSubCategory: 'ambienceSubCategory' in g ? g.ambienceSubCategory : undefined,
+        },
+      });
+    }
+    console.log(`Seeded ${galleryPhotos.length} demo gallery photos.`);
   }
 
   console.log('Seed complete.');
