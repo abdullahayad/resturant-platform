@@ -3,8 +3,11 @@
 // the NestJS service layer, not here — this defines shape and relations only.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = "js"
+  runtime             = "nodejs"
 }
 
 datasource db {
