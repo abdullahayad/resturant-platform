@@ -1,0 +1,409 @@
+// Restaurant Partner Portal + Admin Control Portal
+// Data model skeleton per project spec. Business logic / validation lives in
+// the NestJS service layer, not here — this defines shape and relations only.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Enums
+// ────────────────────────────────────────────────────────────────────────────
+
+enum RestaurantStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  MODERATOR
+}
+
+enum StaffRole {
+  OWNER
+  MANAGER
+  MENU_EDITOR
+}
+
+enum GalleryAlbum {
+  FOOD
+  MENU
+  AMBIENCE
+}
+
+// Ambience album sub-tabs. Food album sub-tabs are derived from menu
+// categories at query time (not stored), except MOST_ORDERED which is a flag.
+enum AmbienceSubCategory {
+  OUTDOOR
+  INDOOR
+  OTHER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum ModerationStatus {
+  VISIBLE
+  FLAGGED
+  HIDDEN
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Admin-managed master / reference data
+// Every list the partner app reads from is CRUD-able from the admin portal.
+// ────────────────────────────────────────────────────────────────────────────
+
+model BusinessType {
+  id        String   @id @default(uuid())
+  nameEn    String
+  nameAr    String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurants RestaurantBusinessType[]
+
+  @@map("business_types")
+}
+
+model FoodCategory {
+  id        String   @id @default(uuid())
+  nameEn    String
+  nameAr    String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurants RestaurantFoodCategory[]
+
+  @@map("food_categories")
+}
+
+// Menu Categories (soup, appetizer, grill, ...) — admin-managed for
+// consistency, also drives the Food Album's per-category sub-tabs.
+model MenuCategory {
+  id        String   @id @default(uuid())
+  nameEn    String
+  nameAr    String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dishes Dish[]
+
+  @@map("menu_categories")
+}
+
+model Facility {
+  id        String   @id @default(uuid())
+  nameEn    String
+  nameAr    String
+  icon      String? // icon identifier for UI
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurants RestaurantFacility[]
+
+  @@map("facilities")
+}
+
+model Province {
+  id        String   @id @default(uuid())
+  nameEn    String
+  nameAr    String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  districts   District[]
+  restaurants Restaurant[]
+
+  @@map("provinces")
+}
+
+model District {
+  id         String   @id @default(uuid())
+  provinceId String
+  nameEn     String
+  nameAr     String
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  province    Province     @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  restaurants Restaurant[]
+
+  @@index([provinceId])
+  @@map("districts")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Admin users
+// ────────────────────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         AdminRole @default(MODERATOR)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  reviewedRestaurants Restaurant[]  @relation("RestaurantReviewedBy")
+  reviewReplyActions  ReviewReply[] @relation("ReviewReplyModeratedBy")
+
+  @@map("admin_users")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Restaurant core
+// ────────────────────────────────────────────────────────────────────────────
+
+model Restaurant {
+  id         String           @id @default(uuid())
+  codeNumber String           @unique // formatted as #IRQ-XXXXX at the API layer
+  nameEn     String
+  nameAr     String
+  phone      String
+  logoUrl    String?
+  status     RestaurantStatus @default(PENDING_REVIEW)
+
+  provinceId String?
+  districtId String?
+  latitude   Decimal? @db.Decimal(9, 6)
+  longitude  Decimal? @db.Decimal(9, 6)
+
+  // Auth (owner account created at sign-up)
+  ownerEmail        String @unique
+  ownerPasswordHash String
+
+  // Admin moderation trail
+  reviewedById    String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  province   Province?  @relation(fields: [provinceId], references: [id])
+  district   District?  @relation(fields: [districtId], references: [id])
+  reviewedBy AdminUser? @relation("RestaurantReviewedBy", fields: [reviewedById], references: [id])
+
+  businessTypes     RestaurantBusinessType[]
+  foodCategories    RestaurantFoodCategory[]
+  facilities        RestaurantFacility[]
+  dishes            Dish[]
+  galleryPhotos     GalleryPhoto[]
+  stories           Story[]
+  reviews           Review[]
+  chefTableBookings ChefTableBooking[]
+  staffUsers        PartnerStaffUser[]
+
+  @@index([status])
+  @@index([provinceId])
+  @@index([districtId])
+  @@map("restaurants")
+}
+
+model RestaurantBusinessType {
+  restaurantId   String
+  businessTypeId String
+
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  businessType BusinessType @relation(fields: [businessTypeId], references: [id], onDelete: Cascade)
+
+  @@id([restaurantId, businessTypeId])
+  @@map("restaurant_business_types")
+}
+
+model RestaurantFoodCategory {
+  restaurantId   String
+  foodCategoryId String
+
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  foodCategory FoodCategory @relation(fields: [foodCategoryId], references: [id], onDelete: Cascade)
+
+  @@id([restaurantId, foodCategoryId])
+  @@map("restaurant_food_categories")
+}
+
+model RestaurantFacility {
+  restaurantId String
+  facilityId   String
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  facility   Facility   @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@id([restaurantId, facilityId])
+  @@map("restaurant_facilities")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Menu
+// ────────────────────────────────────────────────────────────────────────────
+
+model Dish {
+  id             String   @id @default(uuid())
+  restaurantId   String
+  menuCategoryId String?
+  nameEn         String
+  nameAr         String
+  price          Decimal  @db.Decimal(10, 2)
+  photoUrl       String?
+  isMostOrdered  Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  restaurant    Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuCategory  MenuCategory?  @relation(fields: [menuCategoryId], references: [id])
+  galleryPhotos GalleryPhoto[]
+
+  @@index([restaurantId])
+  @@index([menuCategoryId])
+  @@map("dishes")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Gallery — 3 albums: Food (sub-tabbed by menu category + Most Ordered),
+// Menu (paper menu photos only), Ambience (Outdoor/Indoor/Other)
+// ────────────────────────────────────────────────────────────────────────────
+
+model GalleryPhoto {
+  id                  String               @id @default(uuid())
+  restaurantId        String
+  album               GalleryAlbum
+  // Food album only: links the photo to a specific dish so it can be
+  // grouped under that dish's menu-category sub-tab.
+  dishId              String?
+  // Ambience album only
+  ambienceSubCategory AmbienceSubCategory?
+  url                 String
+  caption             String?
+  createdAt           DateTime             @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  dish       Dish?      @relation(fields: [dishId], references: [id])
+
+  @@index([restaurantId, album])
+  @@map("gallery_photos")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 24-hour story
+// ────────────────────────────────────────────────────────────────────────────
+
+model Story {
+  id           String   @id @default(uuid())
+  restaurantId String
+  mediaUrl     String
+  mediaType    String // "photo" | "video"
+  caption      String?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime // createdAt + 24h, enforced at write time
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@index([expiresAt])
+  @@map("stories")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Reviews
+// ────────────────────────────────────────────────────────────────────────────
+
+model Review {
+  id               String           @id @default(uuid())
+  restaurantId     String
+  reviewerName     String
+  rating           Int // 1-5
+  text             String?
+  moderationStatus ModerationStatus @default(VISIBLE)
+  createdAt        DateTime         @default(now())
+
+  restaurant Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reply      ReviewReply?
+
+  @@index([restaurantId])
+  @@index([moderationStatus])
+  @@map("reviews")
+}
+
+model ReviewReply {
+  id            String   @id @default(uuid())
+  reviewId      String   @unique
+  text          String
+  moderatedById String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  review      Review     @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  moderatedBy AdminUser? @relation("ReviewReplyModeratedBy", fields: [moderatedById], references: [id])
+
+  @@map("review_replies")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Chef Table & Events
+// ────────────────────────────────────────────────────────────────────────────
+
+model ChefTableBooking {
+  id           String        @id @default(uuid())
+  restaurantId String
+  guestName    String
+  guestPhone   String
+  partySize    Int
+  requestedAt  DateTime
+  status       BookingStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, status])
+  @@map("chef_table_bookings")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Partner staff (Settings & Staff)
+// ────────────────────────────────────────────────────────────────────────────
+
+model PartnerStaffUser {
+  id           String    @id @default(uuid())
+  restaurantId String
+  email        String
+  passwordHash String
+  fullName     String
+  role         StaffRole @default(MENU_EDITOR)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, email])
+  @@map("partner_staff_users")
+}
