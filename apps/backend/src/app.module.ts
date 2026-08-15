@@ -8,6 +8,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { AuthModule } from './auth/auth.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { StoriesModule } from './stories/stories.module';
+import { DishesModule } from './dishes/dishes.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { StoriesModule } from './stories/stories.module';
     RestaurantsModule,
     UploadsModule,
     StoriesModule,
+    DishesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

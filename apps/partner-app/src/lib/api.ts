@@ -74,6 +74,25 @@ export interface Story {
   expiresAt: string;
 }
 
+export interface Dish {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  price: string;
+  photoUrl: string | null;
+  isMostOrdered: boolean;
+  menuCategory: MasterDataItem | null;
+}
+
+export interface DishPayload {
+  nameEn: string;
+  nameAr: string;
+  price: number;
+  menuCategoryId?: string;
+  photoUrl?: string;
+  isMostOrdered?: boolean;
+}
+
 async function get<T>(path: string, token?: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -82,11 +101,16 @@ async function get<T>(path: string, token?: string): Promise<T> {
   return res.json();
 }
 
-async function send<T>(method: 'POST' | 'PATCH', path: string, token: string, body: unknown): Promise<T> {
+async function send<T>(
+  method: 'POST' | 'PATCH' | 'DELETE',
+  path: string,
+  token: string,
+  body?: unknown,
+): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || `${method} ${path} failed`);
@@ -150,4 +174,13 @@ export const api = {
   activeStories: (token: string) => get<Story[]>('/restaurants/me/stories', token),
   createStory: (token: string, mediaUrl: string, mediaType: 'photo' | 'video', caption?: string) =>
     send<Story>('POST', '/restaurants/me/stories', token, { mediaUrl, mediaType, caption }),
+
+  menuCategories: () => get<MasterDataItem[]>('/master-data/menu-categories'),
+  myDishes: (token: string) => get<Dish[]>('/restaurants/me/dishes', token),
+  createDish: (token: string, payload: DishPayload) =>
+    send<Dish>('POST', '/restaurants/me/dishes', token, payload),
+  updateDish: (token: string, id: string, payload: Partial<DishPayload>) =>
+    send<Dish>('PATCH', `/restaurants/me/dishes/${id}`, token, payload),
+  deleteDish: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/dishes/${id}`, token),
 };
