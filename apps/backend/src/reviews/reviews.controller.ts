@@ -20,6 +20,12 @@ export class ReviewsController {
   }
 
   @UseGuards(PartnerAuthGuard)
+  @Get('me/reviews/summary')
+  summary(@Req() req: { user: PartnerJwtPayload }) {
+    return this.reviews.summary(req.user.sub);
+  }
+
+  @UseGuards(PartnerAuthGuard)
   @Post('me/reviews/:id/reply')
   reply(@Req() req: { user: PartnerJwtPayload }, @Param('id') reviewId: string, @Body() dto: ReplyToReviewDto) {
     return this.reviews.reply(req.user.sub, reviewId, dto.text);

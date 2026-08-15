@@ -17,7 +17,16 @@ export class ReviewsService {
       throw new BadRequestException('Restaurant is not open for reviews');
     }
     return this.prisma.db.review.create({
-      data: { restaurantId, reviewerName: dto.reviewerName, rating: dto.rating, text: dto.text },
+      data: {
+        restaurantId,
+        reviewerName: dto.reviewerName,
+        rating: dto.rating,
+        foodRating: dto.foodRating,
+        serviceRating: dto.serviceRating,
+        staffRating: dto.staffRating,
+        ambienceRating: dto.ambienceRating,
+        text: dto.text,
+      },
       include: withReply,
     });
   }
@@ -28,6 +37,70 @@ export class ReviewsService {
       include: withReply,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async summary(restaurantId: string) {
+    const reviews = await this.prisma.db.review.findMany({
+      where: { restaurantId, moderationStatus: { not: 'HIDDEN' } },
+      select: {
+        rating: true,
+        foodRating: true,
+        serviceRating: true,
+        staffRating: true,
+        ambienceRating: true,
+        createdAt: true,
+      },
+    });
+
+    const total = reviews.length;
+    const overallAverage = total ? reviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
+    const positiveSentimentPct = total
+      ? Math.round((reviews.filter((r) => r.rating >= 4).length / total) * 100)
+      : 0;
+
+    const distribution = [5, 4, 3, 2, 1].map((star) => {
+      const count = reviews.filter((r) => r.rating === star).length;
+      return { star, count, pct: total ? Math.round((count / total) * 100) : 0 };
+    });
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const categoryFields = [
+      { key: 'food', field: 'foodRating', labelEn: 'Food', labelAr: 'الطعام' },
+      { key: 'service', field: 'serviceRating', labelEn: 'Service', labelAr: 'الخدمة' },
+      { key: 'staff', field: 'staffRating', labelEn: 'Staff', labelAr: 'الكادر والضيافة' },
+      { key: 'ambience', field: 'ambienceRating', labelEn: 'Ambience', labelAr: 'الأجواء والديكور' },
+    ] as const;
+
+    const average = (rows: { value: number }[]) =>
+      rows.length ? rows.reduce((sum, r) => sum + r.value, 0) / rows.length : null;
+
+    const categoryScores = categoryFields.map(({ key, field, labelEn, labelAr }) => {
+      const rated = reviews
+        .filter((r) => r[field] != null)
+        .map((r) => ({ value: r[field] as number, ageMs: now - r.createdAt.getTime() }));
+
+      const overall = average(rated);
+      const last30 = average(rated.filter((r) => r.ageMs <= 30 * DAY_MS));
+      const prev30 = average(rated.filter((r) => r.ageMs > 30 * DAY_MS && r.ageMs <= 60 * DAY_MS));
+      const trend = last30 != null && prev30 != null ? Number((last30 - prev30).toFixed(1)) : null;
+
+      return {
+        key,
+        labelEn,
+        labelAr,
+        average: overall != null ? Number(overall.toFixed(1)) : null,
+        trend,
+      };
+    });
+
+    return {
+      totalCount: total,
+      overallAverage: Number(overallAverage.toFixed(1)),
+      positiveSentimentPct,
+      distribution,
+      categoryScores,
+    };
   }
 
   async reply(restaurantId: string, reviewId: string, text: string) {

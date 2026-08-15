@@ -3,30 +3,39 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { colors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
-import { api, type Review } from '../lib/api';
+import { api, type Review, type ReviewSummary } from '../lib/api';
+
+const categoryIcons: Record<string, string> = {
+  food: '🍽️',
+  service: '🛎️',
+  staff: '👥',
+  ambience: '🏛️',
+};
 
 export function CustomerReviewsScreen() {
   const { token } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [starFilter, setStarFilter] = useState<number | null>(null);
 
   const load = useCallback(() => {
-    api
-      .myReviews(token)
-      .then(setReviews)
+    Promise.all([api.myReviews(token), api.reviewsSummary(token)])
+      .then(([r, s]) => {
+        setReviews(r);
+        setSummary(s);
+      })
       .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
   }, [token]);
 
   useEffect(load, [load]);
 
-  const { average, distribution, visibleCount } = useMemo(() => {
-    const visible = reviews.filter((r) => r.moderationStatus !== 'HIDDEN');
-    const dist = [5, 4, 3, 2, 1].map((star) => visible.filter((r) => r.rating === star).length);
-    const avg = visible.length ? visible.reduce((sum, r) => sum + r.rating, 0) / visible.length : 0;
-    return { average: avg, distribution: dist, visibleCount: visible.length };
-  }, [reviews]);
+  const visibleReviews = useMemo(() => {
+    const list = reviews.filter((r) => r.moderationStatus !== 'HIDDEN');
+    return starFilter ? list.filter((r) => r.rating === starFilter) : list;
+  }, [reviews, starFilter]);
 
   const submitReply = async (reviewId: string) => {
     const text = replyDrafts[reviewId]?.trim();
@@ -46,31 +55,99 @@ export function CustomerReviewsScreen() {
       <Text style={styles.title}>Customer Reviews</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
-      <View style={styles.summaryCard}>
-        <View style={styles.averageBlock}>
-          <Text style={styles.averageNumber}>{average.toFixed(1)}</Text>
-          <Text style={styles.averageStars}>{'★'.repeat(Math.round(average))}{'☆'.repeat(5 - Math.round(average))}</Text>
-          <Text style={styles.hint}>{visibleCount} review{visibleCount === 1 ? '' : 's'}</Text>
-        </View>
-        <View style={styles.distributionBlock}>
-          {distribution.map((count, index) => {
-            const star = 5 - index;
-            const pct = visibleCount ? (count / visibleCount) * 100 : 0;
-            return (
-              <View key={star} style={styles.distRow}>
-                <Text style={styles.distLabel}>{star}★</Text>
-                <View style={styles.distTrack}>
-                  <View style={[styles.distFill, { width: `${pct}%` }]} />
+      {summary && (
+        <>
+          <View style={styles.summaryRow}>
+            <View style={styles.overallCard}>
+              <Text style={styles.overallLabel}>OVERALL</Text>
+              <Text style={styles.overallScore}>{summary.overallAverage.toFixed(1)}★</Text>
+              <Text style={styles.overallStars}>
+                {'★'.repeat(Math.round(summary.overallAverage))}
+                {'☆'.repeat(5 - Math.round(summary.overallAverage))}
+              </Text>
+              <Text style={styles.overallCount}>{summary.totalCount.toLocaleString()} reviews</Text>
+            </View>
+
+            <View style={styles.headlineCard}>
+              <View style={styles.headlineTop}>
+                <Text style={styles.headlineTitle}>Customer Reputation & Ratings</Text>
+                <View style={styles.sentimentBadge}>
+                  <Text style={styles.sentimentText}>{summary.positiveSentimentPct}% Positive Sentiment</Text>
                 </View>
-                <Text style={styles.distCount}>{count}</Text>
               </View>
-            );
-          })}
-        </View>
+              <Text style={styles.headlineBody}>
+                Direct verified diner ratings across food, service speed, staff hospitality, and atmosphere.
+              </Text>
+            </View>
+
+            <View style={styles.distributionCard}>
+              {summary.distribution.map((row) => (
+                <Pressable
+                  key={row.star}
+                  onPress={() => setStarFilter(starFilter === row.star ? null : row.star)}
+                  style={styles.distRow}
+                >
+                  <Text style={[styles.distLabel, starFilter === row.star && styles.distLabelActive]}>
+                    {row.star}★
+                  </Text>
+                  <View style={styles.distTrack}>
+                    <View style={[styles.distFill, { width: `${row.pct}%` }]} />
+                  </View>
+                  <Text style={styles.distPct}>{row.pct}%</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View>
+            <Text style={styles.sectionHeading}>✨ Category Scores & 30-Day Trends</Text>
+            <Text style={styles.sectionSubheading}>Genuinely useful operational insights for restaurant managers</Text>
+            <View style={styles.categoryRow}>
+              {summary.categoryScores.map((cat) => {
+                const trendUp = cat.trend != null && cat.trend > 0;
+                const trendDown = cat.trend != null && cat.trend < 0;
+                return (
+                  <View key={cat.key} style={styles.categoryCard}>
+                    <View style={styles.categoryHeader}>
+                      <Text style={styles.categoryIcon}>{categoryIcons[cat.key] ?? '⭐'}</Text>
+                      <Text style={styles.categoryScore}>{cat.average != null ? `${cat.average}★` : '—'}</Text>
+                    </View>
+                    <Text style={styles.categoryLabel}>
+                      {cat.labelEn} <Text style={styles.categoryLabelAr}>({cat.labelAr})</Text>
+                    </Text>
+                    <View style={styles.categoryTrendRow}>
+                      <Text style={styles.categoryTrendHint}>Last 30 days</Text>
+                      {cat.trend != null && (
+                        <Text style={[styles.categoryTrend, trendUp && styles.trendUp, trendDown && styles.trendDown]}>
+                          {trendUp ? '↑' : trendDown ? '↓' : '—'} {trendUp ? '+' : ''}{cat.trend}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </>
+      )}
+
+      <View style={styles.filterRow}>
+        <Pressable onPress={() => setStarFilter(null)} style={[styles.filterChip, starFilter === null && styles.filterChipActive]}>
+          <Text style={[styles.filterChipText, starFilter === null && styles.filterChipTextActive]}>All</Text>
+        </Pressable>
+        {[5, 4, 3, 2, 1].map((star) => (
+          <Pressable
+            key={star}
+            onPress={() => setStarFilter(starFilter === star ? null : star)}
+            style={[styles.filterChip, starFilter === star && styles.filterChipActive]}
+          >
+            <Text style={[styles.filterChipText, starFilter === star && styles.filterChipTextActive]}>{star}★</Text>
+          </Pressable>
+        ))}
       </View>
 
       <View style={styles.list}>
-        {reviews.map((review) => (
+        {visibleReviews.map((review) => (
           <View key={review.id} style={styles.reviewCard}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewerName}>{review.reviewerName}</Text>
@@ -110,35 +187,106 @@ export function CustomerReviewsScreen() {
             )}
           </View>
         ))}
-        {reviews.length === 0 && !loadError && <Text style={styles.hint}>No reviews yet.</Text>}
+        {visibleReviews.length === 0 && !loadError && <Text style={styles.hint}>No reviews match this filter.</Text>}
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 16, paddingBottom: 24, maxWidth: 640 },
+  container: { gap: 20, paddingBottom: 24, maxWidth: 900 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
   hint: { fontSize: 12, color: colors.mutedForeground },
-  summaryCard: {
-    flexDirection: 'row',
-    gap: 20,
+
+  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  overallCard: {
+    width: 150,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  overallLabel: { fontSize: 11, color: colors.primary, fontWeight: '700', letterSpacing: 1 },
+  overallScore: { fontSize: 28, fontWeight: '800', color: colors.foreground },
+  overallStars: { color: colors.primary, fontSize: 13 },
+  overallCount: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
+
+  headlineCard: {
+    flex: 1,
+    minWidth: 220,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    padding: 16,
+    padding: 14,
+    gap: 6,
+    justifyContent: 'center',
   },
-  averageBlock: { alignItems: 'center', justifyContent: 'center', width: 100 },
-  averageNumber: { fontSize: 32, fontWeight: '700', color: colors.foreground },
-  averageStars: { color: colors.primary, fontSize: 14, marginTop: 2 },
-  distributionBlock: { flex: 1, gap: 6, justifyContent: 'center' },
+  headlineTop: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  headlineTitle: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  sentimentBadge: { backgroundColor: 'rgba(92, 184, 110, 0.15)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  sentimentText: { color: colors.success, fontSize: 11, fontWeight: '700' },
+  headlineBody: { fontSize: 12, color: colors.mutedForeground, lineHeight: 17 },
+
+  distributionCard: {
+    minWidth: 220,
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 14,
+    gap: 6,
+    justifyContent: 'center',
+  },
   distRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   distLabel: { width: 24, fontSize: 12, color: colors.mutedForeground },
-  distTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' },
+  distLabelActive: { color: colors.primary, fontWeight: '700' },
+  distTrack: { flex: 1, height: 7, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' },
   distFill: { height: '100%', backgroundColor: colors.primary },
-  distCount: { width: 20, fontSize: 12, color: colors.mutedForeground, textAlign: 'right' },
+  distPct: { width: 32, fontSize: 11, color: colors.mutedForeground, textAlign: 'right' },
+
+  sectionHeading: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  sectionSubheading: { fontSize: 12, color: colors.mutedForeground, marginTop: 2, marginBottom: 10 },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  categoryCard: {
+    width: 190,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 12,
+    gap: 4,
+  },
+  categoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  categoryIcon: { fontSize: 18 },
+  categoryScore: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  categoryLabel: { fontSize: 13, color: colors.foreground, fontWeight: '600' },
+  categoryLabelAr: { color: colors.mutedForeground, fontWeight: '400' },
+  categoryTrendRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  categoryTrendHint: { fontSize: 11, color: colors.mutedForeground },
+  categoryTrend: { fontSize: 12, fontWeight: '700', color: colors.mutedForeground },
+  trendUp: { color: colors.success },
+  trendDown: { color: colors.destructive },
+
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  filterChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+  },
+  filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterChipText: { color: colors.mutedForeground, fontSize: 13 },
+  filterChipTextActive: { color: colors.primaryForeground, fontWeight: '700' },
+
   list: { gap: 12 },
   reviewCard: {
     borderRadius: 14,

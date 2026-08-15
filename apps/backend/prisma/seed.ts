@@ -160,16 +160,45 @@ async function main() {
 
   const demoRestaurant = await db.restaurant.findUnique({ where: { ownerEmail: 'demo@restaurant.iq' } });
   if (demoRestaurant && (await db.review.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
+    const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+    // food/staff/ambience trend up over the last 30 days, service trends down —
+    // mirrors the "Category Scores & 30-Day Trends" reference design.
+    const demoReviews = [
+      { reviewerName: 'Ahmed K.', rating: 4, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 55, text: 'Solid meal, service was excellent.' },
+      { reviewerName: 'Zainab R.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 50, text: 'Loved the grill platter.' },
+      { reviewerName: 'Hassan M.', rating: 4, foodRating: 4, serviceRating: 4, staffRating: 5, ambienceRating: 5, days: 48, text: 'Staff went out of their way to help us.' },
+      { reviewerName: 'Noor A.', rating: 3, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 44, text: 'Good but a bit pricey.' },
+      { reviewerName: 'Karim S.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 5, ambienceRating: 5, days: 40, text: 'Everything about this place is great.' },
+      { reviewerName: 'Rania F.', rating: 4, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 35, text: 'Consistent quality every visit.' },
+      { reviewerName: 'Bilal H.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 5, ambienceRating: 5, days: 33, text: 'Perfect evening out with the family.' },
+      { reviewerName: 'Dina K.', rating: 4, foodRating: 4, serviceRating: 4, staffRating: 4, ambienceRating: 4, days: 32, text: 'Reliable neighborhood spot.' },
+      { reviewerName: 'Fadi N.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 5, ambienceRating: 4, days: 25, text: 'Best kebab in town, generous portions.' },
+      { reviewerName: 'Huda J.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 5, ambienceRating: 5, days: 20, text: 'Flawless from start to finish.' },
+      { reviewerName: 'Iman T.', rating: 4, foodRating: 4, serviceRating: 4, staffRating: 5, ambienceRating: 4, days: 18, text: 'Great hospitality, will be back.' },
+      { reviewerName: 'Jassim O.', rating: 4, foodRating: 5, serviceRating: 4, staffRating: 4, ambienceRating: 5, days: 15, text: 'Lovely ambience, great for dates.' },
+      { reviewerName: 'Sara M.', rating: 5, foodRating: 4, serviceRating: 5, staffRating: 5, ambienceRating: 4, days: 12, text: 'Great food, service was excellent this time.' },
+      { reviewerName: 'Lina B.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 5, ambienceRating: 5, days: 10, text: 'Family favorite, we come every week.' },
+      { reviewerName: 'Yusuf A.', rating: 4, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 8, text: 'Decent, would order again.' },
+      { reviewerName: 'Marwan Q.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 5, ambienceRating: 5, days: 5, text: 'Ten out of ten, no notes.' },
+      { reviewerName: 'Omar T.', rating: 3, foodRating: 4, serviceRating: 4, staffRating: 5, ambienceRating: 4, days: 3, moderationStatus: 'FLAGGED' as const, text: 'Order was wrong once but staff fixed it fast.' },
+      { reviewerName: 'Layla H.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 4, ambienceRating: 5, days: 1, text: 'Family favorite, we come every week.' },
+    ];
+
     await db.review.createMany({
-      data: [
-        { restaurantId: demoRestaurant.id, reviewerName: 'Ahmed K.', rating: 5, text: 'Best kebab in town, generous portions.' },
-        { restaurantId: demoRestaurant.id, reviewerName: 'Sara M.', rating: 4, text: 'Great food, service was a bit slow.' },
-        { restaurantId: demoRestaurant.id, reviewerName: 'Yusuf A.', rating: 3, text: 'Decent but overpriced for what you get.' },
-        { restaurantId: demoRestaurant.id, reviewerName: 'Layla H.', rating: 5, text: 'Family favorite, we come every week.' },
-        { restaurantId: demoRestaurant.id, reviewerName: 'Omar T.', rating: 2, moderationStatus: 'FLAGGED', text: 'Order was wrong twice in a row.' },
-      ],
+      data: demoReviews.map((r) => ({
+        restaurantId: demoRestaurant.id,
+        reviewerName: r.reviewerName,
+        rating: r.rating,
+        foodRating: r.foodRating,
+        serviceRating: r.serviceRating,
+        staffRating: r.staffRating,
+        ambienceRating: r.ambienceRating,
+        text: r.text,
+        moderationStatus: r.moderationStatus,
+        createdAt: daysAgo(r.days),
+      })),
     });
-    console.log('Seeded 5 demo reviews.');
+    console.log(`Seeded ${demoReviews.length} demo reviews.`);
   }
 
   console.log('Seed complete.');

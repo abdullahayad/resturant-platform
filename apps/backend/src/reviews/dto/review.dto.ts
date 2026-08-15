@@ -10,6 +10,30 @@ export class CreateReviewDto {
   rating: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  foodRating?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  serviceRating?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  staffRating?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  ambienceRating?: number;
+
+  @IsOptional()
   @IsString()
   text?: string;
 }

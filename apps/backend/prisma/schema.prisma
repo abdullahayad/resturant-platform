@@ -341,7 +341,11 @@ model Review {
   id               String           @id @default(uuid())
   restaurantId     String
   reviewerName     String
-  rating           Int // 1-5
+  rating           Int // overall, 1-5
+  foodRating       Int? // 1-5, category breakdown per spec ("Category Scores & 30-Day Trends")
+  serviceRating    Int?
+  staffRating      Int?
+  ambienceRating   Int?
   text             String?
   moderationStatus ModerationStatus @default(VISIBLE)
   createdAt        DateTime         @default(now())

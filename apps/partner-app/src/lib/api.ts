@@ -123,6 +123,22 @@ export interface Review {
   reply: { id: string; text: string; createdAt: string } | null;
 }
 
+export interface ReviewCategoryScore {
+  key: string;
+  labelEn: string;
+  labelAr: string;
+  average: number | null;
+  trend: number | null;
+}
+
+export interface ReviewSummary {
+  totalCount: number;
+  overallAverage: number;
+  positiveSentimentPct: number;
+  distribution: { star: number; count: number; pct: number }[];
+  categoryScores: ReviewCategoryScore[];
+}
+
 async function get<T>(path: string, token?: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -222,6 +238,7 @@ export const api = {
     send<{ id: string }>('DELETE', `/restaurants/me/gallery/${id}`, token),
 
   myReviews: (token: string) => get<Review[]>('/restaurants/me/reviews', token),
+  reviewsSummary: (token: string) => get<ReviewSummary>('/restaurants/me/reviews/summary', token),
   replyToReview: (token: string, reviewId: string, text: string) =>
     send<Review>('POST', `/restaurants/me/reviews/${reviewId}/reply`, token, { text }),
 };
