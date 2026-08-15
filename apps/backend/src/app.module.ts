@@ -10,6 +10,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { StoriesModule } from './stories/stories.module';
 import { DishesModule } from './dishes/dishes.module';
 import { GalleryModule } from './gallery/gallery.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { GalleryModule } from './gallery/gallery.module';
     StoriesModule,
     DishesModule,
     GalleryModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

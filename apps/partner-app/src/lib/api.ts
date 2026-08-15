@@ -113,6 +113,16 @@ export interface CreateGalleryPhotoPayload {
   ambienceSubCategory?: AmbienceSubCategory;
 }
 
+export interface Review {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  text: string | null;
+  createdAt: string;
+  moderationStatus: 'VISIBLE' | 'FLAGGED' | 'HIDDEN';
+  reply: { id: string; text: string; createdAt: string } | null;
+}
+
 async function get<T>(path: string, token?: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -210,4 +220,8 @@ export const api = {
     send<GalleryPhoto>('POST', '/restaurants/me/gallery', token, payload),
   deleteGalleryPhoto: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/gallery/${id}`, token),
+
+  myReviews: (token: string) => get<Review[]>('/restaurants/me/reviews', token),
+  replyToReview: (token: string, reviewId: string, text: string) =>
+    send<Review>('POST', `/restaurants/me/reviews/${reviewId}/reply`, token, { text }),
 };

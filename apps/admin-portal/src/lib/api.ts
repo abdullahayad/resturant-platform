@@ -20,6 +20,19 @@ export interface RestaurantListItem {
   district: { id: string; nameEn: string; nameAr: string } | null
 }
 
+export type ModerationStatus = 'VISIBLE' | 'FLAGGED' | 'HIDDEN'
+
+export interface ReviewItem {
+  id: string
+  reviewerName: string
+  rating: number
+  text: string | null
+  createdAt: string
+  moderationStatus: ModerationStatus
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
+  reply: { id: string; text: string } | null
+}
+
 export interface RestaurantDetail extends RestaurantListItem {
   latitude: number | null
   longitude: number | null
@@ -129,6 +142,10 @@ export const api = {
   updateDistrict: (id: string, payload: Partial<MasterDataItemPayload>) =>
     send<District>('PATCH', `/master-data/admin/districts/${id}`, payload),
   deleteDistrict: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/districts/${id}`),
+
+  reviews: (status?: ModerationStatus) => get<ReviewItem[]>(`/reviews${status ? `?status=${status}` : ''}`),
+  moderateReview: (id: string, status: ModerationStatus) =>
+    send<ReviewItem>('PATCH', `/reviews/${id}/moderate`, { status }),
 }
 
 export { UnauthorizedError }

@@ -158,6 +158,20 @@ async function main() {
     console.log('Seeded partner login: demo@restaurant.iq / DemoPass123');
   }
 
+  const demoRestaurant = await db.restaurant.findUnique({ where: { ownerEmail: 'demo@restaurant.iq' } });
+  if (demoRestaurant && (await db.review.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
+    await db.review.createMany({
+      data: [
+        { restaurantId: demoRestaurant.id, reviewerName: 'Ahmed K.', rating: 5, text: 'Best kebab in town, generous portions.' },
+        { restaurantId: demoRestaurant.id, reviewerName: 'Sara M.', rating: 4, text: 'Great food, service was a bit slow.' },
+        { restaurantId: demoRestaurant.id, reviewerName: 'Yusuf A.', rating: 3, text: 'Decent but overpriced for what you get.' },
+        { restaurantId: demoRestaurant.id, reviewerName: 'Layla H.', rating: 5, text: 'Family favorite, we come every week.' },
+        { restaurantId: demoRestaurant.id, reviewerName: 'Omar T.', rating: 2, moderationStatus: 'FLAGGED', text: 'Order was wrong twice in a row.' },
+      ],
+    });
+    console.log('Seeded 5 demo reviews.');
+  }
+
   console.log('Seed complete.');
 }
 
