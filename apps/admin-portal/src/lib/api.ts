@@ -20,6 +20,37 @@ export interface RestaurantListItem {
   district: { id: string; nameEn: string; nameAr: string } | null
 }
 
+export type MasterDataKind = 'business-types' | 'food-categories' | 'menu-categories' | 'facilities'
+
+export interface MasterDataItemFull {
+  id: string
+  nameEn: string
+  nameAr: string
+  sortOrder: number
+  isActive: boolean
+  icon?: string | null
+}
+
+export interface MasterDataItemPayload {
+  nameEn: string
+  nameAr: string
+  sortOrder?: number
+  icon?: string
+  isActive?: boolean
+}
+
+export interface District {
+  id: string
+  nameEn: string
+  nameAr: string
+  sortOrder: number
+  isActive: boolean
+}
+
+export interface Province extends District {
+  districts: District[]
+}
+
 class UnauthorizedError extends Error {}
 
 function authHeaders(): HeadersInit {
@@ -41,11 +72,11 @@ async function get<T>(path: string): Promise<T> {
   return handle<T>(res)
 }
 
-async function patch<T>(path: string, body?: unknown): Promise<T> {
+async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'PATCH',
+    method,
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   return handle<T>(res)
 }
@@ -64,10 +95,31 @@ export const api = {
 
   restaurants: (status?: RestaurantStatus) =>
     get<RestaurantListItem[]>(`/restaurants${status ? `?status=${status}` : ''}`),
-  approve: (id: string) => patch<RestaurantListItem>(`/restaurants/${id}/approve`),
+  approve: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/approve`),
   reject: (id: string, reason?: string) =>
-    patch<RestaurantListItem>(`/restaurants/${id}/reject`, { reason }),
-  suspend: (id: string) => patch<RestaurantListItem>(`/restaurants/${id}/suspend`),
+    send<RestaurantListItem>('PATCH', `/restaurants/${id}/reject`, { reason }),
+  suspend: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/suspend`),
+
+  masterData: (kind: MasterDataKind) => get<MasterDataItemFull[]>(`/master-data/admin/${kind}`),
+  createMasterDataItem: (kind: MasterDataKind, payload: MasterDataItemPayload) =>
+    send<MasterDataItemFull>('POST', `/master-data/admin/${kind}`, payload),
+  updateMasterDataItem: (kind: MasterDataKind, id: string, payload: Partial<MasterDataItemPayload>) =>
+    send<MasterDataItemFull>('PATCH', `/master-data/admin/${kind}/${id}`, payload),
+  deleteMasterDataItem: (kind: MasterDataKind, id: string) =>
+    send<{ id: string }>('DELETE', `/master-data/admin/${kind}/${id}`),
+
+  provinces: () => get<Province[]>('/master-data/admin/provinces'),
+  createProvince: (payload: { nameEn: string; nameAr: string; sortOrder?: number }) =>
+    send<District>('POST', '/master-data/admin/provinces', payload),
+  updateProvince: (id: string, payload: Partial<MasterDataItemPayload>) =>
+    send<District>('PATCH', `/master-data/admin/provinces/${id}`, payload),
+  deleteProvince: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/provinces/${id}`),
+
+  createDistrict: (provinceId: string, payload: { nameEn: string; nameAr: string; sortOrder?: number }) =>
+    send<District>('POST', `/master-data/admin/provinces/${provinceId}/districts`, payload),
+  updateDistrict: (id: string, payload: Partial<MasterDataItemPayload>) =>
+    send<District>('PATCH', `/master-data/admin/districts/${id}`, payload),
+  deleteDistrict: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/districts/${id}`),
 }
 
 export { UnauthorizedError }
