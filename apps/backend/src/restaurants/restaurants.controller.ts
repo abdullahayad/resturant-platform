@@ -31,7 +31,7 @@ export class RestaurantsController {
   @UseGuards(AdminAuthGuard)
   @Get()
   list(@Query() query: ListRestaurantsQuery) {
-    return this.restaurants.list(query.status);
+    return this.restaurants.list(query);
   }
 
   @UseGuards(AdminAuthGuard)

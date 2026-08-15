@@ -130,8 +130,22 @@ export const api = {
     return data
   },
 
-  restaurants: (status?: RestaurantStatus) =>
-    get<RestaurantListItem[]>(`/restaurants${status ? `?status=${status}` : ''}`),
+  restaurants: (filters?: {
+    status?: RestaurantStatus
+    provinceId?: string
+    districtId?: string
+    businessTypeId?: string
+    foodCategoryId?: string
+  }) => {
+    const params = new URLSearchParams()
+    if (filters?.status) params.set('status', filters.status)
+    if (filters?.provinceId) params.set('provinceId', filters.provinceId)
+    if (filters?.districtId) params.set('districtId', filters.districtId)
+    if (filters?.businessTypeId) params.set('businessTypeId', filters.businessTypeId)
+    if (filters?.foodCategoryId) params.set('foodCategoryId', filters.foodCategoryId)
+    const qs = params.toString()
+    return get<RestaurantListItem[]>(`/restaurants${qs ? `?${qs}` : ''}`)
+  },
   restaurant: (id: string) => get<RestaurantDetail>(`/restaurants/${id}`),
   approve: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/approve`),
   reject: (id: string, reason?: string) =>

@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, UnauthorizedError, type RestaurantDetail, type RestaurantListItem, type RestaurantStatus } from '@/lib/api'
+import {
+  api,
+  UnauthorizedError,
+  type MasterDataItemFull,
+  type Province,
+  type RestaurantDetail,
+  type RestaurantListItem,
+  type RestaurantStatus,
+} from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { Switch } from '@/components/Switch'
 
 const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -18,9 +27,20 @@ const statusStyles: Record<RestaurantStatus, string> = {
   SUSPENDED: 'bg-destructive/15 text-destructive',
 }
 
+const ALL = '__all__'
+
 export function RestaurantsPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<RestaurantStatus | 'ALL'>('ALL')
+  const [provinceId, setProvinceId] = useState(ALL)
+  const [districtId, setDistrictId] = useState(ALL)
+  const [businessTypeId, setBusinessTypeId] = useState(ALL)
+  const [foodCategoryId, setFoodCategoryId] = useState(ALL)
+
+  const [provinces, setProvinces] = useState<Province[]>([])
+  const [businessTypes, setBusinessTypes] = useState<MasterDataItemFull[]>([])
+  const [foodCategories, setFoodCategories] = useState<MasterDataItemFull[]>([])
+
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,10 +48,22 @@ export function RestaurantsPage() {
   const [detail, setDetail] = useState<RestaurantDetail | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  useEffect(() => {
+    api.provinces().then(setProvinces).catch(() => {})
+    api.masterData('business-types').then(setBusinessTypes).catch(() => {})
+    api.masterData('food-categories').then(setFoodCategories).catch(() => {})
+  }, [])
+
   const load = () => {
     setLoading(true)
     api
-      .restaurants(filter === 'ALL' ? undefined : filter)
+      .restaurants({
+        status: filter === 'ALL' ? undefined : filter,
+        provinceId: provinceId === ALL ? undefined : provinceId,
+        districtId: districtId === ALL ? undefined : districtId,
+        businessTypeId: businessTypeId === ALL ? undefined : businessTypeId,
+        foodCategoryId: foodCategoryId === ALL ? undefined : foodCategoryId,
+      })
       .then(setRestaurants)
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
@@ -40,7 +72,9 @@ export function RestaurantsPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [filter])
+  useEffect(load, [filter, provinceId, districtId, businessTypeId, foodCategoryId])
+
+  const selectedProvince = provinces.find((p) => p.id === provinceId)
 
   const toggleExpand = async (id: string) => {
     if (expandedId === id) {
@@ -54,10 +88,11 @@ export function RestaurantsPage() {
     setDetail(full)
   }
 
-  const suspend = async (id: string) => {
+  const setActive = async (id: string, active: boolean) => {
     setBusyId(id)
     try {
-      await api.suspend(id)
+      if (active) await api.approve(id)
+      else await api.suspend(id)
       load()
     } finally {
       setBusyId(null)
@@ -79,11 +114,11 @@ export function RestaurantsPage() {
       <div>
         <h1 className="text-xl font-semibold">Restaurants</h1>
         <p className="text-sm text-muted-foreground">
-          View any restaurant's full profile, suspend a live listing, or reinstate one.
+          View any restaurant's full profile, and switch a live listing active or inactive.
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-border pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
         {statusFilters.map((f) => (
           <button
             key={f.key}
@@ -98,6 +133,70 @@ export function RestaurantsPage() {
         ))}
       </div>
 
+      <div className="flex flex-wrap gap-3">
+        <select
+          value={provinceId}
+          onChange={(e) => {
+            setProvinceId(e.target.value)
+            setDistrictId(ALL)
+          }}
+          className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+        >
+          <option value={ALL}>All Cities</option>
+          {provinces.map((p) => (
+            <option key={p.id} value={p.id}>{p.nameEn}</option>
+          ))}
+        </select>
+
+        <select
+          value={districtId}
+          onChange={(e) => setDistrictId(e.target.value)}
+          disabled={!selectedProvince}
+          className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50"
+        >
+          <option value={ALL}>All Districts</option>
+          {selectedProvince?.districts.map((d) => (
+            <option key={d.id} value={d.id}>{d.nameEn}</option>
+          ))}
+        </select>
+
+        <select
+          value={businessTypeId}
+          onChange={(e) => setBusinessTypeId(e.target.value)}
+          className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+        >
+          <option value={ALL}>All Business Types</option>
+          {businessTypes.map((b) => (
+            <option key={b.id} value={b.id}>{b.nameEn}</option>
+          ))}
+        </select>
+
+        <select
+          value={foodCategoryId}
+          onChange={(e) => setFoodCategoryId(e.target.value)}
+          className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+        >
+          <option value={ALL}>All Categories</option>
+          {foodCategories.map((c) => (
+            <option key={c.id} value={c.id}>{c.nameEn}</option>
+          ))}
+        </select>
+
+        {(provinceId !== ALL || districtId !== ALL || businessTypeId !== ALL || foodCategoryId !== ALL) && (
+          <button
+            onClick={() => {
+              setProvinceId(ALL)
+              setDistrictId(ALL)
+              setBusinessTypeId(ALL)
+              setFoodCategoryId(ALL)
+            }}
+            className="rounded-lg px-3 py-1.5 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
@@ -109,22 +208,24 @@ export function RestaurantsPage() {
                 <div className="font-semibold">
                   {r.nameEn} <span className="text-muted-foreground">· {r.nameAr}</span>
                 </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">{r.codeNumber} · {r.phone}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {r.codeNumber} · {r.phone}
+                  {r.province ? ` · ${r.province.nameEn}${r.district ? `, ${r.district.nameEn}` : ''}` : ''}
+                </div>
               </button>
               <div className="flex items-center gap-3">
                 <span className={cn('rounded-full px-2.5 py-1 text-xs', statusStyles[r.status])}>
                   {r.status.replace('_', ' ')}
                 </span>
-                {r.status === 'APPROVED' && (
-                  <button
+                {(r.status === 'APPROVED' || r.status === 'SUSPENDED') && (
+                  <Switch
+                    checked={r.status === 'APPROVED'}
                     disabled={busyId === r.id}
-                    onClick={() => suspend(r.id)}
-                    className="rounded-lg border border-border px-3 py-1.5 text-sm text-destructive disabled:opacity-50"
-                  >
-                    Suspend
-                  </button>
+                    onChange={() => setActive(r.id, r.status !== 'APPROVED')}
+                    label={r.status === 'APPROVED' ? 'Active' : 'Inactive'}
+                  />
                 )}
-                {(r.status === 'SUSPENDED' || r.status === 'REJECTED') && (
+                {r.status === 'REJECTED' && (
                   <button
                     disabled={busyId === r.id}
                     onClick={() => reinstate(r.id)}
@@ -182,7 +283,7 @@ export function RestaurantsPage() {
         ))}
         {!loading && restaurants.length === 0 && !error && (
           <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            No restaurants in this filter.
+            No restaurants match these filters.
           </div>
         )}
       </div>

@@ -77,9 +77,25 @@ export class RestaurantsService {
     });
   }
 
-  list(status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') {
+  list(filters: {
+    status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+    provinceId?: string;
+    districtId?: string;
+    businessTypeId?: string;
+    foodCategoryId?: string;
+  }) {
     return this.prisma.db.restaurant.findMany({
-      where: status ? { status } : undefined,
+      where: {
+        status: filters.status,
+        provinceId: filters.provinceId,
+        districtId: filters.districtId,
+        businessTypes: filters.businessTypeId
+          ? { some: { businessTypeId: filters.businessTypeId } }
+          : undefined,
+        foodCategories: filters.foodCategoryId
+          ? { some: { foodCategoryId: filters.foodCategoryId } }
+          : undefined,
+      },
       orderBy: { createdAt: 'desc' },
       select: restaurantListSelect,
     });

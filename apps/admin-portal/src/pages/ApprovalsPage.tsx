@@ -12,7 +12,7 @@ export function ApprovalsPage() {
   const load = () => {
     setLoading(true)
     api
-      .restaurants('PENDING_REVIEW')
+      .restaurants({ status: 'PENDING_REVIEW' })
       .then(setRestaurants)
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
