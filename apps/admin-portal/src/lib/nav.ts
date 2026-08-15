@@ -13,6 +13,7 @@ export interface NavItem {
   label: string
   path: string
   icon: LucideIcon
+  superAdminOnly?: boolean
 }
 
 export const navItems: NavItem[] = [
@@ -22,5 +23,5 @@ export const navItems: NavItem[] = [
   { label: 'Master Data', path: '/master-data', icon: Tags },
   { label: 'Cities & Districts', path: '/locations', icon: MapPin },
   { label: 'Reviews Moderation', path: '/reviews', icon: MessageSquareWarning },
-  { label: 'Admin Users', path: '/admins', icon: ShieldCheck },
+  { label: 'Admin Users', path: '/admins', icon: ShieldCheck, superAdminOnly: true },
 ]

@@ -21,7 +21,9 @@ export function AdminLayout() {
           <div className="text-xs text-muted-foreground">Restaurant Platform</div>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {navItems.map((item) => (
+          {navItems
+            .filter((item) => !item.superAdminOnly || admin?.role === 'SUPER_ADMIN')
+            .map((item) => (
             <NavLink
               key={item.path}
               to={item.path}

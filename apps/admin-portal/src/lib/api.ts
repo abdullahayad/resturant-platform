@@ -20,6 +20,22 @@ export interface RestaurantListItem {
   district: { id: string; nameEn: string; nameAr: string } | null
 }
 
+export interface AdminUserItem {
+  id: string
+  email: string
+  fullName: string
+  role: 'SUPER_ADMIN' | 'MODERATOR'
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CreateAdminUserPayload {
+  email: string
+  password: string
+  fullName: string
+  role: 'SUPER_ADMIN' | 'MODERATOR'
+}
+
 export type ModerationStatus = 'VISIBLE' | 'FLAGGED' | 'HIDDEN'
 
 export interface ReviewItem {
@@ -146,6 +162,11 @@ export const api = {
   reviews: (status?: ModerationStatus) => get<ReviewItem[]>(`/reviews${status ? `?status=${status}` : ''}`),
   moderateReview: (id: string, status: ModerationStatus) =>
     send<ReviewItem>('PATCH', `/reviews/${id}/moderate`, { status }),
+
+  adminUsers: () => get<AdminUserItem[]>('/admin-users'),
+  createAdminUser: (payload: CreateAdminUserPayload) => send<AdminUserItem>('POST', '/admin-users', payload),
+  updateAdminUser: (id: string, payload: Partial<Pick<AdminUserItem, 'fullName' | 'role' | 'isActive'>>) =>
+    send<AdminUserItem>('PATCH', `/admin-users/${id}`, payload),
 }
 
 export { UnauthorizedError }

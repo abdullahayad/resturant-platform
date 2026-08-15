@@ -11,6 +11,7 @@ import { StoriesModule } from './stories/stories.module';
 import { DishesModule } from './dishes/dishes.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     DishesModule,
     GalleryModule,
     ReviewsModule,
+    AdminUsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
