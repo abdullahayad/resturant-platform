@@ -4,6 +4,7 @@ export interface MasterDataItem {
   id: string;
   nameEn: string;
   nameAr: string;
+  sortOrder?: number;
 }
 
 export interface District extends MasterDataItem {}

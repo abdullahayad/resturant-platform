@@ -42,11 +42,16 @@ const foodCategories = [
   ['Drinks', 'مشروبات'],
 ];
 
+// Order here is the menu's serving order (starters → soup → mains → sides →
+// dessert → drinks) — sortOrder drives both the Menu Management picker and
+// the Photo Gallery's per-category tabs, and is editable from Master Data.
 const menuCategories = [
-  ['Soup', 'شوربة'],
   ['Appetizer', 'مقبلات'],
+  ['Soup', 'شوربة'],
   ['Grill', 'مشاوي'],
+  ['BBQ', 'باربكيو'],
   ['Main Course', 'طبق رئيسي'],
+  ['Side Dish', 'طبق جانبي'],
   ['Sweet', 'حلويات'],
   ['Drink', 'مشروبات'],
 ];

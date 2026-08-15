@@ -50,11 +50,15 @@ export function PhotoGalleryScreen() {
   useEffect(loadAll, [loadAll]);
 
   const foodCategoryTabs = useMemo(() => {
-    const seen = new Map<string, string>();
+    const seen = new Map<string, { label: string; sortOrder: number }>();
     dishes.forEach((d) => {
-      if (d.menuCategory) seen.set(d.menuCategory.id, d.menuCategory.nameEn);
+      if (d.menuCategory) {
+        seen.set(d.menuCategory.id, { label: d.menuCategory.nameEn, sortOrder: d.menuCategory.sortOrder ?? 0 });
+      }
     });
-    return Array.from(seen, ([id, label]) => ({ id, label }));
+    return Array.from(seen, ([id, { label, sortOrder }]) => ({ id, label, sortOrder })).sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
   }, [dishes]);
 
   const foodPhotos = useMemo(() => {
