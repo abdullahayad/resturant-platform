@@ -12,6 +12,7 @@ import { DishesModule } from './dishes/dishes.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AdminUsersModule } from './admin-users/admin-users.module';
     GalleryModule,
     ReviewsModule,
     AdminUsersModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

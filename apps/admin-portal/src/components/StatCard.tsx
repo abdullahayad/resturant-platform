@@ -1,16 +1,18 @@
 import type { LucideIcon } from 'lucide-react'
-import { TrendingUp } from 'lucide-react'
+import { TrendingDown, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StatCardProps {
   label: string
   value: string
   trend?: string
+  /** 'up'/'down' render a colored trend arrow (only use for an actual computed delta); 'neutral' (default) is a plain caption. */
+  tone?: 'up' | 'down' | 'neutral'
   icon?: LucideIcon
   className?: string
 }
 
-export function StatCard({ label, value, trend, icon: Icon, className }: StatCardProps) {
+export function StatCard({ label, value, trend, tone = 'neutral', icon: Icon, className }: StatCardProps) {
   return (
     <div
       className={cn(
@@ -24,8 +26,16 @@ export function StatCard({ label, value, trend, icon: Icon, className }: StatCar
       </div>
       <div className="mt-2 text-2xl font-semibold">{value}</div>
       {trend && (
-        <div className="mt-1 flex items-center gap-1 text-xs text-success">
-          <TrendingUp className="size-3.5" />
+        <div
+          className={cn(
+            'mt-1 flex items-center gap-1 text-xs',
+            tone === 'up' && 'text-success',
+            tone === 'down' && 'text-destructive',
+            tone === 'neutral' && 'text-muted-foreground',
+          )}
+        >
+          {tone === 'up' && <TrendingUp className="size-3.5" />}
+          {tone === 'down' && <TrendingDown className="size-3.5" />}
           <span>{trend}</span>
         </div>
       )}

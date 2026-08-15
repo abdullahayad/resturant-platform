@@ -36,6 +36,16 @@ export interface CreateAdminUserPayload {
   role: 'SUPER_ADMIN' | 'MODERATOR'
 }
 
+export interface PlatformStats {
+  totalPartners: number
+  activeCount: number
+  inactiveCount: number
+  pendingApprovals: number
+  rejectedCount: number
+  totalReviews: number
+  flaggedReviews: number
+}
+
 export type ModerationStatus = 'VISIBLE' | 'FLAGGED' | 'HIDDEN'
 
 export interface ReviewItem {
@@ -176,6 +186,8 @@ export const api = {
   reviews: (status?: ModerationStatus) => get<ReviewItem[]>(`/reviews${status ? `?status=${status}` : ''}`),
   moderateReview: (id: string, status: ModerationStatus) =>
     send<ReviewItem>('PATCH', `/reviews/${id}/moderate`, { status }),
+
+  platformStats: () => get<PlatformStats>('/admin/stats'),
 
   adminUsers: () => get<AdminUserItem[]>('/admin-users'),
   createAdminUser: (payload: CreateAdminUserPayload) => send<AdminUserItem>('POST', '/admin-users', payload),
