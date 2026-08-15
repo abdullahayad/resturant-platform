@@ -20,6 +20,14 @@ export interface RestaurantListItem {
   district: { id: string; nameEn: string; nameAr: string } | null
 }
 
+export interface RestaurantDetail extends RestaurantListItem {
+  latitude: number | null
+  longitude: number | null
+  businessTypes: { businessType: { id: string; nameEn: string; nameAr: string } }[]
+  foodCategories: { foodCategory: { id: string; nameEn: string; nameAr: string } }[]
+  facilities: { facility: { id: string; nameEn: string; nameAr: string } }[]
+}
+
 export type MasterDataKind = 'business-types' | 'food-categories' | 'menu-categories' | 'facilities'
 
 export interface MasterDataItemFull {
@@ -95,6 +103,7 @@ export const api = {
 
   restaurants: (status?: RestaurantStatus) =>
     get<RestaurantListItem[]>(`/restaurants${status ? `?status=${status}` : ''}`),
+  restaurant: (id: string) => get<RestaurantDetail>(`/restaurants/${id}`),
   approve: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/approve`),
   reject: (id: string, reason?: string) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/reject`, { reason }),

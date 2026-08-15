@@ -57,4 +57,10 @@ export class RestaurantsController {
   suspend(@Param('id') id: string) {
     return this.restaurants.suspend(id);
   }
+
+  @UseGuards(AdminAuthGuard)
+  @Patch(':id')
+  adminUpdate(@Param('id') id: string, @Body() dto: UpdateRestaurantProfileDto) {
+    return this.restaurants.updateProfile(id, dto);
+  }
 }
