@@ -201,6 +201,10 @@ model Restaurant {
   ownerEmail        String @unique
   ownerPasswordHash String
 
+  // Notification preferences (Settings & Staff)
+  notifyNewReview  Boolean @default(true)
+  notifyNewBooking Boolean @default(true)
+
   // Admin moderation trail
   reviewedById    String?
   reviewedAt      DateTime?

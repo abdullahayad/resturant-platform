@@ -3,6 +3,8 @@ import { RestaurantsService } from './restaurants.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
 import { ListRestaurantsQuery, RejectRestaurantDto } from './dto/update-restaurant-status.dto';
 import { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -26,6 +28,18 @@ export class RestaurantsController {
   @Patch('me')
   updateMe(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateRestaurantProfileDto) {
     return this.restaurants.updateProfile(req.user.sub, dto);
+  }
+
+  @UseGuards(PartnerAuthGuard)
+  @Patch('me/password')
+  changePassword(@Req() req: { user: PartnerJwtPayload }, @Body() dto: ChangePasswordDto) {
+    return this.restaurants.changePassword(req.user.sub, dto);
+  }
+
+  @UseGuards(PartnerAuthGuard)
+  @Patch('me/notifications')
+  updateNotifications(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateNotificationPrefsDto) {
+    return this.restaurants.updateNotificationPrefs(req.user.sub, dto);
   }
 
   @UseGuards(AdminAuthGuard)

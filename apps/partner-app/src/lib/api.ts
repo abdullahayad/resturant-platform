@@ -46,6 +46,8 @@ export interface RestaurantDetail extends AuthenticatedRestaurant {
   logoUrl: string | null;
   latitude: number | null;
   longitude: number | null;
+  notifyNewReview: boolean;
+  notifyNewBooking: boolean;
   province: MasterDataItem | null;
   district: MasterDataItem | null;
   businessTypes: { businessType: MasterDataItem }[];
@@ -138,6 +140,24 @@ export interface ReviewSummary {
   positiveSentimentPct: number;
   distribution: { star: number; count: number; pct: number }[];
   categoryScores: ReviewCategoryScore[];
+}
+
+export type StaffRole = 'MANAGER' | 'MENU_EDITOR';
+
+export interface StaffMember {
+  id: string;
+  email: string;
+  fullName: string;
+  role: StaffRole;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface InviteStaffPayload {
+  email: string;
+  password: string;
+  fullName: string;
+  role: StaffRole;
 }
 
 async function get<T>(path: string, token?: string): Promise<T> {
@@ -242,4 +262,17 @@ export const api = {
   reviewsSummary: (token: string) => get<ReviewSummary>('/restaurants/me/reviews/summary', token),
   replyToReview: (token: string, reviewId: string, text: string) =>
     send<Review>('POST', `/restaurants/me/reviews/${reviewId}/reply`, token, { text }),
+
+  changePassword: (token: string, currentPassword: string, newPassword: string) =>
+    send<{ success: boolean }>('PATCH', '/restaurants/me/password', token, { currentPassword, newPassword }),
+  updateNotificationPrefs: (token: string, payload: { notifyNewReview?: boolean; notifyNewBooking?: boolean }) =>
+    send<RestaurantDetail>('PATCH', '/restaurants/me/notifications', token, payload),
+
+  staff: (token: string) => get<StaffMember[]>('/restaurants/me/staff', token),
+  inviteStaff: (token: string, payload: InviteStaffPayload) =>
+    send<StaffMember>('POST', '/restaurants/me/staff', token, payload),
+  updateStaff: (token: string, id: string, payload: Partial<Pick<StaffMember, 'fullName' | 'role' | 'isActive'>>) =>
+    send<StaffMember>('PATCH', `/restaurants/me/staff/${id}`, token, payload),
+  removeStaff: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/staff/${id}`, token),
 };

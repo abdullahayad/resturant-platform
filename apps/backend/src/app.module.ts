@@ -13,6 +13,7 @@ import { GalleryModule } from './gallery/gallery.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { StatsModule } from './stats/stats.module';
+import { StaffModule } from './staff/staff.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StatsModule } from './stats/stats.module';
     ReviewsModule,
     AdminUsersModule,
     StatsModule,
+    StaffModule,
   ],
   controllers: [AppController],
   providers: [AppService],

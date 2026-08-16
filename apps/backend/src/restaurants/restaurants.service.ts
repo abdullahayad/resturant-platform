@@ -1,8 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
 import type { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
+import type { ChangePasswordDto } from './dto/change-password.dto';
+import type { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 
 const restaurantListSelect = {
   id: true,
@@ -24,6 +26,8 @@ const restaurantDetailSelect = {
   ...restaurantListSelect,
   latitude: true,
   longitude: true,
+  notifyNewReview: true,
+  notifyNewBooking: true,
   businessTypes: { select: { businessType: true } },
   foodCategories: { select: { foodCategory: true } },
   facilities: { select: { facility: true } },
@@ -176,6 +180,27 @@ export class RestaurantsService {
     }
 
     return this.findOne(id);
+  }
+
+  async changePassword(id: string, dto: ChangePasswordDto) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({ where: { id } });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+
+    const matches = await bcrypt.compare(dto.currentPassword, restaurant.ownerPasswordHash);
+    if (!matches) throw new BadRequestException('Current password is incorrect');
+
+    const ownerPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.db.restaurant.update({ where: { id }, data: { ownerPasswordHash } });
+    return { success: true };
+  }
+
+  async updateNotificationPrefs(id: string, dto: UpdateNotificationPrefsDto) {
+    await this.ensureExists(id);
+    return this.prisma.db.restaurant.update({
+      where: { id },
+      data: { notifyNewReview: dto.notifyNewReview, notifyNewBooking: dto.notifyNewBooking },
+      select: restaurantDetailSelect,
+    });
   }
 
   private async ensureExists(id: string) {
