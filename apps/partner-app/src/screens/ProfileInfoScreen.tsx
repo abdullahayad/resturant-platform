@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -72,6 +72,13 @@ export function ProfileInfoScreen() {
   };
 
   const selectedProvince = provinces.find((p) => p.id === provinceId);
+
+  const hasValidPin = latitude.trim() !== '' && longitude.trim() !== '' && !Number.isNaN(Number(latitude)) && !Number.isNaN(Number(longitude));
+
+  const openInGoogleMaps = () => {
+    if (!hasValidPin) return;
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
+  };
 
   const handleSave = async () => {
     setSaveMessage(null);
@@ -191,8 +198,16 @@ export function ProfileInfoScreen() {
             <FormField label="Longitude" value={longitude} onChangeText={setLongitude} keyboardType="numeric" placeholder="44.3661" />
           </View>
         </View>
+        <Pressable
+          style={[styles.button, styles.secondaryButton, !hasValidPin && styles.buttonDisabled]}
+          onPress={openInGoogleMaps}
+          disabled={!hasValidPin}
+        >
+          <Text style={styles.secondaryButtonText}>📍 Open in Google Maps</Text>
+        </Pressable>
         <Text style={styles.hint}>
           Numeric pin for now — an embedded map picker needs a Google Maps API key to enable.
+          Opening in Google Maps above works either way, no key required.
         </Text>
       </View>
 
@@ -262,6 +277,7 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   hint: { fontSize: 12, color: colors.mutedForeground },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  buttonDisabled: { opacity: 0.5 },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   secondaryButton: { borderWidth: 1, borderColor: colors.border },
