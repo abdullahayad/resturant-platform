@@ -226,6 +226,7 @@ model Restaurant {
   reviews           Review[]
   chefTableBookings ChefTableBooking[]
   staffUsers        PartnerStaffUser[]
+  openingHours      OpeningHours[]
 
   @@index([status])
   @@index([provinceId])
@@ -417,4 +418,22 @@ model PartnerStaffUser {
 
   @@unique([restaurantId, email])
   @@map("partner_staff_users")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Opening hours (Profile & Info)
+// ────────────────────────────────────────────────────────────────────────────
+
+model OpeningHours {
+  id           String  @id @default(uuid())
+  restaurantId String
+  dayOfWeek    Int // 0 = Sunday ... 6 = Saturday (JS Date.getDay() convention)
+  isClosed     Boolean @default(false)
+  openTime     String? // "HH:mm", 24-hour
+  closeTime    String? // "HH:mm", 24-hour
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, dayOfWeek])
+  @@map("opening_hours")
 }

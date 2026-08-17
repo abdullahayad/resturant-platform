@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
-import { api, type MasterDataItem, type Province, type RestaurantDetail, type Story } from '../lib/api';
+import { api, type MasterDataItem, type OpeningHoursDay, type Province, type RestaurantDetail, type Story } from '../lib/api';
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const defaultOpeningHours = (): OpeningHoursDay[] =>
+  DAY_NAMES.map((_, dayOfWeek) => ({ dayOfWeek, isClosed: false, openTime: '09:00', closeTime: '22:00' }));
 
 export function ProfileInfoScreen() {
   const { token, restaurant, setRestaurant } = useAuth();
@@ -29,10 +34,13 @@ export function ProfileInfoScreen() {
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [storyCaption, setStoryCaption] = useState('');
+  const [openingHours, setOpeningHours] = useState<OpeningHoursDay[]>(defaultOpeningHours());
 
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [uploadingStory, setUploadingStory] = useState(false);
+  const [savingHours, setSavingHours] = useState(false);
+  const [hoursMessage, setHoursMessage] = useState<string | null>(null);
 
   const loadAll = useCallback(() => {
     Promise.all([
@@ -61,6 +69,9 @@ export function ProfileInfoScreen() {
         setDistrictId(me.district?.id ?? null);
         setLatitude(me.latitude != null ? String(me.latitude) : '');
         setLongitude(me.longitude != null ? String(me.longitude) : '');
+        if (me.openingHours.length === 7) {
+          setOpeningHours([...me.openingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek));
+        }
       })
       .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
   }, [token]);
@@ -103,6 +114,24 @@ export function ProfileInfoScreen() {
       setSaveMessage(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const updateDay = (dayOfWeek: number, patch: Partial<OpeningHoursDay>) => {
+    setOpeningHours((prev) => prev.map((d) => (d.dayOfWeek === dayOfWeek ? { ...d, ...patch } : d)));
+  };
+
+  const handleSaveHours = async () => {
+    setHoursMessage(null);
+    setSavingHours(true);
+    try {
+      const updated = await api.updateOpeningHours(token, openingHours);
+      setOpeningHours([...updated.openingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek));
+      setHoursMessage('Hours saved.');
+    } catch (err) {
+      setHoursMessage(err instanceof Error ? err.message : 'Could not save hours');
+    } finally {
+      setSavingHours(false);
     }
   };
 
@@ -212,6 +241,50 @@ export function ProfileInfoScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Opening Hours</Text>
+        {openingHours.map((day) => (
+          <View key={day.dayOfWeek} style={styles.hoursRow}>
+            <Text style={styles.hoursDayLabel}>{DAY_NAMES[day.dayOfWeek]}</Text>
+            {!day.isClosed && (
+              <View style={styles.hoursTimes}>
+                <TextInput
+                  value={day.openTime ?? ''}
+                  onChangeText={(v) => updateDay(day.dayOfWeek, { openTime: v })}
+                  placeholder="09:00"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={styles.hoursInput}
+                />
+                <Text style={styles.hoursDash}>–</Text>
+                <TextInput
+                  value={day.closeTime ?? ''}
+                  onChangeText={(v) => updateDay(day.dayOfWeek, { closeTime: v })}
+                  placeholder="22:00"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={styles.hoursInput}
+                />
+              </View>
+            )}
+            <View style={styles.hoursClosedToggle}>
+              <Text style={styles.hoursClosedLabel}>Closed</Text>
+              <Switch
+                value={day.isClosed}
+                onValueChange={(v) => updateDay(day.dayOfWeek, { isClosed: v })}
+                trackColor={{ true: colors.destructive, false: colors.secondary }}
+              />
+            </View>
+          </View>
+        ))}
+        {hoursMessage && <Text style={styles.saveMessage}>{hoursMessage}</Text>}
+        <Pressable style={[styles.button, styles.secondaryButton]} onPress={handleSaveHours} disabled={savingHours}>
+          {savingHours ? (
+            <ActivityIndicator color={colors.foreground} />
+          ) : (
+            <Text style={styles.secondaryButtonText}>Save Hours</Text>
+          )}
+        </Pressable>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Facilities & Amenities</Text>
         <ChipSelect
           options={facilities.map((f) => ({ id: f.id, label: f.nameEn }))}
@@ -295,4 +368,29 @@ const styles = StyleSheet.create({
   storyImage: { width: '100%', height: 140, backgroundColor: colors.secondary },
   storyCaption: { fontSize: 12, color: colors.foreground, padding: 8, paddingBottom: 0 },
   storyExpiry: { fontSize: 11, color: colors.mutedForeground, padding: 8, paddingTop: 4 },
+  hoursRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+  },
+  hoursDayLabel: { width: 90, fontSize: 13, color: colors.foreground, fontWeight: '600' },
+  hoursTimes: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  hoursInput: {
+    width: 72,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: colors.secondary,
+    color: colors.foreground,
+    paddingVertical: 8,
+    textAlign: 'center',
+    fontSize: 13,
+  },
+  hoursDash: { color: colors.mutedForeground },
+  hoursClosedToggle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hoursClosedLabel: { fontSize: 12, color: colors.mutedForeground },
 });

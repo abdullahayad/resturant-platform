@@ -41,6 +41,13 @@ export interface PartnerLoginResult {
   restaurant: AuthenticatedRestaurant;
 }
 
+export interface OpeningHoursDay {
+  dayOfWeek: number; // 0 = Sunday ... 6 = Saturday
+  isClosed: boolean;
+  openTime: string | null;
+  closeTime: string | null;
+}
+
 export interface RestaurantDetail extends AuthenticatedRestaurant {
   phone: string;
   logoUrl: string | null;
@@ -53,6 +60,7 @@ export interface RestaurantDetail extends AuthenticatedRestaurant {
   businessTypes: { businessType: MasterDataItem }[];
   foodCategories: { foodCategory: MasterDataItem }[];
   facilities: { facility: MasterDataItem }[];
+  openingHours: OpeningHoursDay[];
 }
 
 export interface UpdateRestaurantProfilePayload {
@@ -218,6 +226,8 @@ export const api = {
   me: (token: string) => get<RestaurantDetail>('/restaurants/me', token),
   updateMe: (token: string, payload: UpdateRestaurantProfilePayload) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me', token, payload),
+  updateOpeningHours: (token: string, days: OpeningHoursDay[]) =>
+    send<RestaurantDetail>('PATCH', '/restaurants/me/hours', token, { days }),
 
   async uploadFile(token: string, file: { uri: string; name: string; type: string }): Promise<{ url: string }> {
     const form = new FormData();

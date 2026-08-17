@@ -5,6 +5,7 @@ import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
 import type { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
+import type { DayHoursDto } from './dto/opening-hours.dto';
 
 const restaurantListSelect = {
   id: true,
@@ -31,6 +32,7 @@ const restaurantDetailSelect = {
   businessTypes: { select: { businessType: true } },
   foodCategories: { select: { foodCategory: true } },
   facilities: { select: { facility: true } },
+  openingHours: { orderBy: { dayOfWeek: 'asc' } },
 } as const;
 
 @Injectable()
@@ -201,6 +203,21 @@ export class RestaurantsService {
       data: { notifyNewReview: dto.notifyNewReview, notifyNewBooking: dto.notifyNewBooking },
       select: restaurantDetailSelect,
     });
+  }
+
+  async updateOpeningHours(id: string, days: DayHoursDto[]) {
+    await this.ensureExists(id);
+    await this.prisma.db.openingHours.deleteMany({ where: { restaurantId: id } });
+    await this.prisma.db.openingHours.createMany({
+      data: days.map((d) => ({
+        restaurantId: id,
+        dayOfWeek: d.dayOfWeek,
+        isClosed: d.isClosed,
+        openTime: d.isClosed ? null : (d.openTime ?? null),
+        closeTime: d.isClosed ? null : (d.closeTime ?? null),
+      })),
+    });
+    return this.findOne(id);
   }
 
   private async ensureExists(id: string) {

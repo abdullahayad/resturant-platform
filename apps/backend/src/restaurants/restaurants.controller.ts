@@ -5,6 +5,7 @@ import { ListRestaurantsQuery, RejectRestaurantDto } from './dto/update-restaura
 import { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
+import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -40,6 +41,12 @@ export class RestaurantsController {
   @Patch('me/notifications')
   updateNotifications(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateNotificationPrefsDto) {
     return this.restaurants.updateNotificationPrefs(req.user.sub, dto);
+  }
+
+  @UseGuards(PartnerAuthGuard)
+  @Patch('me/hours')
+  updateHours(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateOpeningHoursDto) {
+    return this.restaurants.updateOpeningHours(req.user.sub, dto.days);
   }
 
   @UseGuards(AdminAuthGuard)
