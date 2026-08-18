@@ -1,14 +1,17 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateReservationDto {
   @IsString()
+  @MaxLength(100)
   guestName: string;
 
   @IsString()
+  @MaxLength(30)
   guestPhone: string;
 
   @IsInt()
   @Min(1)
+  @Max(200)
   partySize: number;
 
   @IsDateString()
@@ -16,7 +19,13 @@ export class CreateReservationDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   notes?: string;
+}
+
+export class AvailabilityQueryDto {
+  @IsDateString()
+  date: string;
 }
 
 const STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'] as const;

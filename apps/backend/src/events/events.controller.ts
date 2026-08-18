@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { EventsService } from './events.service';
 import { CreateEventDto, UpdateEventDto } from './dto/event.dto';
-import { CreateReservationDto, UpdateReservationStatusDto } from './dto/reservation.dto';
+import { AvailabilityQueryDto, CreateReservationDto, UpdateReservationStatusDto } from './dto/reservation.dto';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
@@ -58,10 +59,13 @@ export class EventsController {
   }
 
   @Get('restaurants/:id/events/:eventId/availability')
-  availability(@Param('id') id: string, @Param('eventId') eventId: string, @Query('date') date: string) {
-    return this.events.availability(id, eventId, date);
+  availability(@Param('id') id: string, @Param('eventId') eventId: string, @Query() query: AvailabilityQueryDto) {
+    return this.events.availability(id, eventId, query.date);
   }
 
+  // Tighter throttle than the app default — this is an unauthenticated
+  // write with no other abuse protection (see security review).
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('restaurants/:id/events/:eventId/reservations')
   reserve(@Param('id') id: string, @Param('eventId') eventId: string, @Body() dto: CreateReservationDto) {
     return this.events.createReservation(id, eventId, dto);

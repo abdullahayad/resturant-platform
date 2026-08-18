@@ -155,11 +155,48 @@ export class EventsService {
     return reservations.reduce((sum, r) => sum + r.partySize, 0);
   }
 
-  async availability(restaurantId: string, eventId: string, dateStr: string) {
-    const event = await this.prisma.db.restaurantEvent.findUnique({ where: { id: eventId } });
-    if (!event || event.restaurantId !== restaurantId || !event.isActive) {
+  // A publicly bookable event must belong to an active restaurant that is
+  // still APPROVED — mirrors reviews.service.ts's check for public writes.
+  private async findBookableEvent(restaurantId: string, eventId: string) {
+    const event = await this.prisma.db.restaurantEvent.findUnique({
+      where: { id: eventId },
+      include: { restaurant: { select: { status: true } } },
+    });
+    if (
+      !event ||
+      event.restaurantId !== restaurantId ||
+      !event.isActive ||
+      event.restaurant.status !== 'APPROVED'
+    ) {
       throw new NotFoundException('Event not found');
     }
+    return event;
+  }
+
+  // A reservationDate is only meaningful if it's an actual occurrence of the
+  // event — otherwise a client could pick an arbitrary date to dodge the
+  // capacity check on the real one.
+  private assertValidOccurrence(event: { isRecurring: boolean; eventDate: Date | null; recurringDayOfWeek: number | null }, dateStr: string) {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('reservationDate is not a valid date');
+    }
+    if (event.isRecurring) {
+      if (date.getDay() !== event.recurringDayOfWeek) {
+        throw new BadRequestException('reservationDate does not fall on this event\'s recurring day');
+      }
+    } else {
+      const eventDay = event.eventDate ? this.dayBounds(event.eventDate.toISOString()).start.getTime() : null;
+      const requestedDay = this.dayBounds(dateStr).start.getTime();
+      if (eventDay == null || requestedDay !== eventDay) {
+        throw new BadRequestException('reservationDate does not match this event\'s date');
+      }
+    }
+  }
+
+  async availability(restaurantId: string, eventId: string, dateStr: string) {
+    const event = await this.findBookableEvent(restaurantId, eventId);
+    this.assertValidOccurrence(event, dateStr);
     if (event.capacity == null) {
       return { capacity: null, reserved: 0, remaining: null };
     }
@@ -168,30 +205,38 @@ export class EventsService {
   }
 
   async createReservation(restaurantId: string, eventId: string, dto: CreateReservationDto) {
-    const event = await this.prisma.db.restaurantEvent.findUnique({ where: { id: eventId } });
-    if (!event || event.restaurantId !== restaurantId || !event.isActive) {
-      throw new NotFoundException('Event not found');
-    }
+    const event = await this.findBookableEvent(restaurantId, eventId);
+    this.assertValidOccurrence(event, dto.reservationDate);
 
-    if (event.capacity != null) {
-      const reserved = await this.reservedCount(eventId, dto.reservationDate);
-      if (reserved + dto.partySize > event.capacity) {
-        throw new BadRequestException('This event is fully booked for that date');
-      }
-    }
+    return this.prisma.db.$transaction(
+      async (tx) => {
+        if (event.capacity != null) {
+          const { start, end } = this.dayBounds(dto.reservationDate);
+          const existing = await tx.chefTableBooking.findMany({
+            where: { eventId, status: { in: [...ACTIVE_STATUSES] }, reservationDate: { gte: start, lt: end } },
+            select: { partySize: true },
+          });
+          const reserved = existing.reduce((sum, r) => sum + r.partySize, 0);
+          if (reserved + dto.partySize > event.capacity) {
+            throw new BadRequestException('This event is fully booked for that date');
+          }
+        }
 
-    return this.prisma.db.chefTableBooking.create({
-      data: {
-        restaurantId,
-        eventId,
-        guestName: dto.guestName,
-        guestPhone: dto.guestPhone,
-        partySize: dto.partySize,
-        reservationDate: new Date(dto.reservationDate),
-        notes: dto.notes,
+        return tx.chefTableBooking.create({
+          data: {
+            restaurantId,
+            eventId,
+            guestName: dto.guestName,
+            guestPhone: dto.guestPhone,
+            partySize: dto.partySize,
+            reservationDate: new Date(dto.reservationDate),
+            notes: dto.notes,
+          },
+          select: reservationSelect,
+        });
       },
-      select: reservationSelect,
-    });
+      { isolationLevel: 'Serializable' },
+    );
   }
 
   listReservations(restaurantId: string) {
