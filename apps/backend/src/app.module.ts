@@ -14,6 +14,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { StatsModule } from './stats/stats.module';
 import { StaffModule } from './staff/staff.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StaffModule } from './staff/staff.module';
     AdminUsersModule,
     StatsModule,
     StaffModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

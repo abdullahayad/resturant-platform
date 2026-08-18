@@ -8,6 +8,7 @@ const tabs: { key: MasterDataKind; label: string; showIcon?: boolean }[] = [
   { key: 'food-categories', label: 'Food Categories' },
   { key: 'menu-categories', label: 'Menu Categories' },
   { key: 'facilities', label: 'Facilities & Amenities', showIcon: true },
+  { key: 'event-types', label: 'Event Types', showIcon: true },
 ]
 
 export function MasterDataPage() {

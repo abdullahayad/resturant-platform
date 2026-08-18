@@ -97,6 +97,16 @@ const facilities = [
   ['Kids Area', 'منطقة أطفال'],
 ];
 
+const eventTypes: [string, string, string][] = [
+  ['Buffet Night', 'ليلة البوفيه', '🍽️'],
+  ['Live Music', 'موسيقى حية', '🎸'],
+  ['Singer Night', 'ليلة المطرب', '🎤'],
+  ['Karaoke', 'كاريوكي', '🎶'],
+  ['Sports Screening', 'عرض رياضي', '📺'],
+  ['Holiday Special', 'عرض العطلة', '🎉'],
+  ["Chef's Table", 'طاولة الشيف', '👨‍🍳'],
+];
+
 const provinces: Record<string, string[][]> = {
   'Baghdad|بغداد': [
     ['Karkh', 'الكرخ'],
@@ -133,6 +143,13 @@ async function main() {
   await seedList(db.foodCategory, foodCategories);
   await seedList(db.menuCategory, menuCategories);
   await seedList(db.facility, facilities);
+
+  if ((await db.eventType.count()) === 0) {
+    await db.eventType.createMany({
+      data: eventTypes.map(([nameEn, nameAr, icon], index) => ({ nameEn, nameAr, icon, sortOrder: index })),
+    });
+    console.log('Seeded event types.');
+  }
 
   if ((await db.province.count()) === 0) {
     let sortOrder = 0;
@@ -292,6 +309,53 @@ async function main() {
       });
     }
     console.log(`Seeded ${galleryPhotos.length} demo gallery photos.`);
+  }
+
+  if (demoRestaurant && (await db.restaurantEvent.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
+    const buffetType = await db.eventType.findFirst({ where: { nameEn: 'Buffet Night' } });
+    const musicType = await db.eventType.findFirst({ where: { nameEn: 'Live Music' } });
+    const chefType = await db.eventType.findFirst({ where: { nameEn: "Chef's Table" } });
+
+    const inDays = (n: number) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
+
+    await db.restaurantEvent.createMany({
+      data: [
+        {
+          restaurantId: demoRestaurant.id,
+          eventTypeId: buffetType!.id,
+          titleEn: 'Ramadan Buffet Night',
+          titleAr: 'ليلة بوفيه رمضان',
+          descriptionEn: 'All-you-can-eat traditional Iraqi dishes.',
+          descriptionAr: 'بوفيه مفتوح من الأطباق العراقية التقليدية.',
+          price: 25000,
+          isRecurring: false,
+          eventDate: inDays(10),
+        },
+        {
+          restaurantId: demoRestaurant.id,
+          eventTypeId: musicType!.id,
+          titleEn: 'Friday Live Music',
+          titleAr: 'موسيقى حية كل جمعة',
+          descriptionEn: 'Live oud and vocals every Friday evening.',
+          descriptionAr: 'عزف عود وغناء حي مساء كل جمعة.',
+          isRecurring: true,
+          recurringDayOfWeek: 5,
+          recurringTime: '20:00',
+        },
+        {
+          restaurantId: demoRestaurant.id,
+          eventTypeId: chefType!.id,
+          titleEn: "Chef's Table Experience",
+          titleAr: 'تجربة طاولة الشيف',
+          descriptionEn: 'A curated multi-course tasting menu with the head chef.',
+          descriptionAr: 'قائمة تذوق متعددة الأطباق مع الشيف الرئيسي.',
+          price: 60000,
+          isRecurring: false,
+          eventDate: inDays(20),
+        },
+      ],
+    });
+    console.log('Seeded 3 demo events.');
   }
 
   console.log('Seed complete.');

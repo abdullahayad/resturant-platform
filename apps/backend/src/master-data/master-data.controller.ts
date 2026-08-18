@@ -39,6 +39,11 @@ export class MasterDataController {
     return this.masterData.provinces();
   }
 
+  @Get('event-types')
+  eventTypes() {
+    return this.masterData.eventTypes();
+  }
+
   // ── admin CRUD ─────────────────────────────────────────────────────
   @UseGuards(AdminAuthGuard)
   @Get('admin/business-types')
@@ -122,6 +127,27 @@ export class MasterDataController {
   @Delete('admin/facilities/:id')
   deleteFacility(@Param('id') id: string) {
     return this.masterData.deleteFacility(id);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Get('admin/event-types')
+  adminEventTypes() {
+    return this.masterData.allEventTypes();
+  }
+  @UseGuards(AdminAuthGuard)
+  @Post('admin/event-types')
+  createEventType(@Body() dto: CreateMasterDataItemDto) {
+    return this.masterData.createEventType(dto);
+  }
+  @UseGuards(AdminAuthGuard)
+  @Patch('admin/event-types/:id')
+  updateEventType(@Param('id') id: string, @Body() dto: UpdateMasterDataItemDto) {
+    return this.masterData.updateEventType(id, dto);
+  }
+  @UseGuards(AdminAuthGuard)
+  @Delete('admin/event-types/:id')
+  deleteEventType(@Param('id') id: string) {
+    return this.masterData.deleteEventType(id);
   }
 
   @UseGuards(AdminAuthGuard)

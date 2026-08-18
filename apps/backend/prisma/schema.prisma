@@ -127,6 +127,21 @@ model Facility {
   @@map("facilities")
 }
 
+model EventType {
+  id        String   @id @default(uuid())
+  nameEn    String
+  nameAr    String
+  icon      String? // emoji identifier for UI
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events RestaurantEvent[]
+
+  @@map("event_types")
+}
+
 model Province {
   id        String   @id @default(uuid())
   nameEn    String
@@ -227,6 +242,7 @@ model Restaurant {
   chefTableBookings ChefTableBooking[]
   staffUsers        PartnerStaffUser[]
   openingHours      OpeningHours[]
+  events            RestaurantEvent[]
 
   @@index([status])
   @@index([provinceId])
@@ -397,6 +413,37 @@ model ChefTableBooking {
 
   @@index([restaurantId, status])
   @@map("chef_table_bookings")
+}
+
+// Restaurant-created event listings (buffet nights, live music, chef's
+// table, etc.) shown under the partner app's "Chef Table & Events" screen.
+// Announcement-only for now — no RSVP/booking flow (see ChefTableBooking
+// above for that, unused until a customer app exists to book against it).
+model RestaurantEvent {
+  id            String   @id @default(uuid())
+  restaurantId  String
+  eventTypeId   String
+  titleEn       String
+  titleAr       String
+  descriptionEn String?
+  descriptionAr String?
+  photoUrl      String?
+  price         Decimal? @db.Decimal(10, 2)
+
+  isRecurring        Boolean   @default(false)
+  eventDate          DateTime? // one-off events: specific date & time
+  recurringDayOfWeek Int? // recurring events: 0 = Sunday ... 6 = Saturday
+  recurringTime      String? // recurring events: "HH:mm"
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  eventType  EventType  @relation(fields: [eventTypeId], references: [id])
+
+  @@index([restaurantId, isActive])
+  @@map("restaurant_events")
 }
 
 // ────────────────────────────────────────────────────────────────────────────

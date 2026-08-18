@@ -36,6 +36,9 @@ export class MasterDataService {
   facilities() {
     return this.listActive(this.prisma.db.facility);
   }
+  eventTypes() {
+    return this.listActive(this.prisma.db.eventType);
+  }
   provinces() {
     return this.prisma.db.province.findMany({
       where: { isActive: true },
@@ -95,6 +98,19 @@ export class MasterDataService {
   }
   deleteFacility(id: string) {
     return this.remove(this.prisma.db.facility, id);
+  }
+
+  allEventTypes() {
+    return this.listAll(this.prisma.db.eventType);
+  }
+  createEventType(dto: CreateMasterDataItemDto) {
+    return this.create(this.prisma.db.eventType, dto);
+  }
+  updateEventType(id: string, dto: UpdateMasterDataItemDto) {
+    return this.update(this.prisma.db.eventType, id, dto);
+  }
+  deleteEventType(id: string) {
+    return this.remove(this.prisma.db.eventType, id);
   }
 
   allProvinces() {

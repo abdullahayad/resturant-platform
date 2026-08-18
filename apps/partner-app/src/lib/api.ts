@@ -7,6 +7,10 @@ export interface MasterDataItem {
   sortOrder?: number;
 }
 
+export interface EventTypeItem extends MasterDataItem {
+  icon: string | null;
+}
+
 export interface District extends MasterDataItem {}
 
 export interface Province extends MasterDataItem {
@@ -150,6 +154,38 @@ export interface ReviewSummary {
   categoryScores: ReviewCategoryScore[];
 }
 
+export interface RestaurantEventItem {
+  id: string;
+  eventTypeId: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  photoUrl: string | null;
+  price: string | null;
+  isRecurring: boolean;
+  eventDate: string | null;
+  recurringDayOfWeek: number | null;
+  recurringTime: string | null;
+  isActive: boolean;
+  createdAt: string;
+  eventType: EventTypeItem;
+}
+
+export interface EventPayload {
+  eventTypeId: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  photoUrl?: string;
+  price?: number;
+  isRecurring: boolean;
+  eventDate?: string;
+  recurringDayOfWeek?: number;
+  recurringTime?: string;
+}
+
 export type StaffRole = 'MANAGER' | 'MENU_EDITOR';
 
 export interface StaffMember {
@@ -277,6 +313,15 @@ export const api = {
     send<{ success: boolean }>('PATCH', '/restaurants/me/password', token, { currentPassword, newPassword }),
   updateNotificationPrefs: (token: string, payload: { notifyNewReview?: boolean; notifyNewBooking?: boolean }) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me/notifications', token, payload),
+
+  eventTypes: () => get<EventTypeItem[]>('/master-data/event-types'),
+  myEvents: (token: string) => get<RestaurantEventItem[]>('/restaurants/me/events', token),
+  createEvent: (token: string, payload: EventPayload) =>
+    send<RestaurantEventItem>('POST', '/restaurants/me/events', token, payload),
+  updateEvent: (token: string, id: string, payload: Partial<EventPayload> & { isActive?: boolean }) =>
+    send<RestaurantEventItem>('PATCH', `/restaurants/me/events/${id}`, token, payload),
+  deleteEvent: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/events/${id}`, token),
 
   staff: (token: string) => get<StaffMember[]>('/restaurants/me/staff', token),
   inviteStaff: (token: string, payload: InviteStaffPayload) =>

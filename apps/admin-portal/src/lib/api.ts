@@ -67,7 +67,7 @@ export interface RestaurantDetail extends RestaurantListItem {
   facilities: { facility: { id: string; nameEn: string; nameAr: string } }[]
 }
 
-export type MasterDataKind = 'business-types' | 'food-categories' | 'menu-categories' | 'facilities'
+export type MasterDataKind = 'business-types' | 'food-categories' | 'menu-categories' | 'facilities' | 'event-types'
 
 export interface MasterDataItemFull {
   id: string
