@@ -3,28 +3,37 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { StatCard } from '../components/StatCard';
 import { useAuth } from '../lib/AuthContext';
-import { api, type ReviewSummary } from '../lib/api';
+import { api, type ReservationItem, type ReviewSummary } from '../lib/api';
 
 export function OverviewDashboardScreen() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
+  const [reservations, setReservations] = useState<ReservationItem[] | null>(null);
 
   useEffect(() => {
     api.reviewsSummary(token).then(setSummary).catch(() => {});
+    api.myReservations(token).then(setReservations).catch(() => {});
   }, [token]);
+
+  const pendingCount = reservations?.filter((r) => r.status === 'PENDING').length;
+  const confirmedCount = reservations?.filter((r) => r.status === 'CONFIRMED').length;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Overview Dashboard</Text>
       <Text style={styles.subtitle}>
-        Diner Satisfaction is live from your reviews. The rest need a public customer app to generate
-        real traffic before they can show anything but zero.
+        Diner Satisfaction and Chef Table Bookings are live. Profile Views, Followers, and Menu Dish
+        Views need a public customer app to generate real traffic before they can show anything but zero.
       </Text>
       <View style={styles.grid}>
         <StatCard label="Profile Views" value="—" trend="Not tracked yet" />
         <StatCard label="Total Followers" value="—" trend="Not tracked yet" />
         <StatCard label="Menu Dish Views" value="—" trend="Not tracked yet" />
-        <StatCard label="Chef Table Bookings" value="—" trend="Not built yet" />
+        <StatCard
+          label="Chef Table Bookings"
+          value={confirmedCount != null ? String(confirmedCount) : '—'}
+          trend={pendingCount != null ? `${pendingCount} pending confirmation` : undefined}
+        />
         <StatCard
           label="Diner Satisfaction"
           value={summary ? `${summary.overallAverage.toFixed(1)}★` : '—'}

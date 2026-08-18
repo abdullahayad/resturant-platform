@@ -4,7 +4,7 @@ import { colors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
-import { api, type EventTypeItem, type RestaurantEventItem } from '../lib/api';
+import { api, type EventTypeItem, type ReservationItem, type ReservationStatus, type RestaurantEventItem } from '../lib/api';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -23,6 +23,7 @@ const emptyForm = {
   titleAr: '',
   descriptionEn: '',
   price: '',
+  capacity: '',
   eventTypeId: '',
   isRecurring: false,
   eventDate: '',
@@ -31,21 +32,35 @@ const emptyForm = {
   recurringTime: '',
 };
 
+const reservationStatusStyles: Record<ReservationStatus, { badge: keyof typeof styles; text: keyof typeof styles }> = {
+  PENDING: { badge: 'badgeInactive', text: 'badgeInactiveText' },
+  CONFIRMED: { badge: 'badgeActive', text: 'badgeActiveText' },
+  CANCELLED: { badge: 'badgeCancelled', text: 'badgeCancelledText' },
+  COMPLETED: { badge: 'badgeActive', text: 'badgeActiveText' },
+};
+
+function formatReservationDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 export function ChefTableEventsScreen() {
   const { token } = useAuth();
   const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
   const [events, setEvents] = useState<RestaurantEventItem[]>([]);
+  const [reservations, setReservations] = useState<ReservationItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyReservationId, setBusyReservationId] = useState<string | null>(null);
 
   const loadAll = useCallback(() => {
-    Promise.all([api.eventTypes(), api.myEvents(token)])
-      .then(([types, mine]) => {
+    Promise.all([api.eventTypes(), api.myEvents(token), api.myReservations(token)])
+      .then(([types, mine, myReservations]) => {
         setEventTypes(types);
         setEvents(mine);
+        setReservations(myReservations);
       })
       .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
   }, [token]);
@@ -74,6 +89,7 @@ export function ChefTableEventsScreen() {
         titleAr: form.titleAr.trim(),
         descriptionEn: form.descriptionEn.trim() || undefined,
         price: form.price ? Number(form.price) : undefined,
+        capacity: form.capacity ? Number(form.capacity) : undefined,
         eventTypeId: form.eventTypeId,
         isRecurring: form.isRecurring,
         eventDate: form.isRecurring ? undefined : `${form.eventDate}T${form.eventTime}:00`,
@@ -109,12 +125,22 @@ export function ChefTableEventsScreen() {
     }
   };
 
+  const setReservationStatus = async (id: string, status: ReservationStatus) => {
+    setBusyReservationId(id);
+    try {
+      const updated = await api.updateReservationStatus(token, id, status);
+      setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } finally {
+      setBusyReservationId(null);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Chef Table & Events</Text>
       <Text style={styles.subtitle}>
-        Announce buffet nights, live music, chef's table experiences, or anything else — customers see
-        what's coming up, no reservation needed for now.
+        Announce buffet nights, live music, chef's table experiences, or anything else, and manage
+        reservation requests against them.
       </Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
@@ -141,6 +167,7 @@ export function ChefTableEventsScreen() {
             </View>
             <Text style={styles.eventSchedule}>{formatSchedule(event)}</Text>
             {event.price && <Text style={styles.eventPrice}>{Number(event.price).toLocaleString()} IQD</Text>}
+            {event.capacity != null && <Text style={styles.eventPrice}>Capacity: {event.capacity} guests</Text>}
             {event.descriptionEn && <Text style={styles.eventDescription}>{event.descriptionEn}</Text>}
             <Pressable onPress={() => removeEvent(event.id)} disabled={busyId === event.id} style={styles.removeButton}>
               <Text style={styles.removeButtonText}>Delete</Text>
@@ -148,6 +175,47 @@ export function ChefTableEventsScreen() {
           </View>
         ))}
         {events.length === 0 && !loadError && <Text style={styles.hint}>No events yet.</Text>}
+      </View>
+
+      <View style={styles.formCard}>
+        <Text style={styles.formTitle}>Reservations</Text>
+        {reservations.map((r) => {
+          const statusStyle = reservationStatusStyles[r.status];
+          return (
+            <View key={r.id} style={styles.reservationRow}>
+              <View style={styles.reservationInfo}>
+                <Text style={styles.reservationGuest}>{r.guestName} · party of {r.partySize}</Text>
+                <Text style={styles.eventType}>{r.event.titleEn} — {formatReservationDate(r.reservationDate)}</Text>
+                <Text style={styles.eventType}>{r.guestPhone}</Text>
+                {r.notes && <Text style={styles.eventDescription}>{r.notes}</Text>}
+              </View>
+              <View style={styles.reservationActions}>
+                <View style={[styles.badge, styles[statusStyle.badge]]}>
+                  <Text style={styles[statusStyle.text]}>{r.status}</Text>
+                </View>
+                {r.status === 'PENDING' && (
+                  <Pressable
+                    disabled={busyReservationId === r.id}
+                    onPress={() => setReservationStatus(r.id, 'CONFIRMED')}
+                    style={styles.confirmLink}
+                  >
+                    <Text style={styles.confirmLinkText}>Confirm</Text>
+                  </Pressable>
+                )}
+                {(r.status === 'PENDING' || r.status === 'CONFIRMED') && (
+                  <Pressable
+                    disabled={busyReservationId === r.id}
+                    onPress={() => setReservationStatus(r.id, 'CANCELLED')}
+                    style={styles.removeButton}
+                  >
+                    <Text style={styles.removeButtonText}>Cancel</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          );
+        })}
+        {reservations.length === 0 && !loadError && <Text style={styles.hint}>No reservation requests yet.</Text>}
       </View>
 
       <View style={styles.formCard}>
@@ -160,13 +228,26 @@ export function ChefTableEventsScreen() {
           onChangeText={(v) => setForm((f) => ({ ...f, descriptionEn: v }))}
           placeholder="What should customers expect?"
         />
-        <FormField
-          label="Price per person, IQD (optional)"
-          value={form.price}
-          onChangeText={(v) => setForm((f) => ({ ...f, price: v }))}
-          keyboardType="numeric"
-          placeholder="25000"
-        />
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            <FormField
+              label="Price per person, IQD (optional)"
+              value={form.price}
+              onChangeText={(v) => setForm((f) => ({ ...f, price: v }))}
+              keyboardType="numeric"
+              placeholder="25000"
+            />
+          </View>
+          <View style={styles.flex1}>
+            <FormField
+              label="Capacity, guests (optional)"
+              value={form.capacity}
+              onChangeText={(v) => setForm((f) => ({ ...f, capacity: v }))}
+              keyboardType="numeric"
+              placeholder="40"
+            />
+          </View>
+        </View>
 
         <Text style={styles.fieldLabel}>Event Type</Text>
         <ChipSelect
@@ -249,8 +330,25 @@ const styles = StyleSheet.create({
   badgeInactive: { backgroundColor: colors.secondary },
   badgeActiveText: { color: colors.success, fontSize: 12, fontWeight: '600' },
   badgeInactiveText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },
+  badgeCancelled: { backgroundColor: 'rgba(217, 83, 79, 0.15)' },
+  badgeCancelledText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
   removeButton: { alignSelf: 'flex-start', marginTop: 4 },
   removeButtonText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
+
+  reservationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+  },
+  reservationInfo: { flex: 1, gap: 2 },
+  reservationGuest: { color: colors.foreground, fontSize: 14, fontWeight: '600' },
+  reservationActions: { alignItems: 'flex-end', gap: 6 },
+  confirmLink: {},
+  confirmLinkText: { color: colors.success, fontSize: 12, fontWeight: '600' },
 
   formCard: {
     gap: 12,

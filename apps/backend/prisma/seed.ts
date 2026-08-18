@@ -328,6 +328,7 @@ async function main() {
           descriptionEn: 'All-you-can-eat traditional Iraqi dishes.',
           descriptionAr: 'بوفيه مفتوح من الأطباق العراقية التقليدية.',
           price: 25000,
+          capacity: 40,
           isRecurring: false,
           eventDate: inDays(10),
         },
@@ -350,12 +351,58 @@ async function main() {
           descriptionEn: 'A curated multi-course tasting menu with the head chef.',
           descriptionAr: 'قائمة تذوق متعددة الأطباق مع الشيف الرئيسي.',
           price: 60000,
+          capacity: 8,
           isRecurring: false,
           eventDate: inDays(20),
         },
       ],
     });
     console.log('Seeded 3 demo events.');
+  }
+
+  if (demoRestaurant && (await db.chefTableBooking.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
+    const buffetEvent = await db.restaurantEvent.findFirst({
+      where: { restaurantId: demoRestaurant.id, titleEn: 'Ramadan Buffet Night' },
+    });
+    const chefEvent = await db.restaurantEvent.findFirst({
+      where: { restaurantId: demoRestaurant.id, titleEn: "Chef's Table Experience" },
+    });
+
+    if (buffetEvent && chefEvent) {
+      await db.chefTableBooking.createMany({
+        data: [
+          {
+            restaurantId: demoRestaurant.id,
+            eventId: buffetEvent.id,
+            guestName: 'Mustafa Ali',
+            guestPhone: '07709991234',
+            partySize: 6,
+            reservationDate: buffetEvent.eventDate!,
+            status: 'CONFIRMED',
+          },
+          {
+            restaurantId: demoRestaurant.id,
+            eventId: buffetEvent.id,
+            guestName: 'Rasha Kamal',
+            guestPhone: '07709995678',
+            partySize: 4,
+            reservationDate: buffetEvent.eventDate!,
+            status: 'PENDING',
+          },
+          {
+            restaurantId: demoRestaurant.id,
+            eventId: chefEvent.id,
+            guestName: 'Firas Nabil',
+            guestPhone: '07709998765',
+            partySize: 2,
+            reservationDate: chefEvent.eventDate!,
+            status: 'PENDING',
+            notes: 'Anniversary dinner, window seat if possible.',
+          },
+        ],
+      });
+      console.log('Seeded 3 demo reservations.');
+    }
   }
 
   console.log('Seed complete.');

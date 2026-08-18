@@ -397,21 +397,27 @@ model ReviewReply {
 // Chef Table & Events
 // ────────────────────────────────────────────────────────────────────────────
 
+// A reservation request against a specific RestaurantEvent occurrence.
+// reservationDate is the specific date being requested — for a recurring
+// event (e.g. "every Friday") this is which Friday, not just a timestamp.
 model ChefTableBooking {
-  id           String        @id @default(uuid())
-  restaurantId String
-  guestName    String
-  guestPhone   String
-  partySize    Int
-  requestedAt  DateTime
-  status       BookingStatus @default(PENDING)
-  notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  restaurantId    String
+  eventId         String
+  guestName       String
+  guestPhone      String
+  partySize       Int
+  reservationDate DateTime
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  event      RestaurantEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([restaurantId, status])
+  @@index([eventId, reservationDate])
   @@map("chef_table_bookings")
 }
 
@@ -429,6 +435,7 @@ model RestaurantEvent {
   descriptionAr String?
   photoUrl      String?
   price         Decimal? @db.Decimal(10, 2)
+  capacity      Int? // max total guests per reservation date; null = unlimited
 
   isRecurring        Boolean   @default(false)
   eventDate          DateTime? // one-off events: specific date & time
@@ -439,8 +446,9 @@ model RestaurantEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  eventType  EventType  @relation(fields: [eventTypeId], references: [id])
+  restaurant   Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  eventType    EventType          @relation(fields: [eventTypeId], references: [id])
+  reservations ChefTableBooking[]
 
   @@index([restaurantId, isActive])
   @@map("restaurant_events")

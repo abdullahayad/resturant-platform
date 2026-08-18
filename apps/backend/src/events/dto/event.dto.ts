@@ -40,6 +40,11 @@ export class CreateEventDto {
   @IsNumber()
   price?: number;
 
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  capacity?: number;
+
   @IsBoolean()
   isRecurring: boolean;
 
@@ -88,6 +93,11 @@ export class UpdateEventDto {
   @IsOptional()
   @IsNumber()
   price?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  capacity?: number;
 
   @IsOptional()
   @IsBoolean()

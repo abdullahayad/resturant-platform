@@ -163,6 +163,7 @@ export interface RestaurantEventItem {
   descriptionAr: string | null;
   photoUrl: string | null;
   price: string | null;
+  capacity: number | null;
   isRecurring: boolean;
   eventDate: string | null;
   recurringDayOfWeek: number | null;
@@ -180,10 +181,26 @@ export interface EventPayload {
   descriptionAr?: string;
   photoUrl?: string;
   price?: number;
+  capacity?: number;
   isRecurring: boolean;
   eventDate?: string;
   recurringDayOfWeek?: number;
   recurringTime?: string;
+}
+
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+
+export interface ReservationItem {
+  id: string;
+  eventId: string;
+  guestName: string;
+  guestPhone: string;
+  partySize: number;
+  reservationDate: string;
+  status: ReservationStatus;
+  notes: string | null;
+  createdAt: string;
+  event: { id: string; titleEn: string; titleAr: string; capacity: number | null };
 }
 
 export type StaffRole = 'MANAGER' | 'MENU_EDITOR';
@@ -322,6 +339,10 @@ export const api = {
     send<RestaurantEventItem>('PATCH', `/restaurants/me/events/${id}`, token, payload),
   deleteEvent: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/events/${id}`, token),
+
+  myReservations: (token: string) => get<ReservationItem[]>('/restaurants/me/reservations', token),
+  updateReservationStatus: (token: string, id: string, status: ReservationStatus) =>
+    send<ReservationItem>('PATCH', `/restaurants/me/reservations/${id}`, token, { status }),
 
   staff: (token: string) => get<StaffMember[]>('/restaurants/me/staff', token),
   inviteStaff: (token: string, payload: InviteStaffPayload) =>
