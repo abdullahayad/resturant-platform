@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { colors } from '../../theme/colors';
 import { FormField } from '../../components/FormField';
 import { ChipSelect } from '../../components/ChipSelect';
+import { LegalDocumentModal } from '../../components/LegalDocumentModal';
+import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../lib/legalContent';
 import { api, type MasterDataItem, type Province } from '../../lib/api';
 
 interface RegisterRestaurantScreenProps {
@@ -26,6 +28,8 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   const [provinceId, setProvinceId] = useState<string | null>(null);
   const [districtId, setDistrictId] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -150,12 +154,26 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
         </View>
       )}
 
-      <Pressable style={styles.termsRow} onPress={() => setAgreedToTerms((v) => !v)}>
-        <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-          {agreedToTerms && <Text style={styles.checkboxMark}>✓</Text>}
-        </View>
-        <Text style={styles.termsText}>I agree to the Terms of Service and Privacy Policy</Text>
-      </Pressable>
+      <View style={styles.termsRow}>
+        <Pressable onPress={() => setAgreedToTerms((v) => !v)}>
+          <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+            {agreedToTerms && <Text style={styles.checkboxMark}>✓</Text>}
+          </View>
+        </Pressable>
+        <Text style={styles.termsText}>
+          I agree to the{' '}
+          <Text style={styles.termsLink} onPress={() => setShowTerms(true)}>
+            Terms of Service
+          </Text>{' '}
+          and{' '}
+          <Text style={styles.termsLink} onPress={() => setShowPrivacy(true)}>
+            Privacy Policy
+          </Text>
+        </Text>
+      </View>
+
+      <LegalDocumentModal visible={showTerms} title="Terms of Service" sections={TERMS_OF_SERVICE} onClose={() => setShowTerms(false)} />
+      <LegalDocumentModal visible={showPrivacy} title="Privacy Policy" sections={PRIVACY_POLICY} onClose={() => setShowPrivacy(false)} />
 
       {submitError && <Text style={styles.error}>{submitError}</Text>}
 
@@ -181,7 +199,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, color: colors.mutedForeground, marginBottom: 8 },
   section: { gap: 8 },
   sectionLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
-  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 4 },
   checkbox: {
     width: 20,
     height: 20,
@@ -190,10 +208,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 1,
   },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   checkboxMark: { color: colors.primaryForeground, fontSize: 13, fontWeight: '700' },
-  termsText: { color: colors.foreground, fontSize: 13, flex: 1 },
+  termsText: { color: colors.foreground, fontSize: 13, flex: 1, lineHeight: 19 },
+  termsLink: { color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.5 },
   primaryButton: { backgroundColor: colors.primary },
