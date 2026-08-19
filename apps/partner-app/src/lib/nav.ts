@@ -8,6 +8,7 @@ export type ScreenKey =
   | 'reviews'
   | 'reservations'
   | 'analytics'
+  | 'promotions'
   | 'announcements'
   | 'settings';
 
@@ -24,6 +25,7 @@ export const navItems: NavItem[] = [
   { key: 'dashboard', labelEn: 'Overview Dashboard' },
   { key: 'profile', labelEn: 'Profile & Info', managerOrOwnerOnly: true },
   { key: 'menu', labelEn: 'Menu Management' },
+  { key: 'promotions', labelEn: 'Promotions' },
   { key: 'gallery', labelEn: 'Photo Gallery' },
   { key: 'chefManagement', labelEn: 'Chef Management' },
   { key: 'chefTable', labelEn: 'Chef Table & Events', managerOrOwnerOnly: true },

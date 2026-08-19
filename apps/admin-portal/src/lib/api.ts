@@ -87,6 +87,35 @@ export interface MasterDataItemPayload {
   isActive?: boolean
 }
 
+export type PromotionStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type PromotionDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT'
+export type PromotionScope = 'WHOLE_MENU' | 'SPECIFIC_DISHES'
+
+export interface PromotionItem {
+  id: string
+  titleEn: string
+  titleAr: string
+  descriptionEn: string | null
+  descriptionAr: string | null
+  photoUrl: string | null
+  discountType: PromotionDiscountType
+  discountValue: string
+  scope: PromotionScope
+  isRecurring: boolean
+  validFrom: string | null
+  validUntil: string | null
+  recurringDayOfWeek: number | null
+  startTime: string | null
+  endTime: string | null
+  status: PromotionStatus
+  rejectionReason: string | null
+  isActive: boolean
+  createdAt: string
+  dishes: { dish: { id: string; nameEn: string; nameAr: string; price: string } }[]
+  reviewedBy: { fullName: string } | null
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
+}
+
 export interface NotificationItem {
   id: string
   titleEn: string
@@ -228,6 +257,11 @@ export const api = {
   createAdminUser: (payload: CreateAdminUserPayload) => send<AdminUserItem>('POST', '/admin-users', payload),
   updateAdminUser: (id: string, payload: Partial<Pick<AdminUserItem, 'fullName' | 'role' | 'isActive'>>) =>
     send<AdminUserItem>('PATCH', `/admin-users/${id}`, payload),
+
+  promotions: (status?: PromotionStatus) =>
+    get<PromotionItem[]>(`/admin/promotions${status ? `?status=${status}` : ''}`),
+  moderatePromotion: (id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>
+    send<PromotionItem>('PATCH', `/admin/promotions/${id}/moderate`, { status, rejectionReason }),
 
   notifications: () => get<NotificationItem[]>('/admin/notifications'),
   createNotification: (payload: CreateNotificationPayload) =>

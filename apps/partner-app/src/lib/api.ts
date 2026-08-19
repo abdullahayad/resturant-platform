@@ -189,6 +189,51 @@ export interface ChefProfilePayload {
   awards?: string[];
 }
 
+export type PromotionDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
+export type PromotionScope = 'WHOLE_MENU' | 'SPECIFIC_DISHES';
+export type PromotionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface PromotionItem {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  photoUrl: string | null;
+  discountType: PromotionDiscountType;
+  discountValue: string;
+  scope: PromotionScope;
+  isRecurring: boolean;
+  validFrom: string | null;
+  validUntil: string | null;
+  recurringDayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  status: PromotionStatus;
+  rejectionReason: string | null;
+  isActive: boolean;
+  createdAt: string;
+  dishes: { dish: { id: string; nameEn: string; nameAr: string } }[];
+}
+
+export interface PromotionPayload {
+  titleEn: string;
+  titleAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  photoUrl?: string;
+  discountType: PromotionDiscountType;
+  discountValue: number;
+  scope: PromotionScope;
+  dishIds?: string[];
+  isRecurring: boolean;
+  validFrom?: string;
+  validUntil?: string;
+  recurringDayOfWeek?: number;
+  startTime?: string;
+  endTime?: string;
+}
+
 export interface RestaurantEventItem {
   id: string;
   eventTypeId: string;
@@ -413,6 +458,14 @@ export const api = {
     send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/read`, token),
   markAnnouncementAcknowledged: (token: string, id: string) =>
     send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/acknowledge`, token),
+
+  myPromotions: (token: string) => get<PromotionItem[]>('/restaurants/me/promotions', token),
+  createPromotion: (token: string, payload: PromotionPayload) =>
+    send<PromotionItem>('POST', '/restaurants/me/promotions', token, payload),
+  updatePromotion: (token: string, id: string, payload: Partial<PromotionPayload> & { isActive?: boolean }) =>
+    send<PromotionItem>('PATCH', `/restaurants/me/promotions/${id}`, token, payload),
+  deletePromotion: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/promotions/${id}`, token),
 
   myReservations: (token: string) => get<ReservationItem[]>('/restaurants/me/reservations', token),
   updateReservationStatus: (token: string, id: string, status: ReservationStatus) =>

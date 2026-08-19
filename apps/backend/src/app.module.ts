@@ -19,6 +19,7 @@ import { StaffModule } from './staff/staff.module';
 import { EventsModule } from './events/events.module';
 import { ChefsModule } from './chefs/chefs.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PromotionsModule } from './promotions/promotions.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     EventsModule,
     ChefsModule,
     NotificationsModule,
+    PromotionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

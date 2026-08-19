@@ -8,6 +8,7 @@ import {
   MessageSquareWarning,
   ShieldCheck,
   Megaphone,
+  Percent,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -24,6 +25,7 @@ export const navItems: NavItem[] = [
   { label: 'Master Data', path: '/master-data', icon: Tags },
   { label: 'Cities & Districts', path: '/locations', icon: MapPin },
   { label: 'Reviews Moderation', path: '/reviews', icon: MessageSquareWarning },
+  { label: 'Promotions', path: '/promotions', icon: Percent },
   { label: 'Notifications', path: '/notifications', icon: Megaphone },
   { label: 'Admin Users', path: '/admins', icon: ShieldCheck, superAdminOnly: true },
 ]

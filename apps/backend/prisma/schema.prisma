@@ -47,6 +47,22 @@ enum ChefRole {
   SOUS_CHEF
 }
 
+enum PromotionDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum PromotionScope {
+  WHOLE_MENU
+  SPECIFIC_DISHES
+}
+
+enum PromotionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // Ambience album sub-tabs. Food album sub-tabs are derived from menu
 // categories at query time (not stored), except MOST_ORDERED which is a flag.
 enum AmbienceSubCategory {
@@ -197,6 +213,7 @@ model AdminUser {
   reviewedRestaurants Restaurant[]         @relation("RestaurantReviewedBy")
   reviewReplyActions  ReviewReply[]        @relation("ReviewReplyModeratedBy")
   sentNotifications   AdminNotification[]
+  reviewedPromotions  Promotion[]
 
   @@map("admin_users")
 }
@@ -264,6 +281,7 @@ model Restaurant {
   events            RestaurantEvent[]
   chefProfiles      ChefProfile[]
   notifications     NotificationRecipient[]
+  promotions        Promotion[]
 
   @@index([status])
   @@index([provinceId])
@@ -321,9 +339,10 @@ model Dish {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  restaurant    Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  menuCategory  MenuCategory?  @relation(fields: [menuCategoryId], references: [id])
+  restaurant    Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuCategory  MenuCategory?   @relation(fields: [menuCategoryId], references: [id])
   galleryPhotos GalleryPhoto[]
+  promotions    PromotionDish[]
 
   @@index([restaurantId])
   @@index([menuCategoryId])
@@ -495,6 +514,63 @@ model RestaurantEvent {
 
   @@index([restaurantId, isActive])
   @@map("restaurant_events")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Promotions — restaurant-authored discounts, admin-moderated before going
+// live. Discount applies to the whole menu or a specific set of dishes;
+// scheduling is either a one-off date range or a recurring day-of-week with
+// an optional time window (an all-day recurring promo is a "day special",
+// one with startTime/endTime is a "happy hour").
+// ────────────────────────────────────────────────────────────────────────────
+
+model Promotion {
+  id            String   @id @default(uuid())
+  restaurantId  String
+  titleEn       String
+  titleAr       String
+  descriptionEn String?
+  descriptionAr String?
+  photoUrl      String?
+
+  discountType  PromotionDiscountType
+  discountValue Decimal @db.Decimal(10, 2) // percentage (0-100] or a fixed IQD amount
+  scope         PromotionScope
+
+  isRecurring        Boolean   @default(false)
+  validFrom          DateTime? // one-off: start of the date range
+  validUntil         DateTime? // one-off: end of the date range
+  recurringDayOfWeek Int? // recurring: 0 = Sunday ... 6 = Saturday
+  startTime          String? // recurring: "HH:mm", omitted = all day
+  endTime            String? // recurring: "HH:mm", omitted = all day
+
+  status          PromotionStatus @default(PENDING)
+  rejectionReason String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+
+  isActive  Boolean  @default(true) // restaurant-side on/off switch, independent of moderation
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurant Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reviewedBy AdminUser?        @relation(fields: [reviewedById], references: [id])
+  dishes     PromotionDish[]
+
+  @@index([restaurantId, status])
+  @@map("promotions")
+}
+
+model PromotionDish {
+  id          String @id @default(uuid())
+  promotionId String
+  dishId      String
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  dish      Dish      @relation(fields: [dishId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, dishId])
+  @@map("promotion_dishes")
 }
 
 // ────────────────────────────────────────────────────────────────────────────
