@@ -42,6 +42,11 @@ enum GalleryAlbum {
   AMBIENCE
 }
 
+enum ChefRole {
+  HEAD_CHEF
+  SOUS_CHEF
+}
+
 // Ambience album sub-tabs. Food album sub-tabs are derived from menu
 // categories at query time (not stored), except MOST_ORDERED which is a flag.
 enum AmbienceSubCategory {
@@ -228,6 +233,11 @@ model Restaurant {
   // switches it on later.
   statsVisible Boolean @default(false)
 
+  // Chef Management: kitchen crew headcount + one representative photo.
+  // Individual chef/sous chef profiles live in ChefProfile.
+  crewCount    Int?
+  crewPhotoUrl String?
+
   // Admin moderation trail
   reviewedById    String?
   reviewedAt      DateTime?
@@ -251,6 +261,7 @@ model Restaurant {
   staffUsers        PartnerStaffUser[]
   openingHours      OpeningHours[]
   events            RestaurantEvent[]
+  chefProfiles      ChefProfile[]
 
   @@index([status])
   @@index([provinceId])
@@ -360,6 +371,28 @@ model Story {
   @@index([restaurantId])
   @@index([expiresAt])
   @@map("stories")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Chef Management
+// ────────────────────────────────────────────────────────────────────────────
+
+model ChefProfile {
+  id              String   @id @default(uuid())
+  restaurantId    String
+  role            ChefRole
+  name            String
+  photoUrl        String?
+  speciality      String?
+  yearsExperience Int?
+  awards          String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, role])
+  @@map("chef_profiles")
 }
 
 // ────────────────────────────────────────────────────────────────────────────

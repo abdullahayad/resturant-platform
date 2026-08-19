@@ -21,7 +21,7 @@ export const navItems: NavItem[] = [
   { key: 'profile', labelEn: 'Profile & Info' },
   { key: 'menu', labelEn: 'Menu Management' },
   { key: 'gallery', labelEn: 'Photo Gallery' },
-  { key: 'chefManagement', labelEn: 'Chef Management', comingSoon: true },
+  { key: 'chefManagement', labelEn: 'Chef Management' },
   { key: 'chefTable', labelEn: 'Chef Table & Events' },
   { key: 'reviews', labelEn: 'Customer Reviews' },
   { key: 'reservations', labelEn: 'Reservations', comingSoon: true },

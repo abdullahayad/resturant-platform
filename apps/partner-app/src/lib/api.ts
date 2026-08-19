@@ -155,6 +155,33 @@ export interface ReviewSummary {
   categoryScores: ReviewCategoryScore[];
 }
 
+export type ChefRoleSlug = 'chef' | 'sous-chef';
+
+export interface ChefProfile {
+  id: string;
+  role: 'HEAD_CHEF' | 'SOUS_CHEF';
+  name: string;
+  photoUrl: string | null;
+  speciality: string | null;
+  yearsExperience: number | null;
+  awards: string[];
+}
+
+export interface ChefManagementState {
+  headChef: ChefProfile | null;
+  sousChef: ChefProfile | null;
+  crewCount: number | null;
+  crewPhotoUrl: string | null;
+}
+
+export interface ChefProfilePayload {
+  name: string;
+  photoUrl?: string;
+  speciality?: string;
+  yearsExperience?: number;
+  awards?: string[];
+}
+
 export interface RestaurantEventItem {
   id: string;
   eventTypeId: string;
@@ -231,7 +258,7 @@ async function get<T>(path: string, token?: string): Promise<T> {
 }
 
 async function send<T>(
-  method: 'POST' | 'PATCH' | 'DELETE',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   token: string,
   body?: unknown,
@@ -321,6 +348,19 @@ export const api = {
     send<GalleryPhoto>('POST', '/restaurants/me/gallery', token, payload),
   deleteGalleryPhoto: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/gallery/${id}`, token),
+
+  chefs: (token: string) => get<ChefManagementState>('/restaurants/me/chefs', token),
+  upsertChef: (token: string, role: ChefRoleSlug, payload: ChefProfilePayload) =>
+    send<ChefProfile>('PUT', `/restaurants/me/chefs/${role}`, token, payload),
+  deleteChef: (token: string, role: ChefRoleSlug) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/chefs/${role}`, token),
+  updateCrew: (token: string, payload: { crewCount?: number | null; crewPhotoUrl?: string | null }) =>
+    send<{ crewCount: number | null; crewPhotoUrl: string | null }>(
+      'PATCH',
+      '/restaurants/me/chefs/crew',
+      token,
+      payload,
+    ),
 
   myReviews: (token: string) => get<Review[]>('/restaurants/me/reviews', token),
   reviewsSummary: (token: string) => get<ReviewSummary>('/restaurants/me/reviews/summary', token),
