@@ -9,6 +9,7 @@ import { MasterDataPage } from '@/pages/MasterDataPage'
 import { LocationsPage } from '@/pages/LocationsPage'
 import { ReviewsPage } from '@/pages/ReviewsPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
+import { NotificationsPage } from '@/pages/NotificationsPage'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="master-data" element={<MasterDataPage />} />
           <Route path="locations" element={<LocationsPage />} />
           <Route path="reviews" element={<ReviewsPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="admins" element={<AdminUsersPage />} />
         </Route>
       </Route>

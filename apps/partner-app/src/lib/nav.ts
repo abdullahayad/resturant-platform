@@ -8,6 +8,7 @@ export type ScreenKey =
   | 'reviews'
   | 'reservations'
   | 'analytics'
+  | 'announcements'
   | 'settings';
 
 export interface NavItem {
@@ -29,5 +30,6 @@ export const navItems: NavItem[] = [
   { key: 'reviews', labelEn: 'Customer Reviews' },
   { key: 'reservations', labelEn: 'Reservations', comingSoon: true, managerOrOwnerOnly: true },
   { key: 'analytics', labelEn: 'Deep Analytics', comingSoon: true, managerOrOwnerOnly: true },
+  { key: 'announcements', labelEn: 'Announcements' },
   { key: 'settings', labelEn: 'Settings & Staff', managerOrOwnerOnly: true },
 ];

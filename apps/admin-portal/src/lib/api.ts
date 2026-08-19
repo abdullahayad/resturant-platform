@@ -87,6 +87,38 @@ export interface MasterDataItemPayload {
   isActive?: boolean
 }
 
+export interface NotificationItem {
+  id: string
+  titleEn: string
+  titleAr: string
+  bodyEn: string
+  bodyAr: string
+  actionRequired: boolean
+  createdAt: string
+  createdBy: { fullName: string }
+  recipientCount: number
+  readCount: number
+  acknowledgedCount: number
+}
+
+export interface NotificationRecipientDetail {
+  id: string
+  readAt: string | null
+  acknowledgedAt: string | null
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
+}
+
+export interface CreateNotificationPayload {
+  titleEn: string
+  titleAr: string
+  bodyEn: string
+  bodyAr: string
+  actionRequired?: boolean
+  restaurantId?: string
+  provinceId?: string
+  businessTypeId?: string
+}
+
 export interface District {
   id: string
   nameEn: string
@@ -196,6 +228,13 @@ export const api = {
   createAdminUser: (payload: CreateAdminUserPayload) => send<AdminUserItem>('POST', '/admin-users', payload),
   updateAdminUser: (id: string, payload: Partial<Pick<AdminUserItem, 'fullName' | 'role' | 'isActive'>>) =>
     send<AdminUserItem>('PATCH', `/admin-users/${id}`, payload),
+
+  notifications: () => get<NotificationItem[]>('/admin/notifications'),
+  createNotification: (payload: CreateNotificationPayload) =>
+    send<NotificationItem>('POST', '/admin/notifications', payload),
+  notificationRecipients: (id: string) =>
+    get<NotificationRecipientDetail[]>(`/admin/notifications/${id}/recipients`),
+  deleteNotification: (id: string) => send<{ id: string }>('DELETE', `/admin/notifications/${id}`),
 }
 
 export { UnauthorizedError }

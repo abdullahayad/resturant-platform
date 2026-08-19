@@ -194,8 +194,9 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  reviewedRestaurants Restaurant[]  @relation("RestaurantReviewedBy")
-  reviewReplyActions  ReviewReply[] @relation("ReviewReplyModeratedBy")
+  reviewedRestaurants Restaurant[]         @relation("RestaurantReviewedBy")
+  reviewReplyActions  ReviewReply[]        @relation("ReviewReplyModeratedBy")
+  sentNotifications   AdminNotification[]
 
   @@map("admin_users")
 }
@@ -262,6 +263,7 @@ model Restaurant {
   openingHours      OpeningHours[]
   events            RestaurantEvent[]
   chefProfiles      ChefProfile[]
+  notifications     NotificationRecipient[]
 
   @@index([status])
   @@index([provinceId])
@@ -531,4 +533,43 @@ model OpeningHours {
 
   @@unique([restaurantId, dayOfWeek])
   @@map("opening_hours")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Admin broadcast notifications
+// ────────────────────────────────────────────────────────────────────────────
+
+// A message an admin sends to a set of restaurants, resolved to an explicit
+// recipient list at creation time (NotificationRecipient rows) rather than
+// re-evaluating the target filter on every read, so the recipient set stays
+// fixed even if a restaurant's province/business-type changes afterwards.
+model AdminNotification {
+  id             String   @id @default(uuid())
+  titleEn        String
+  titleAr        String
+  bodyEn         String
+  bodyAr         String
+  actionRequired Boolean  @default(false)
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  createdBy  AdminUser                @relation(fields: [createdById], references: [id])
+  recipients NotificationRecipient[]
+
+  @@map("admin_notifications")
+}
+
+model NotificationRecipient {
+  id             String    @id @default(uuid())
+  notificationId String
+  restaurantId   String
+  readAt         DateTime?
+  acknowledgedAt DateTime?
+
+  notification AdminNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, restaurantId])
+  @@index([restaurantId])
+  @@map("notification_recipients")
 }

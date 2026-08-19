@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
+import { AnnouncementBanner } from '../components/AnnouncementBanner';
 import type { ScreenKey } from '../lib/nav';
 import { OverviewDashboardScreen } from '../screens/OverviewDashboardScreen';
 import { ProfileInfoScreen } from '../screens/ProfileInfoScreen';
@@ -13,6 +14,7 @@ import { ChefTableEventsScreen } from '../screens/ChefTableEventsScreen';
 import { CustomerReviewsScreen } from '../screens/CustomerReviewsScreen';
 import { ReservationsScreen } from '../screens/ReservationsScreen';
 import { DeepAnalyticsScreen } from '../screens/DeepAnalyticsScreen';
+import { AnnouncementsScreen } from '../screens/AnnouncementsScreen';
 import { SettingsStaffScreen } from '../screens/SettingsStaffScreen';
 import type { AuthenticatedRestaurant } from '../lib/api';
 
@@ -26,6 +28,7 @@ const screens: Record<ScreenKey, React.ComponentType> = {
   reviews: CustomerReviewsScreen,
   reservations: ReservationsScreen,
   analytics: DeepAnalyticsScreen,
+  announcements: AnnouncementsScreen,
   settings: SettingsStaffScreen,
 };
 
@@ -48,6 +51,7 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
           codeNumber={restaurant.codeNumber}
           onSignOut={onSignOut}
         />
+        <AnnouncementBanner active={active} onView={() => setActive('announcements')} />
         <View style={styles.body}>
           <ActiveScreen />
         </View>

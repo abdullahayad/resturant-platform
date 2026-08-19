@@ -223,6 +223,21 @@ export interface EventPayload {
   recurringTime?: string;
 }
 
+export interface Announcement {
+  id: string;
+  readAt: string | null;
+  acknowledgedAt: string | null;
+  notification: {
+    id: string;
+    titleEn: string;
+    titleAr: string;
+    bodyEn: string;
+    bodyAr: string;
+    actionRequired: boolean;
+    createdAt: string;
+  };
+}
+
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 
 export interface ReservationItem {
@@ -392,6 +407,12 @@ export const api = {
     send<RestaurantEventItem>('PATCH', `/restaurants/me/events/${id}`, token, payload),
   deleteEvent: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/events/${id}`, token),
+
+  announcements: (token: string) => get<Announcement[]>('/restaurants/me/announcements', token),
+  markAnnouncementRead: (token: string, id: string) =>
+    send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/read`, token),
+  markAnnouncementAcknowledged: (token: string, id: string) =>
+    send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/acknowledge`, token),
 
   myReservations: (token: string) => get<ReservationItem[]>('/restaurants/me/reservations', token),
   updateReservationStatus: (token: string, id: string, status: ReservationStatus) =>
