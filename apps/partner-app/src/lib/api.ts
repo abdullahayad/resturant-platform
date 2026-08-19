@@ -55,6 +55,7 @@ export interface OpeningHoursDay {
 export interface RestaurantDetail extends AuthenticatedRestaurant {
   phone: string;
   logoUrl: string | null;
+  statsVisible: boolean;
   latitude: number | null;
   longitude: number | null;
   notifyNewReview: boolean;

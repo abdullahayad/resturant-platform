@@ -222,6 +222,12 @@ model Restaurant {
   notifyNewReview  Boolean @default(true)
   notifyNewBooking Boolean @default(true)
 
+  // Admin-controlled: whether the partner can see their own Overview
+  // Dashboard performance numbers (Diner Satisfaction, Chef Table
+  // Bookings). Off by default for newly approved restaurants; an admin
+  // switches it on later.
+  statsVisible Boolean @default(false)
+
   // Admin moderation trail
   reviewedById    String?
   reviewedAt      DateTime?

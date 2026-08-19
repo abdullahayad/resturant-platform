@@ -16,6 +16,7 @@ const restaurantListSelect = {
   phone: true,
   logoUrl: true,
   status: true,
+  statsVisible: true,
   ownerEmail: true,
   createdAt: true,
   reviewedAt: true,
@@ -143,6 +144,15 @@ export class RestaurantsService {
     return this.prisma.db.restaurant.update({
       where: { id },
       data: { status: 'SUSPENDED', reviewedAt: new Date() },
+      select: restaurantListSelect,
+    });
+  }
+
+  async setStatsVisibility(id: string, statsVisible: boolean) {
+    await this.ensureExists(id);
+    return this.prisma.db.restaurant.update({
+      where: { id },
+      data: { statsVisible },
       select: restaurantListSelect,
     });
   }

@@ -109,6 +109,17 @@ export function RestaurantsPage() {
     }
   }
 
+  const toggleStatsVisible = async (id: string, statsVisible: boolean) => {
+    setBusyId(id)
+    try {
+      await api.setStatsVisibility(id, statsVisible)
+      load()
+      if (expandedId === id) setDetail(await api.restaurant(id))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -275,6 +286,15 @@ export function RestaurantsPage() {
                         <div>{detail.rejectionReason}</div>
                       </div>
                     )}
+                    <div>
+                      <div className="mb-1 text-xs text-muted-foreground">Overview Dashboard Numbers</div>
+                      <Switch
+                        checked={detail.statsVisible}
+                        disabled={busyId === r.id}
+                        onChange={() => toggleStatsVisible(r.id, !detail.statsVisible)}
+                        label={detail.statsVisible ? 'Visible to partner' : 'Hidden from partner'}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

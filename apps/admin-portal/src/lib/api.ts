@@ -12,6 +12,7 @@ export interface RestaurantListItem {
   phone: string
   logoUrl: string | null
   status: RestaurantStatus
+  statsVisible: boolean
   ownerEmail: string
   createdAt: string
   reviewedAt: string | null
@@ -161,6 +162,8 @@ export const api = {
   reject: (id: string, reason?: string) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/reject`, { reason }),
   suspend: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/suspend`),
+  setStatsVisibility: (id: string, statsVisible: boolean) =>
+    send<RestaurantListItem>('PATCH', `/restaurants/${id}/stats-visibility`, { statsVisible }),
 
   masterData: (kind: MasterDataKind) => get<MasterDataItemFull[]>(`/master-data/admin/${kind}`),
   createMasterDataItem: (kind: MasterDataKind, payload: MasterDataItemPayload) =>

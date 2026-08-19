@@ -9,10 +9,12 @@ export function OverviewDashboardScreen() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reservations, setReservations] = useState<ReservationItem[] | null>(null);
+  const [statsVisible, setStatsVisible] = useState(false);
 
   useEffect(() => {
     api.reviewsSummary(token).then(setSummary).catch(() => {});
     api.myReservations(token).then(setReservations).catch(() => {});
+    api.me(token).then((profile) => setStatsVisible(profile.statsVisible)).catch(() => {});
   }, [token]);
 
   const pendingCount = reservations?.filter((r) => r.status === 'PENDING').length;
@@ -22,8 +24,9 @@ export function OverviewDashboardScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Overview Dashboard</Text>
       <Text style={styles.subtitle}>
-        Diner Satisfaction and Chef Table Bookings are live. Profile Views, Followers, and Menu Dish
-        Views need a public customer app to generate real traffic before they can show anything but zero.
+        {statsVisible
+          ? 'Diner Satisfaction and Chef Table Bookings are live. Profile Views, Followers, and Menu Dish Views need a public customer app to generate real traffic before they can show anything but zero.'
+          : 'Your performance numbers are being prepared and will be enabled by the platform team soon.'}
       </Text>
       <View style={styles.grid}>
         <StatCard label="Profile Views" value="—" trend="Not tracked yet" />
@@ -31,13 +34,17 @@ export function OverviewDashboardScreen() {
         <StatCard label="Menu Dish Views" value="—" trend="Not tracked yet" />
         <StatCard
           label="Chef Table Bookings"
-          value={confirmedCount != null ? String(confirmedCount) : '—'}
-          trend={pendingCount != null ? `${pendingCount} pending confirmation` : undefined}
+          value={statsVisible && confirmedCount != null ? String(confirmedCount) : '—'}
+          trend={statsVisible && pendingCount != null ? `${pendingCount} pending confirmation` : 'Not available yet'}
         />
         <StatCard
           label="Diner Satisfaction"
-          value={summary ? `${summary.overallAverage.toFixed(1)}★` : '—'}
-          trend={summary ? `from ${summary.totalCount} review${summary.totalCount === 1 ? '' : 's'}` : undefined}
+          value={statsVisible && summary ? `${summary.overallAverage.toFixed(1)}★` : '—'}
+          trend={
+            statsVisible && summary
+              ? `from ${summary.totalCount} review${summary.totalCount === 1 ? '' : 's'}`
+              : 'Not available yet'
+          }
         />
       </View>
     </ScrollView>
