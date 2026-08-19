@@ -8,13 +8,14 @@ import { SignInScreen } from './src/screens/auth/SignInScreen';
 import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
 import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
-import type { AuthenticatedRestaurant } from './src/lib/api';
+import type { AuthenticatedRestaurant, StaffSession } from './src/lib/api';
 
 type View = 'landing' | 'register' | 'signIn';
 
 interface Session {
   token: string;
   restaurant: AuthenticatedRestaurant;
+  staff?: StaffSession;
 }
 
 export default function App() {
@@ -34,8 +35,9 @@ export default function App() {
             value={{
               token: session.token,
               restaurant: session.restaurant,
-              setRestaurant: (restaurant) => setSession({ token: session.token, restaurant }),
-              setToken: (token) => setSession({ token, restaurant: session.restaurant }),
+              staff: session.staff,
+              setRestaurant: (restaurant) => setSession({ ...session, restaurant }),
+              setToken: (token) => setSession({ ...session, token }),
               signOut,
             }}
           >
@@ -52,7 +54,7 @@ export default function App() {
           {view === 'signIn' && (
             <SignInScreen
               onBack={() => setView('landing')}
-              onSignedIn={(token, restaurant) => setSession({ token, restaurant })}
+              onSignedIn={(token, restaurant, staff) => setSession({ token, restaurant, staff })}
             />
           )}
           {view === 'register' && (

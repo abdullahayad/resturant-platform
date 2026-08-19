@@ -10,6 +10,8 @@ import { UpdateStatsVisibilityDto } from './dto/update-stats-visibility.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
+import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
+import { OwnerOnlyGuard } from '../auth/guards/owner-only.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 @Controller('restaurants')
@@ -27,25 +29,25 @@ export class RestaurantsController {
     return this.restaurants.findOne(req.user.sub);
   }
 
-  @UseGuards(ApprovedPartnerGuard)
+  @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('me')
   updateMe(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateRestaurantProfileDto) {
     return this.restaurants.updateProfile(req.user.sub, dto);
   }
 
-  @UseGuards(PartnerAuthGuard)
+  @UseGuards(OwnerOnlyGuard)
   @Patch('me/password')
   changePassword(@Req() req: { user: PartnerJwtPayload }, @Body() dto: ChangePasswordDto) {
     return this.restaurants.changePassword(req.user.sub, dto);
   }
 
-  @UseGuards(ApprovedPartnerGuard)
+  @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('me/notifications')
   updateNotifications(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateNotificationPrefsDto) {
     return this.restaurants.updateNotificationPrefs(req.user.sub, dto);
   }
 
-  @UseGuards(ApprovedPartnerGuard)
+  @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('me/hours')
   updateHours(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateOpeningHoursDto) {
     return this.restaurants.updateOpeningHours(req.user.sub, dto.days);

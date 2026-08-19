@@ -502,7 +502,7 @@ model RestaurantEvent {
 model PartnerStaffUser {
   id           String    @id @default(uuid())
   restaurantId String
-  email        String
+  email        String    @unique
   passwordHash String
   fullName     String
   role         StaffRole @default(MENU_EDITOR)
@@ -512,7 +512,6 @@ model PartnerStaffUser {
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
-  @@unique([restaurantId, email])
   @@map("partner_staff_users")
 }
 

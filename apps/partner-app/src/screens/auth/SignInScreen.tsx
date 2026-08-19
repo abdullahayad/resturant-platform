@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { FormField } from '../../components/FormField';
-import { api, type AuthenticatedRestaurant } from '../../lib/api';
+import { api, type AuthenticatedRestaurant, type StaffSession } from '../../lib/api';
 
 interface SignInScreenProps {
   onBack: () => void;
-  onSignedIn: (token: string, restaurant: AuthenticatedRestaurant) => void;
+  onSignedIn: (token: string, restaurant: AuthenticatedRestaurant, staff?: StaffSession) => void;
 }
 
 export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
@@ -20,7 +20,7 @@ export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
     setSubmitting(true);
     try {
       const result = await api.login(overrideEmail ?? email, overridePassword ?? password);
-      onSignedIn(result.accessToken, result.restaurant);
+      onSignedIn(result.accessToken, result.restaurant, result.staff);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {

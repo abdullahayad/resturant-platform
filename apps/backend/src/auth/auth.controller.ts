@@ -15,6 +15,11 @@ export class AuthController {
     return this.auth.partnerLogin(dto);
   }
 
+  @Post('staff/login')
+  staffLogin(@Body() dto: LoginDto) {
+    return this.auth.staffLogin(dto);
+  }
+
   @Post('admin/login')
   adminLogin(@Body() dto: LoginDto) {
     return this.auth.adminLogin(dto);

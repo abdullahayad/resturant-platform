@@ -6,16 +6,20 @@ import { useAuth } from '../lib/AuthContext';
 import { api, type ReservationItem, type ReviewSummary } from '../lib/api';
 
 export function OverviewDashboardScreen() {
-  const { token } = useAuth();
+  const { token, staff } = useAuth();
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reservations, setReservations] = useState<ReservationItem[] | null>(null);
   const [statsVisible, setStatsVisible] = useState(false);
 
   useEffect(() => {
     api.reviewsSummary(token).then(setSummary).catch(() => {});
-    api.myReservations(token).then(setReservations).catch(() => {});
+    // Chef Table & Events (and its reservations) is Manager/Owner-only —
+    // a Menu Editor would just get a 403 here.
+    if (staff?.role !== 'MENU_EDITOR') {
+      api.myReservations(token).then(setReservations).catch(() => {});
+    }
     api.me(token).then((profile) => setStatsVisible(profile.statsVisible)).catch(() => {});
-  }, [token]);
+  }, [token, staff]);
 
   const pendingCount = reservations?.filter((r) => r.status === 'PENDING').length;
   const confirmedCount = reservations?.filter((r) => r.status === 'CONFIRMED').length;

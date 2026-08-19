@@ -40,9 +40,16 @@ export interface AuthenticatedRestaurant {
   rejectionReason: string | null;
 }
 
+export interface StaffSession {
+  id: string;
+  fullName: string;
+  role: 'MANAGER' | 'MENU_EDITOR';
+}
+
 export interface PartnerLoginResult {
   accessToken: string;
   restaurant: AuthenticatedRestaurant;
+  staff?: StaffSession;
 }
 
 export interface OpeningHoursDay {
@@ -294,6 +301,8 @@ export const api = {
   },
 
   async login(email: string, password: string): Promise<PartnerLoginResult> {
+    // Owners and invited staff share this one sign-in form; the backend
+    // resolves which account the email belongs to.
     const res = await fetch(`${API_BASE_URL}/auth/partner/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

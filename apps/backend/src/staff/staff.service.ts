@@ -26,7 +26,7 @@ export class StaffService {
 
   async invite(restaurantId: string, dto: InviteStaffDto) {
     const existing = await this.prisma.db.partnerStaffUser.findUnique({
-      where: { restaurantId_email: { restaurantId, email: dto.email } },
+      where: { email: dto.email },
       select: { id: true },
     });
     if (existing) throw new ConflictException('A staff account with this email already exists');

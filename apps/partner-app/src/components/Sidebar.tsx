@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { navItems, type ScreenKey } from '../lib/nav';
+import { useAuth } from '../lib/AuthContext';
 
 interface SidebarProps {
   active: ScreenKey;
@@ -8,6 +9,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ active, onSelect }: SidebarProps) {
+  const { staff } = useAuth();
+  const visibleItems = navItems.filter((item) => !(item.managerOrOwnerOnly && staff?.role === 'MENU_EDITOR'));
+
   return (
     <View style={styles.sidebar}>
       <View style={styles.brand}>
@@ -15,7 +19,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
         <Text style={styles.brandSubtitle}>#IRQ-00000</Text>
       </View>
       <View style={styles.nav}>
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = item.key === active;
           return (
             <Pressable

@@ -1,9 +1,10 @@
 import { createContext, useContext } from 'react';
-import type { AuthenticatedRestaurant } from './api';
+import type { AuthenticatedRestaurant, StaffSession } from './api';
 
 export interface AuthContextValue {
   token: string;
   restaurant: AuthenticatedRestaurant;
+  staff?: StaffSession;
   setRestaurant: (restaurant: AuthenticatedRestaurant) => void;
   setToken: (token: string) => void;
   signOut: () => void;

@@ -1,5 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
+import { useAuth } from '../lib/AuthContext';
+
+const roleLabels = { MANAGER: 'Manager', MENU_EDITOR: 'Menu Editor' } as const;
 
 interface HeaderProps {
   nameEn: string;
@@ -9,6 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ nameEn, nameAr, codeNumber, onSignOut }: HeaderProps) {
+  const { staff } = useAuth();
   return (
     <View style={styles.header}>
       <View style={styles.logo}>
@@ -16,7 +20,10 @@ export function Header({ nameEn, nameAr, codeNumber, onSignOut }: HeaderProps) {
       </View>
       <View style={styles.info}>
         <Text style={styles.name}>{nameEn} · {nameAr}</Text>
-        <Text style={styles.code}>{codeNumber}</Text>
+        <Text style={styles.code}>
+          {codeNumber}
+          {staff ? ` · Signed in as ${staff.fullName} (${roleLabels[staff.role]})` : ''}
+        </Text>
       </View>
       <Pressable onPress={onSignOut} style={styles.signOut}>
         <Text style={styles.signOutText}>Sign Out</Text>

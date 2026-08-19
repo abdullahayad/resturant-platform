@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import type { LoginDto } from './dto/login.dto';
+import type { Restaurant, PartnerStaffUser } from '../../generated/prisma/client';
 
 // A precomputed hash with no matching plaintext, compared against on the
 // "account not found" path so failed logins take the same time whether or
@@ -17,23 +18,41 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
+  // The partner app has one sign-in form shared by the restaurant owner and
+  // invited staff, so this tries the owner account first and falls back to
+  // a staff account on the same email — a single request either way, rather
+  // than the frontend probing two endpoints and logging a guaranteed-first-
+  // failure on every staff login.
   async partnerLogin(dto: LoginDto) {
-    const restaurant = await this.prisma.db.restaurant.findUnique({
-      where: { ownerEmail: dto.email },
-    });
-    const passwordMatches = await bcrypt.compare(
-      dto.password,
-      restaurant?.ownerPasswordHash ?? DUMMY_HASH,
-    );
-    if (!restaurant || !passwordMatches) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({ where: { ownerEmail: dto.email } });
+    const ownerPasswordMatches = await bcrypt.compare(dto.password, restaurant?.ownerPasswordHash ?? DUMMY_HASH);
+    if (restaurant && ownerPasswordMatches) {
+      return this.buildPartnerLoginResult(restaurant);
+    }
+    return this.staffLogin(dto);
+  }
+
+  async staffLogin(dto: LoginDto) {
+    const staff = await this.prisma.db.partnerStaffUser.findUnique({ where: { email: dto.email } });
+    const passwordMatches = await bcrypt.compare(dto.password, staff?.passwordHash ?? DUMMY_HASH);
+    if (!staff || !staff.isActive || !passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    const restaurant = await this.prisma.db.restaurant.findUnique({ where: { id: staff.restaurantId } });
+    if (!restaurant) throw new UnauthorizedException('Invalid email or password');
+
+    return this.buildPartnerLoginResult(restaurant, staff);
+  }
+
+  private async buildPartnerLoginResult(restaurant: Restaurant, staff?: PartnerStaffUser) {
     const accessToken = await this.jwt.signAsync({
       sub: restaurant.id,
       type: 'partner',
       restaurantStatus: restaurant.status,
       tokenVersion: restaurant.tokenVersion,
+      staffId: staff?.id,
+      staffRole: staff?.role,
     });
 
     return {
@@ -46,6 +65,7 @@ export class AuthService {
         status: restaurant.status,
         rejectionReason: restaurant.rejectionReason,
       },
+      staff: staff ? { id: staff.id, fullName: staff.fullName, role: staff.role } : undefined,
     };
   }
 
