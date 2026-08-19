@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import {
   CreateBucketCommand,
   HeadBucketCommand,
@@ -7,6 +7,31 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
+
+// Deliberately excludes svg/html/js and anything else a browser would
+// execute rather than just display — the bucket is public-read by design
+// (photos need to load directly via URL with no signed-URL layer), so
+// everything stored in it must be safe to serve as-is. The server decides
+// the stored Content-Type from this map; the client's claimed mimetype is
+// never trusted for that (see security review).
+const ALLOWED_UPLOADS: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+};
+
+function requireStorageCredential(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is not set. Configure it in your .env file before starting the server.`);
+  }
+  return value;
+}
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -18,8 +43,8 @@ export class StorageService implements OnModuleInit {
     region: process.env.STORAGE_REGION ?? 'us-east-1',
     forcePathStyle: (process.env.STORAGE_FORCE_PATH_STYLE ?? 'true') === 'true',
     credentials: {
-      accessKeyId: process.env.STORAGE_ACCESS_KEY ?? 'restaurant',
-      secretAccessKey: process.env.STORAGE_SECRET_KEY ?? 'restaurant123',
+      accessKeyId: requireStorageCredential('STORAGE_ACCESS_KEY'),
+      secretAccessKey: requireStorageCredential('STORAGE_SECRET_KEY'),
     },
   });
 
@@ -28,7 +53,9 @@ export class StorageService implements OnModuleInit {
       await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
     } catch {
       await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
-      // Dev-only: bucket is world-readable so uploaded photos load directly via URL.
+      // Bucket is intentionally world-readable so uploaded photos load
+      // directly via URL with no signed-URL layer — safe only because
+      // upload() below restricts what can ever be stored in it.
       await this.client.send(
         new PutBucketPolicyCommand({
           Bucket: this.bucket,
@@ -48,15 +75,23 @@ export class StorageService implements OnModuleInit {
     }
   }
 
-  async upload(file: { buffer: Buffer; mimetype: string; originalname: string }, folder: string) {
-    const ext = file.originalname.includes('.') ? file.originalname.split('.').pop() : 'bin';
+  async upload(file: { buffer: Buffer; originalname: string }, folder: string) {
+    const rawExt = file.originalname.includes('.') ? file.originalname.split('.').pop() : '';
+    const ext = (rawExt ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const contentType = ALLOWED_UPLOADS[ext];
+    if (!contentType) {
+      throw new BadRequestException(
+        `Unsupported file type. Allowed: ${Object.keys(ALLOWED_UPLOADS).join(', ')}`,
+      );
+    }
+
     const key = `${folder}/${randomUUID()}.${ext}`;
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: file.buffer,
-        ContentType: file.mimetype,
+        ContentType: contentType,
       }),
     );
     return { url: `${this.endpoint}/${this.bucket}/${key}`, key };

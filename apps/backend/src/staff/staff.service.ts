@@ -27,6 +27,7 @@ export class StaffService {
   async invite(restaurantId: string, dto: InviteStaffDto) {
     const existing = await this.prisma.db.partnerStaffUser.findUnique({
       where: { restaurantId_email: { restaurantId, email: dto.email } },
+      select: { id: true },
     });
     if (existing) throw new ConflictException('A staff account with this email already exists');
 
@@ -53,7 +54,10 @@ export class StaffService {
   }
 
   private async ensureBelongsToRestaurant(restaurantId: string, id: string) {
-    const staff = await this.prisma.db.partnerStaffUser.findUnique({ where: { id } });
+    const staff = await this.prisma.db.partnerStaffUser.findUnique({
+      where: { id },
+      select: { restaurantId: true },
+    });
     if (!staff || staff.restaurantId !== restaurantId) throw new NotFoundException('Staff member not found');
   }
 }

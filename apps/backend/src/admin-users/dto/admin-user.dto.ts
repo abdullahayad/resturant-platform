@@ -1,15 +1,18 @@
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 const ROLES = ['SUPER_ADMIN', 'MODERATOR'] as const;
 
 export class CreateAdminUserDto {
   @IsEmail()
+  @MaxLength(255)
   email: string;
 
   @MinLength(8)
+  @MaxLength(128)
   password: string;
 
   @IsString()
+  @MaxLength(200)
   fullName: string;
 
   @IsIn(ROLES)
@@ -19,6 +22,7 @@ export class CreateAdminUserDto {
 export class UpdateAdminUserDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   fullName?: string;
 
   @IsOptional()

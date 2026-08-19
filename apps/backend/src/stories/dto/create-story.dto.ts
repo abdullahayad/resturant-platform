@@ -1,7 +1,8 @@
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class CreateStoryDto {
-  @IsString()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
   mediaUrl: string;
 
   @IsIn(['photo', 'video'])
@@ -9,5 +10,6 @@ export class CreateStoryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   caption?: string;
 }

@@ -1,10 +1,12 @@
-import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateProvinceDto {
   @IsString()
+  @MaxLength(200)
   nameEn: string;
 
   @IsString()
+  @MaxLength(200)
   nameAr: string;
 
   @IsOptional()
@@ -15,10 +17,12 @@ export class CreateProvinceDto {
 export class UpdateProvinceDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameEn?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameAr?: string;
 
   @IsOptional()
@@ -32,9 +36,11 @@ export class UpdateProvinceDto {
 
 export class CreateDistrictDto {
   @IsString()
+  @MaxLength(200)
   nameEn: string;
 
   @IsString()
+  @MaxLength(200)
   nameAr: string;
 
   @IsOptional()
@@ -45,10 +51,12 @@ export class CreateDistrictDto {
 export class UpdateDistrictDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameEn?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameAr?: string;
 
   @IsOptional()

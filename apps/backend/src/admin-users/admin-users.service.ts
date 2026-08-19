@@ -21,7 +21,10 @@ export class AdminUsersService {
   }
 
   async create(dto: CreateAdminUserDto) {
-    const existing = await this.prisma.db.adminUser.findUnique({ where: { email: dto.email } });
+    const existing = await this.prisma.db.adminUser.findUnique({
+      where: { email: dto.email },
+      select: { id: true },
+    });
     if (existing) throw new ConflictException('An admin with this email already exists');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -37,6 +40,19 @@ export class AdminUsersService {
 
     if (id === actingAdminId && (dto.isActive === false || dto.role === 'MODERATOR')) {
       throw new BadRequestException('You cannot deactivate or demote your own account');
+    }
+
+    const losingSuperAdminStatus =
+      target.role === 'SUPER_ADMIN' &&
+      target.isActive &&
+      (dto.isActive === false || dto.role === 'MODERATOR');
+    if (losingSuperAdminStatus) {
+      const otherActiveSuperAdmins = await this.prisma.db.adminUser.count({
+        where: { role: 'SUPER_ADMIN', isActive: true, id: { not: id } },
+      });
+      if (otherActiveSuperAdmins === 0) {
+        throw new BadRequestException('Cannot remove the last active super admin');
+      }
     }
 
     return this.prisma.db.adminUser.update({

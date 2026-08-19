@@ -8,6 +8,7 @@ import { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
+import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 @Controller('restaurants')
@@ -25,7 +26,7 @@ export class RestaurantsController {
     return this.restaurants.findOne(req.user.sub);
   }
 
-  @UseGuards(PartnerAuthGuard)
+  @UseGuards(ApprovedPartnerGuard)
   @Patch('me')
   updateMe(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateRestaurantProfileDto) {
     return this.restaurants.updateProfile(req.user.sub, dto);
@@ -37,13 +38,13 @@ export class RestaurantsController {
     return this.restaurants.changePassword(req.user.sub, dto);
   }
 
-  @UseGuards(PartnerAuthGuard)
+  @UseGuards(ApprovedPartnerGuard)
   @Patch('me/notifications')
   updateNotifications(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateNotificationPrefsDto) {
     return this.restaurants.updateNotificationPrefs(req.user.sub, dto);
   }
 
-  @UseGuards(PartnerAuthGuard)
+  @UseGuards(ApprovedPartnerGuard)
   @Patch('me/hours')
   updateHours(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateOpeningHoursDto) {
     return this.restaurants.updateOpeningHours(req.user.sub, dto.days);

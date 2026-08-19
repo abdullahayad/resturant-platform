@@ -137,7 +137,8 @@ export class MasterDataService {
     return { id };
   }
 
-  createDistrict(provinceId: string, dto: CreateDistrictDto) {
+  async createDistrict(provinceId: string, dto: CreateDistrictDto) {
+    await this.ensureExists(this.prisma.db.province, provinceId);
     return this.prisma.db.district.create({
       data: { provinceId, nameEn: dto.nameEn, nameAr: dto.nameAr, sortOrder: dto.sortOrder ?? 0 },
     });

@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUrl, IsUUID, MaxLength } from 'class-validator';
 
 const ALBUMS = ['FOOD', 'MENU', 'AMBIENCE'] as const;
 const AMBIENCE_SUB_CATEGORIES = ['OUTDOOR', 'INDOOR', 'OTHER'] as const;
@@ -7,11 +7,13 @@ export class CreateGalleryPhotoDto {
   @IsIn(ALBUMS)
   album: (typeof ALBUMS)[number];
 
-  @IsString()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
   url: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   caption?: string;
 
   @IsOptional()

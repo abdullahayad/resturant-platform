@@ -1,8 +1,9 @@
-import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class RejectRestaurantDto {
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   reason?: string;
 }
 

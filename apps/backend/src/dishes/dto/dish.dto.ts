@@ -1,14 +1,19 @@
-import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString, IsUrl, IsUUID, Max, MaxLength } from 'class-validator';
+
+const MAX_PRICE = 100_000_000;
 
 export class CreateDishDto {
   @IsString()
+  @MaxLength(200)
   nameEn: string;
 
   @IsString()
+  @MaxLength(200)
   nameAr: string;
 
   @IsNumber()
   @IsPositive()
+  @Max(MAX_PRICE)
   price: number;
 
   @IsOptional()
@@ -16,7 +21,8 @@ export class CreateDishDto {
   menuCategoryId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
   photoUrl?: string;
 
   @IsOptional()
@@ -27,15 +33,18 @@ export class CreateDishDto {
 export class UpdateDishDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameEn?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameAr?: string;
 
   @IsOptional()
   @IsNumber()
   @IsPositive()
+  @Max(MAX_PRICE)
   price?: number;
 
   @IsOptional()
@@ -43,7 +52,8 @@ export class UpdateDishDto {
   menuCategoryId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
   photoUrl?: string;
 
   @IsOptional()

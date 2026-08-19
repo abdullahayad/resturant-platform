@@ -1,10 +1,12 @@
-import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateMasterDataItemDto {
   @IsString()
+  @MaxLength(200)
   nameEn: string;
 
   @IsString()
+  @MaxLength(200)
   nameAr: string;
 
   @IsOptional()
@@ -13,16 +15,19 @@ export class CreateMasterDataItemDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(20)
   icon?: string;
 }
 
 export class UpdateMasterDataItemDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameEn?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   nameAr?: string;
 
   @IsOptional()
@@ -31,6 +36,7 @@ export class UpdateMasterDataItemDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(20)
   icon?: string;
 
   @IsOptional()
