@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
@@ -37,7 +38,10 @@ const restaurantDetailSelect = {
 
 @Injectable()
 export class RestaurantsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+  ) {}
 
   private async generateUniqueCode(): Promise<string> {
     for (let attempt = 0; attempt < 10; attempt++) {
@@ -192,8 +196,21 @@ export class RestaurantsService {
     if (!matches) throw new BadRequestException('Current password is incorrect');
 
     const ownerPasswordHash = await bcrypt.hash(dto.newPassword, 10);
-    await this.prisma.db.restaurant.update({ where: { id }, data: { ownerPasswordHash } });
-    return { success: true };
+    const updated = await this.prisma.db.restaurant.update({
+      where: { id },
+      data: { ownerPasswordHash, tokenVersion: { increment: 1 } },
+    });
+
+    // Bumping tokenVersion invalidates every previously issued token,
+    // including the one used to make this request — issue a fresh one so
+    // the caller isn't immediately logged out by their own password change.
+    const accessToken = await this.jwt.signAsync({
+      sub: updated.id,
+      type: 'partner',
+      restaurantStatus: updated.status,
+      tokenVersion: updated.tokenVersion,
+    });
+    return { success: true, accessToken };
   }
 
   async updateNotificationPrefs(id: string, dto: UpdateNotificationPrefsDto) {

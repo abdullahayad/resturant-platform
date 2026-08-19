@@ -35,6 +35,7 @@ export default function App() {
               token: session.token,
               restaurant: session.restaurant,
               setRestaurant: (restaurant) => setSession({ token: session.token, restaurant }),
+              setToken: (token) => setSession({ token, restaurant: session.restaurant }),
               signOut,
             }}
           >

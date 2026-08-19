@@ -327,7 +327,10 @@ export const api = {
     send<Review>('POST', `/restaurants/me/reviews/${reviewId}/reply`, token, { text }),
 
   changePassword: (token: string, currentPassword: string, newPassword: string) =>
-    send<{ success: boolean }>('PATCH', '/restaurants/me/password', token, { currentPassword, newPassword }),
+    send<{ success: boolean; accessToken: string }>('PATCH', '/restaurants/me/password', token, {
+      currentPassword,
+      newPassword,
+    }),
   updateNotificationPrefs: (token: string, payload: { notifyNewReview?: boolean; notifyNewBooking?: boolean }) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me/notifications', token, payload),
 

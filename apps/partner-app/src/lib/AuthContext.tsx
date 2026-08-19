@@ -5,6 +5,7 @@ export interface AuthContextValue {
   token: string;
   restaurant: AuthenticatedRestaurant;
   setRestaurant: (restaurant: AuthenticatedRestaurant) => void;
+  setToken: (token: string) => void;
   signOut: () => void;
 }
 

@@ -185,6 +185,7 @@ model AdminUser {
   fullName     String
   role         AdminRole @default(MODERATOR)
   isActive     Boolean   @default(true)
+  tokenVersion Int       @default(0) // bumped to invalidate previously issued JWTs
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -215,6 +216,7 @@ model Restaurant {
   // Auth (owner account created at sign-up)
   ownerEmail        String @unique
   ownerPasswordHash String
+  tokenVersion      Int    @default(0) // bumped on password change to invalidate previously issued JWTs
 
   // Notification preferences (Settings & Staff)
   notifyNewReview  Boolean @default(true)

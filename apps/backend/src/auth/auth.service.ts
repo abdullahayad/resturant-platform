@@ -4,6 +4,12 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import type { LoginDto } from './dto/login.dto';
 
+// A precomputed hash with no matching plaintext, compared against on the
+// "account not found" path so failed logins take the same time whether or
+// not the email exists — otherwise bcrypt only running for real accounts
+// leaks account existence via response timing.
+const DUMMY_HASH = bcrypt.hashSync('no-such-account-timing-safety', 10);
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -15,7 +21,11 @@ export class AuthService {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { ownerEmail: dto.email },
     });
-    if (!restaurant || !(await bcrypt.compare(dto.password, restaurant.ownerPasswordHash))) {
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      restaurant?.ownerPasswordHash ?? DUMMY_HASH,
+    );
+    if (!restaurant || !passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -23,6 +33,7 @@ export class AuthService {
       sub: restaurant.id,
       type: 'partner',
       restaurantStatus: restaurant.status,
+      tokenVersion: restaurant.tokenVersion,
     });
 
     return {
@@ -40,7 +51,8 @@ export class AuthService {
 
   async adminLogin(dto: LoginDto) {
     const admin = await this.prisma.db.adminUser.findUnique({ where: { email: dto.email } });
-    if (!admin || !admin.isActive || !(await bcrypt.compare(dto.password, admin.passwordHash))) {
+    const passwordMatches = await bcrypt.compare(dto.password, admin?.passwordHash ?? DUMMY_HASH);
+    if (!admin || !admin.isActive || !passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -48,6 +60,7 @@ export class AuthService {
       sub: admin.id,
       type: 'admin',
       adminRole: admin.role,
+      tokenVersion: admin.tokenVersion,
     });
 
     return {

@@ -10,8 +10,8 @@ import type { PartnerJwtPayload } from '../jwt-payload';
 // rather than trusting the stale value baked into the token at login.
 @Injectable()
 export class ApprovedPartnerGuard extends PartnerAuthGuard {
-  constructor(private readonly prisma: PrismaService) {
-    super();
+  constructor(prisma: PrismaService) {
+    super(prisma);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

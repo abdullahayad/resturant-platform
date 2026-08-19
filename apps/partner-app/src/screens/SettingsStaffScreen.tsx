@@ -9,7 +9,7 @@ import { api, type RestaurantDetail, type StaffMember, type StaffRole } from '..
 const roleLabels: Record<StaffRole, string> = { MANAGER: 'Manager', MENU_EDITOR: 'Menu Editor' };
 
 export function SettingsStaffScreen() {
-  const { token } = useAuth();
+  const { token, setToken } = useAuth();
 
   // ── Account settings ──────────────────────────────────────────────
   const [profile, setProfile] = useState<RestaurantDetail | null>(null);
@@ -35,7 +35,8 @@ export function SettingsStaffScreen() {
     }
     setChangingPassword(true);
     try {
-      await api.changePassword(token, currentPassword, newPassword);
+      const result = await api.changePassword(token, currentPassword, newPassword);
+      setToken(result.accessToken);
       setPasswordSuccess(true);
       setCurrentPassword('');
       setNewPassword('');
