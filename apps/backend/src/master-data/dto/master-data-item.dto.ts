@@ -1,4 +1,6 @@
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+
+const MAX_SORT_ORDER = 100_000;
 
 export class CreateMasterDataItemDto {
   @IsString()
@@ -11,6 +13,8 @@ export class CreateMasterDataItemDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(MAX_SORT_ORDER)
   sortOrder?: number;
 
   @IsOptional()
@@ -32,6 +36,8 @@ export class UpdateMasterDataItemDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(MAX_SORT_ORDER)
   sortOrder?: number;
 
   @IsOptional()

@@ -1,4 +1,6 @@
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+
+const MAX_SORT_ORDER = 100_000;
 
 export class CreateProvinceDto {
   @IsString()
@@ -11,6 +13,8 @@ export class CreateProvinceDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(MAX_SORT_ORDER)
   sortOrder?: number;
 }
 
@@ -27,6 +31,8 @@ export class UpdateProvinceDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(MAX_SORT_ORDER)
   sortOrder?: number;
 
   @IsOptional()
@@ -45,6 +51,8 @@ export class CreateDistrictDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(MAX_SORT_ORDER)
   sortOrder?: number;
 }
 
@@ -61,6 +69,8 @@ export class UpdateDistrictDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(MAX_SORT_ORDER)
   sortOrder?: number;
 
   @IsOptional()
