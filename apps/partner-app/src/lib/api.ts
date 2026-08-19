@@ -27,6 +27,7 @@ export interface RegisterRestaurantPayload {
   districtId?: string;
   businessTypeIds: string[];
   foodCategoryIds: string[];
+  agreedToTerms: boolean;
 }
 
 export type RestaurantStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';

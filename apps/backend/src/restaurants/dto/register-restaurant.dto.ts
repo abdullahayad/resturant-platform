@@ -1,5 +1,6 @@
 import {
   ArrayMaxSize,
+  Equals,
   IsArray,
   IsEmail,
   IsLatitude,
@@ -68,4 +69,7 @@ export class RegisterRestaurantDto {
   @ArrayMaxSize(MAX_MASTER_DATA_SELECTIONS)
   @IsUUID(undefined, { each: true })
   facilityIds?: string[];
+
+  @Equals(true, { message: 'You must agree to the Terms of Service and Privacy Policy to register' })
+  agreedToTerms: boolean;
 }

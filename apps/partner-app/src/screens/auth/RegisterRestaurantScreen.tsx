@@ -25,6 +25,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   const [foodCategoryIds, setFoodCategoryIds] = useState<string[]>([]);
   const [provinceId, setProvinceId] = useState<string | null>(null);
   const [districtId, setDistrictId] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
 
   const canSubmit =
     nameEn.trim() && nameAr.trim() && phone.trim() && email.trim() && password.length >= 8 &&
-    businessTypeIds.length > 0 && foodCategoryIds.length > 0;
+    businessTypeIds.length > 0 && foodCategoryIds.length > 0 && agreedToTerms;
 
   const handleSubmit = async () => {
     setSubmitError(null);
@@ -64,6 +65,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
         districtId: districtId ?? undefined,
         businessTypeIds,
         foodCategoryIds,
+        agreedToTerms,
       });
       setSubmitted(true);
     } catch (err) {
@@ -148,6 +150,13 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
         </View>
       )}
 
+      <Pressable style={styles.termsRow} onPress={() => setAgreedToTerms((v) => !v)}>
+        <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+          {agreedToTerms && <Text style={styles.checkboxMark}>✓</Text>}
+        </View>
+        <Text style={styles.termsText}>I agree to the Terms of Service and Privacy Policy</Text>
+      </Pressable>
+
       {submitError && <Text style={styles.error}>{submitError}</Text>}
 
       <Pressable
@@ -172,6 +181,19 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, color: colors.mutedForeground, marginBottom: 8 },
   section: { gap: 8 },
   sectionLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
+  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkboxMark: { color: colors.primaryForeground, fontSize: 13, fontWeight: '700' },
+  termsText: { color: colors.foreground, fontSize: 13, flex: 1 },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.5 },
   primaryButton: { backgroundColor: colors.primary },

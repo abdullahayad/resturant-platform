@@ -237,9 +237,10 @@ model Restaurant {
   longitude  Decimal? @db.Decimal(9, 6)
 
   // Auth (owner account created at sign-up)
-  ownerEmail        String @unique
+  ownerEmail        String    @unique
   ownerPasswordHash String
-  tokenVersion      Int    @default(0) // bumped on password change to invalidate previously issued JWTs
+  tokenVersion      Int       @default(0) // bumped on password change to invalidate previously issued JWTs
+  termsAcceptedAt   DateTime? // set at registration when the owner checks the terms/privacy agreement
 
   // Notification preferences (Settings & Staff)
   notifyNewReview  Boolean @default(true)
