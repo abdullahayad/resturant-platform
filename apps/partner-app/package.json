@@ -10,6 +10,7 @@
     "expo-image-picker": "~57.0.10",
     "expo-location": "~57.0.11",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.16",
     "lucide-react-native": "^1.33.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
