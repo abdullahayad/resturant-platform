@@ -44,6 +44,43 @@
   --shadow-card: 0 1px 2px oklch(0.05 0 0 / 0.4), 0 8px 24px -12px oklch(0.05 0 0 / 0.55);
   --shadow-card-hover: 0 2px 4px oklch(0.05 0 0 / 0.45), 0 16px 32px -12px oklch(0.05 0 0 / 0.6);
   --shadow-glow: 0 0 0 1px oklch(0.74 0.16 55 / 0.15), 0 4px 16px -4px oklch(0.74 0.16 55 / 0.25);
+  --shadow-sidebar: 4px 0 24px -8px oklch(0.05 0 0 / 0.5);
+}
+
+/* Light theme — same amber accent family, deepened for AA contrast on white. */
+html[data-theme='light'] {
+  --background: oklch(0.98 0.004 264);
+  --foreground: oklch(0.22 0.01 264);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.01 264);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.01 264);
+
+  --primary: oklch(0.68 0.17 55);
+  --primary-foreground: oklch(0.18 0.02 55);
+
+  --secondary: oklch(0.94 0.008 264);
+  --secondary-foreground: oklch(0.25 0.01 264);
+
+  --muted: oklch(0.95 0.006 264);
+  --muted-foreground: oklch(0.48 0.015 264);
+
+  --accent: oklch(0.94 0.008 264);
+  --accent-foreground: oklch(0.22 0.01 264);
+
+  --success: oklch(0.55 0.15 145);
+  --success-foreground: oklch(0.98 0.02 145);
+
+  --destructive: oklch(0.55 0.20 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+
+  --border: oklch(0.88 0.006 264);
+  --input: oklch(0.88 0.006 264);
+  --ring: oklch(0.68 0.17 55);
+
+  --shadow-sidebar: 4px 0 24px -8px oklch(0.75 0.01 264 / 0.18);
 }
 
 @theme inline {
@@ -82,6 +119,9 @@
 html {
   color-scheme: dark;
 }
+html[data-theme='light'] {
+  color-scheme: light;
+}
 
 html[dir="rtl"] {
   direction: rtl;
@@ -89,7 +129,7 @@ html[dir="rtl"] {
 
 body {
   background:
-    radial-gradient(ellipse 1200px 600px at 15% -10%, oklch(0.74 0.16 55 / 0.05), transparent),
+    radial-gradient(ellipse 1200px 600px at 15% -10%, oklch(from var(--primary) l c h / 0.05), transparent),
     var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
@@ -97,7 +137,7 @@ body {
 }
 
 ::selection {
-  background: oklch(0.74 0.16 55 / 0.3);
+  background: oklch(from var(--primary) l c h / 0.3);
   color: var(--color-foreground);
 }
 
@@ -114,7 +154,7 @@ body {
   border: 2px solid var(--color-background);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.74 0.16 55 / 0.5);
+  background: oklch(from var(--primary) l c h / 0.5);
 }
 
 /* ── Foundational polish, applied globally so every page picks it up ──── */
@@ -150,7 +190,7 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  box-shadow: 0 0 0 3px oklch(0.74 0.16 55 / 0.15);
+  box-shadow: 0 0 0 3px oklch(from var(--primary) l c h / 0.15);
 }
 
 /* Every routed page fades/slides in through AdminLayout's <main>. */

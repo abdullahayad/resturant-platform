@@ -1,13 +1,15 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { LogOut, UtensilsCrossed } from 'lucide-react'
+import { LogOut, Moon, Sun, UtensilsCrossed } from 'lucide-react'
 import { navItems } from '@/lib/nav'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/auth'
+import { useTheme } from '@/lib/theme'
 
 export function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const admin = auth.getAdmin()
+  const { theme, toggleTheme } = useTheme()
 
   const signOut = () => {
     auth.clear()
@@ -16,7 +18,7 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card px-3 py-5 shadow-[4px_0_24px_-8px_oklch(0.05_0_0/0.5)]">
+      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card px-3 py-5 shadow-[var(--shadow-sidebar)]">
         <div className="mb-6 flex items-center gap-2.5 px-2">
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary shadow-[var(--shadow-glow)]">
             <UtensilsCrossed className="size-4 text-primary-foreground" />
@@ -67,8 +69,15 @@ export function AdminLayout() {
             <div className="text-xs text-muted-foreground">{admin?.role.replace('_', ' ')}</div>
           </div>
           <button
-            onClick={signOut}
+            onClick={toggleTheme}
             className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <button
+            onClick={signOut}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             <LogOut className="size-4" />
             Sign Out
