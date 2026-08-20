@@ -1,1 +1,20 @@
-{}
+{
+  "title": "Customer Reviews",
+  "overall": "OVERALL",
+  "reviews_one": "{{count}} review",
+  "reviews_other": "{{count}} reviews",
+  "reputationTitle": "Customer Reputation & Ratings",
+  "positiveSentiment": "{{pct}}% Positive Sentiment",
+  "reputationBody": "Direct verified diner ratings across food, service speed, staff hospitality, and atmosphere.",
+  "categoryScoresHeading": "Category Scores & 30-Day Trends",
+  "categoryScoresSubheading": "Genuinely useful operational insights for restaurant managers",
+  "last30Days": "Last 30 days",
+  "all": "All",
+  "hiddenByAdmin": "Hidden by admin",
+  "flagged": "Flagged",
+  "yourReply": "Your reply",
+  "replyLabel": "Reply publicly",
+  "replyPlaceholder": "Thank you for your feedback…",
+  "postReply": "Post Reply",
+  "noReviewsMatchFilter": "No reviews match this filter."
+}

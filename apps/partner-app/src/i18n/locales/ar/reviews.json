@@ -1,1 +1,23 @@
-{}
+{
+  "title": "تقييمات الزبائن",
+  "overall": "الإجمالي",
+  "reviews_one": "تقييم واحد",
+  "reviews_two": "تقييمان",
+  "reviews_few": "{{count}} تقييمات",
+  "reviews_many": "{{count}} تقييمًا",
+  "reviews_other": "{{count}} تقييم",
+  "reputationTitle": "سمعة الزبائن والتقييمات",
+  "positiveSentiment": "{{pct}}% مشاعر إيجابية",
+  "reputationBody": "تقييمات موثقة مباشرة من الزبائن حول الطعام وسرعة الخدمة وضيافة الموظفين والأجواء.",
+  "categoryScoresHeading": "تقييمات الفئات واتجاهات آخر 30 يوماً",
+  "categoryScoresSubheading": "رؤى تشغيلية مفيدة فعلاً لمديري المطاعم",
+  "last30Days": "آخر 30 يوماً",
+  "all": "الكل",
+  "hiddenByAdmin": "مخفي من قبل الإدارة",
+  "flagged": "تم الإبلاغ عنه",
+  "yourReply": "ردك",
+  "replyLabel": "الرد علناً",
+  "replyPlaceholder": "شكراً لملاحظاتك…",
+  "postReply": "نشر الرد",
+  "noReviewsMatchFilter": "لا توجد تقييمات تطابق هذا الفلتر."
+}

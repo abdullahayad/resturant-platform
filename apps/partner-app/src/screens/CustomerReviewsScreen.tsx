@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, type LucideIcon } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -18,6 +19,7 @@ const categoryIcons: Record<string, LucideIcon> = {
 export function CustomerReviewsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('reviews');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
@@ -32,8 +34,8 @@ export function CustomerReviewsScreen() {
         setReviews(r);
         setSummary(s);
       })
-      .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, [token]);
+      .catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
 
   useEffect(load, [load]);
 
@@ -57,29 +59,27 @@ export function CustomerReviewsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Customer Reviews</Text>
+      <Text style={styles.title}>{t('title')}</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
       {summary && (
         <>
           <View style={styles.summaryRow}>
             <View style={styles.overallCard}>
-              <Text style={styles.overallLabel}>OVERALL</Text>
+              <Text style={styles.overallLabel}>{t('overall')}</Text>
               <Text style={styles.overallScore}>{summary.overallAverage.toFixed(1)}★</Text>
               <StarRating value={summary.overallAverage} size={15} />
-              <Text style={styles.overallCount}>{summary.totalCount.toLocaleString()} reviews</Text>
+              <Text style={styles.overallCount}>{t('reviews', { count: summary.totalCount })}</Text>
             </View>
 
             <View style={styles.headlineCard}>
               <View style={styles.headlineTop}>
-                <Text style={styles.headlineTitle}>Customer Reputation & Ratings</Text>
+                <Text style={styles.headlineTitle}>{t('reputationTitle')}</Text>
                 <View style={styles.sentimentBadge}>
-                  <Text style={styles.sentimentText}>{summary.positiveSentimentPct}% Positive Sentiment</Text>
+                  <Text style={styles.sentimentText}>{t('positiveSentiment', { pct: summary.positiveSentimentPct })}</Text>
                 </View>
               </View>
-              <Text style={styles.headlineBody}>
-                Direct verified diner ratings across food, service speed, staff hospitality, and atmosphere.
-              </Text>
+              <Text style={styles.headlineBody}>{t('reputationBody')}</Text>
             </View>
 
             <View style={styles.distributionCard}>
@@ -104,9 +104,9 @@ export function CustomerReviewsScreen() {
           <View>
             <View style={styles.sectionHeadingRow}>
               <Sparkles size={15} color={colors.primary} />
-              <Text style={styles.sectionHeading}>Category Scores & 30-Day Trends</Text>
+              <Text style={styles.sectionHeading}>{t('categoryScoresHeading')}</Text>
             </View>
-            <Text style={styles.sectionSubheading}>Genuinely useful operational insights for restaurant managers</Text>
+            <Text style={styles.sectionSubheading}>{t('categoryScoresSubheading')}</Text>
             <View style={styles.categoryRow}>
               {summary.categoryScores.map((cat) => {
                 const trendUp = cat.trend != null && cat.trend > 0;
@@ -122,7 +122,7 @@ export function CustomerReviewsScreen() {
                       {cat.labelEn} <Text style={styles.categoryLabelAr}>({cat.labelAr})</Text>
                     </Text>
                     <View style={styles.categoryTrendRow}>
-                      <Text style={styles.categoryTrendHint}>Last 30 days</Text>
+                      <Text style={styles.categoryTrendHint}>{t('last30Days')}</Text>
                       {cat.trend != null && (
                         <Text style={[styles.categoryTrend, trendUp && styles.trendUp, trendDown && styles.trendDown]}>
                           {trendUp ? '↑' : trendDown ? '↓' : '—'} {trendUp ? '+' : ''}{cat.trend}
@@ -139,7 +139,7 @@ export function CustomerReviewsScreen() {
 
       <View style={styles.filterRow}>
         <Pressable onPress={() => setStarFilter(null)} style={[styles.filterChip, starFilter === null && styles.filterChipActive]}>
-          <Text style={[styles.filterChipText, starFilter === null && styles.filterChipTextActive]}>All</Text>
+          <Text style={[styles.filterChipText, starFilter === null && styles.filterChipTextActive]}>{t('all')}</Text>
         </Pressable>
         {[5, 4, 3, 2, 1].map((star) => (
           <Pressable
@@ -161,22 +161,22 @@ export function CustomerReviewsScreen() {
             </View>
             <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
             {review.moderationStatus !== 'VISIBLE' && (
-              <Text style={styles.moderationBadge}>{review.moderationStatus === 'HIDDEN' ? 'Hidden by admin' : 'Flagged'}</Text>
+              <Text style={styles.moderationBadge}>{review.moderationStatus === 'HIDDEN' ? t('hiddenByAdmin') : t('flagged')}</Text>
             )}
             {review.text && <Text style={styles.reviewText}>{review.text}</Text>}
 
             {review.reply ? (
               <View style={styles.replyBox}>
-                <Text style={styles.replyLabel}>Your reply</Text>
+                <Text style={styles.replyLabel}>{t('yourReply')}</Text>
                 <Text style={styles.replyText}>{review.reply.text}</Text>
               </View>
             ) : (
               <View style={styles.replyForm}>
                 <FormField
-                  label="Reply publicly"
+                  label={t('replyLabel')}
                   value={replyDrafts[review.id] ?? ''}
                   onChangeText={(v) => setReplyDrafts((prev) => ({ ...prev, [review.id]: v }))}
-                  placeholder="Thank you for your feedback…"
+                  placeholder={t('replyPlaceholder')}
                 />
                 <Pressable
                   style={[styles.button, styles.primaryButton]}
@@ -186,14 +186,14 @@ export function CustomerReviewsScreen() {
                   {submittingId === review.id ? (
                     <ActivityIndicator color={colors.primaryForeground} />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Post Reply</Text>
+                    <Text style={styles.primaryButtonText}>{t('postReply')}</Text>
                   )}
                 </Pressable>
               </View>
             )}
           </View>
         ))}
-        {visibleReviews.length === 0 && !loadError && <Text style={styles.hint}>No reviews match this filter.</Text>}
+        {visibleReviews.length === 0 && !loadError && <Text style={styles.hint}>{t('noReviewsMatchFilter')}</Text>}
       </View>
     </ScrollView>
   );
