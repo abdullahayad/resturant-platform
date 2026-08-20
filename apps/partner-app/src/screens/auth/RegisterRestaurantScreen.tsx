@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Check } from 'lucide-react-native';
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { FormField } from '../../components/FormField';
 import { ChipSelect } from '../../components/ChipSelect';
 import { LegalDocumentModal } from '../../components/LegalDocumentModal';
@@ -16,7 +18,10 @@ interface RegisterRestaurantScreenProps {
 
 export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterRestaurantScreenProps) {
   const { colors } = useTheme();
+  const { isRTL } = useLanguage();
+  const { t } = useTranslation('auth');
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const BackIcon = isRTL ? ChevronRight : ChevronLeft;
   const [businessTypes, setBusinessTypes] = useState<MasterDataItem[]>([]);
   const [foodCategories, setFoodCategories] = useState<MasterDataItem[]>([]);
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -46,8 +51,8 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
         setFoodCategories(fc);
         setProvinces(pr);
       })
-      .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, []);
+      .catch(() => setLoadError(t('common:networkError')));
+  }, [t]);
 
   const toggle = (list: string[], setList: (v: string[]) => void, id: string) => {
     setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -77,7 +82,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       });
       setSubmitted(true);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Registration failed');
+      setSubmitError(err instanceof Error ? err.message : t('register.genericError'));
     } finally {
       setSubmitting(false);
     }
@@ -87,12 +92,10 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
     return (
       <View style={styles.centered}>
         <View style={styles.card}>
-          <Text style={styles.successTitle}>Application submitted</Text>
-          <Text style={styles.successBody}>
-            Your restaurant is now under review. You'll be able to sign in once an admin approves it.
-          </Text>
+          <Text style={styles.successTitle}>{t('register.successTitle')}</Text>
+          <Text style={styles.successBody}>{t('register.successBody')}</Text>
           <Pressable style={[styles.button, styles.primaryButton]} onPress={onRegistered}>
-            <Text style={styles.primaryButtonText}>Back to Sign In</Text>
+            <Text style={styles.primaryButtonText}>{t('register.backToSignIn')}</Text>
           </Pressable>
         </View>
       </View>
@@ -101,24 +104,23 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Pressable onPress={onBack}>
-        <Text style={styles.back}>{'‹ Back'}</Text>
+      <Pressable onPress={onBack} style={styles.backRow}>
+        <BackIcon size={14} color={colors.mutedForeground} />
+        <Text style={styles.back}>{t('common:actions.back')}</Text>
       </Pressable>
-      <Text style={styles.title}>Register Restaurant</Text>
-      <Text style={styles.subtitle}>
-        Submitted restaurants start as Pending Review until an admin approves them.
-      </Text>
+      <Text style={styles.title}>{t('register.title')}</Text>
+      <Text style={styles.subtitle}>{t('register.subtitle')}</Text>
 
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
-      <FormField label="Restaurant name (English)" value={nameEn} onChangeText={setNameEn} placeholder="Al Baghdadi Restaurant" />
-      <FormField label="Restaurant name (Arabic)" value={nameAr} onChangeText={setNameAr} placeholder="مطعم البغدادي" />
-      <FormField label="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="07XXXXXXXXX" />
-      <FormField label="Owner email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="owner@restaurant.iq" />
-      <FormField label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="At least 8 characters" />
+      <FormField label={t('register.nameEnLabel')} value={nameEn} onChangeText={setNameEn} placeholder={t('register.nameEnPlaceholder')} />
+      <FormField label={t('register.nameArLabel')} value={nameAr} onChangeText={setNameAr} placeholder={t('register.nameArPlaceholder')} />
+      <FormField label={t('register.phoneLabel')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder={t('register.phonePlaceholder')} />
+      <FormField label={t('register.emailLabel')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder={t('register.emailPlaceholder')} />
+      <FormField label={t('register.passwordLabel')} value={password} onChangeText={setPassword} secureTextEntry placeholder={t('register.passwordPlaceholder')} />
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Business Types</Text>
+        <Text style={styles.sectionLabel}>{t('register.businessTypes')}</Text>
         <ChipSelect
           options={businessTypes.map((b) => ({ id: b.id, label: b.nameEn }))}
           selectedIds={businessTypeIds}
@@ -127,7 +129,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Food Categories</Text>
+        <Text style={styles.sectionLabel}>{t('register.foodCategories')}</Text>
         <ChipSelect
           options={foodCategories.map((f) => ({ id: f.id, label: f.nameEn }))}
           selectedIds={foodCategoryIds}
@@ -136,7 +138,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>City</Text>
+        <Text style={styles.sectionLabel}>{t('register.city')}</Text>
         <ChipSelect
           options={provinces.map((p) => ({ id: p.id, label: p.nameEn }))}
           selectedIds={provinceId ? [provinceId] : []}
@@ -149,7 +151,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
 
       {selectedProvince && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>District</Text>
+          <Text style={styles.sectionLabel}>{t('register.district')}</Text>
           <ChipSelect
             options={selectedProvince.districts.map((d) => ({ id: d.id, label: d.nameEn }))}
             selectedIds={districtId ? [districtId] : []}
@@ -165,19 +167,19 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
           </View>
         </Pressable>
         <Text style={styles.termsText}>
-          I agree to the{' '}
+          {t('register.termsPrefix')}{' '}
           <Text style={styles.termsLink} onPress={() => setShowTerms(true)}>
-            Terms of Service
+            {t('register.termsOfService')}
           </Text>{' '}
-          and{' '}
+          {t('register.and')}{' '}
           <Text style={styles.termsLink} onPress={() => setShowPrivacy(true)}>
-            Privacy Policy
+            {t('register.privacyPolicy')}
           </Text>
         </Text>
       </View>
 
-      <LegalDocumentModal visible={showTerms} title="Terms of Service" sections={TERMS_OF_SERVICE} onClose={() => setShowTerms(false)} />
-      <LegalDocumentModal visible={showPrivacy} title="Privacy Policy" sections={PRIVACY_POLICY} onClose={() => setShowPrivacy(false)} />
+      <LegalDocumentModal visible={showTerms} title={t('register.termsOfService')} sections={TERMS_OF_SERVICE} onClose={() => setShowTerms(false)} />
+      <LegalDocumentModal visible={showPrivacy} title={t('register.privacyPolicy')} sections={PRIVACY_POLICY} onClose={() => setShowPrivacy(false)} />
 
       {submitError && <Text style={styles.error}>{submitError}</Text>}
 
@@ -189,7 +191,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
         {submitting ? (
           <ActivityIndicator color={colors.primaryForeground} />
         ) : (
-          <Text style={styles.primaryButtonText}>Submit for Review</Text>
+          <Text style={styles.primaryButtonText}>{t('register.submit')}</Text>
         )}
       </Pressable>
     </ScrollView>
@@ -198,7 +200,8 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { padding: 24, gap: 16, maxWidth: 560, width: '100%', alignSelf: 'center' },
-  back: { color: colors.mutedForeground, fontSize: 14, marginBottom: 4 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  back: { color: colors.mutedForeground, fontSize: 14 },
   title: { fontSize: 22, fontWeight: '700', color: colors.primary },
   subtitle: { fontSize: 13, color: colors.mutedForeground, marginBottom: 8 },
   section: { gap: 8 },

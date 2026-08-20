@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 
@@ -17,6 +18,7 @@ interface ChipSelectProps {
 
 export function ChipSelect({ options, selectedIds, onToggle, multi = true }: ChipSelectProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation('common');
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.wrap}>
@@ -34,7 +36,7 @@ export function ChipSelect({ options, selectedIds, onToggle, multi = true }: Chi
           </Pressable>
         );
       })}
-      {options.length === 0 && <Text style={styles.empty}>Loading…</Text>}
+      {options.length === 0 && <Text style={styles.empty}>{t('loading')}</Text>}
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
@@ -14,6 +15,7 @@ interface AnnouncementBannerProps {
 export function AnnouncementBanner({ active, onView }: AnnouncementBannerProps) {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('common');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -28,12 +30,9 @@ export function AnnouncementBanner({ active, onView }: AnnouncementBannerProps) 
 
   return (
     <View style={styles.banner}>
-      <Text style={styles.text}>
-        {unreadCount === 1 ? 'You have a new announcement' : `You have ${unreadCount} new announcements`} from the
-        platform team.
-      </Text>
+      <Text style={styles.text}>{t('announcementBanner.unread', { count: unreadCount })}</Text>
       <Pressable onPress={onView} style={styles.button}>
-        <Text style={styles.buttonText}>View</Text>
+        <Text style={styles.buttonText}>{t('announcementBanner.view')}</Text>
       </Pressable>
     </View>
   );

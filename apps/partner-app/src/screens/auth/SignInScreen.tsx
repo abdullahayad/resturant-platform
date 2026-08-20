@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { FormField } from '../../components/FormField';
 import { api, type AuthenticatedRestaurant, type StaffSession } from '../../lib/api';
 
@@ -12,11 +15,14 @@ interface SignInScreenProps {
 
 export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
   const { colors } = useTheme();
+  const { isRTL } = useLanguage();
+  const { t } = useTranslation('auth');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const BackIcon = isRTL ? ChevronRight : ChevronLeft;
 
   const submit = async (overrideEmail?: string, overridePassword?: string) => {
     setError(null);
@@ -25,7 +31,7 @@ export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
       const result = await api.login(overrideEmail ?? email, overridePassword ?? password);
       onSignedIn(result.accessToken, result.restaurant, result.staff);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed');
+      setError(err instanceof Error ? err.message : t('signIn.genericError'));
     } finally {
       setSubmitting(false);
     }
@@ -34,31 +40,36 @@ export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Pressable onPress={onBack}>
-          <Text style={styles.back}>{'‹ Back'}</Text>
+        <Pressable onPress={onBack} style={styles.backRow}>
+          <BackIcon size={14} color={colors.mutedForeground} />
+          <Text style={styles.back}>{t('common:actions.back')}</Text>
         </Pressable>
-        <Text style={styles.title}>Sign In</Text>
+        <Text style={styles.title}>{t('signIn.title')}</Text>
 
         <FormField
-          label="Email"
+          label={t('signIn.emailLabel')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="owner@restaurant.iq"
+          placeholder={t('signIn.emailPlaceholder')}
         />
         <FormField
-          label="Password"
+          label={t('signIn.passwordLabel')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          placeholder="Password"
+          placeholder={t('signIn.passwordPlaceholder')}
         />
 
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Pressable style={[styles.button, styles.primaryButton]} onPress={() => submit()} disabled={submitting}>
-          {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Sign In</Text>}
+          {submitting ? (
+            <ActivityIndicator color={colors.primaryForeground} />
+          ) : (
+            <Text style={styles.primaryButtonText}>{t('signIn.submit')}</Text>
+          )}
         </Pressable>
 
         {__DEV__ && (
@@ -70,7 +81,7 @@ export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
               submit('demo@restaurant.iq', 'DemoPass123');
             }}
           >
-            <Text style={styles.devLinkText}>Quick demo login (dev only)</Text>
+            <Text style={styles.devLinkText}>{t('signIn.devLink')}</Text>
           </Pressable>
         )}
       </View>
@@ -94,7 +105,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 32,
   },
-  back: { color: colors.mutedForeground, fontSize: 14, marginBottom: 4 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  back: { color: colors.mutedForeground, fontSize: 14 },
   title: { fontSize: 20, fontWeight: '700', color: colors.primary, marginBottom: 8 },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   primaryButton: {

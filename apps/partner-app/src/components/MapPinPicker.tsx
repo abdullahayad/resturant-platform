@@ -3,8 +3,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { LocateFixed } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const BAGHDAD = { lat: 33.3152, lng: 44.3661 };
 
@@ -52,7 +54,9 @@ function buildHtml(lat: number, lng: number, mapBackground: string) {
 /** Native (iOS/Android) pin picker: OpenStreetMap tiles rendered inside a WebView — no API key needed. */
 export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProps) {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isRTL } = useLanguage();
+  const { t } = useTranslation('profile');
+  const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
   const webViewRef = useRef<WebView>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
@@ -84,7 +88,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocateError('Location permission denied.');
+        setLocateError(t('map.permissionDenied'));
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -92,11 +96,11 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
       webViewRef.current?.injectJavaScript(`moveTo(${lat}, ${lng}, 16); true;`);
       onChange(lat, lng);
     } catch {
-      setLocateError('Could not get your location.');
+      setLocateError(t('map.locationFailed'));
     } finally {
       setLocating(false);
     }
-  }, [onChange]);
+  }, [onChange, t]);
 
   return (
     <View style={styles.container}>
@@ -113,7 +117,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create({
   container: {
     height: 260,
     borderRadius: 12,
@@ -124,7 +128,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   webview: { flex: 1, backgroundColor: colors.secondary },
   locateButton: {
     position: 'absolute',
-    right: 10,
+    right: isRTL ? undefined : 10,
+    left: isRTL ? 10 : undefined,
     bottom: 10,
     width: 40,
     height: 40,
@@ -141,9 +146,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   errorBadge: {
     position: 'absolute',
-    left: 10,
+    left: isRTL ? 60 : 10,
+    right: isRTL ? 10 : 60,
     bottom: 10,
-    right: 60,
     backgroundColor: colors.card,
     borderRadius: 8,
     paddingVertical: 6,

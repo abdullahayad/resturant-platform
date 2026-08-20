@@ -1,1 +1,20 @@
-{}
+{
+  "title": "لوحة التحكم",
+  "subtitleLive": "رضا الزبائن وحجوزات طاولة الشيف مفعّلة الآن. مشاهدات الملف الشخصي والمتابعون ومشاهدات أطباق القائمة تحتاج إلى تطبيق عملاء عام لتوليد بيانات حقيقية قبل أن تظهر أي شيء غير الصفر.",
+  "subtitlePrepared": "يقوم فريق المنصة حالياً بإعداد أرقام أدائك وسيتم تفعيلها قريباً.",
+  "stats": {
+    "profileViews": "مشاهدات الملف الشخصي",
+    "totalFollowers": "إجمالي المتابعين",
+    "menuDishViews": "مشاهدات أطباق القائمة",
+    "chefTableBookings": "حجوزات طاولة الشيف",
+    "dinerSatisfaction": "رضا الزبائن"
+  },
+  "notTrackedYet": "لم يتم تتبعه بعد",
+  "notAvailableYet": "غير متاح بعد",
+  "pendingConfirmation": "{{count}} بانتظار التأكيد",
+  "fromReviews_one": "من تقييم واحد",
+  "fromReviews_two": "من تقييمين",
+  "fromReviews_few": "من {{count}} تقييمات",
+  "fromReviews_many": "من {{count}} تقييمًا",
+  "fromReviews_other": "من {{count}} تقييم"
+}

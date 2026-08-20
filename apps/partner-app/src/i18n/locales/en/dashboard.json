@@ -1,1 +1,17 @@
-{}
+{
+  "title": "Overview Dashboard",
+  "subtitleLive": "Diner Satisfaction and Chef Table Bookings are live. Profile Views, Followers, and Menu Dish Views need a public customer app to generate real traffic before they can show anything but zero.",
+  "subtitlePrepared": "Your performance numbers are being prepared and will be enabled by the platform team soon.",
+  "stats": {
+    "profileViews": "Profile Views",
+    "totalFollowers": "Total Followers",
+    "menuDishViews": "Menu Dish Views",
+    "chefTableBookings": "Chef Table Bookings",
+    "dinerSatisfaction": "Diner Satisfaction"
+  },
+  "notTrackedYet": "Not tracked yet",
+  "notAvailableYet": "Not available yet",
+  "pendingConfirmation": "{{count}} pending confirmation",
+  "fromReviews_one": "from {{count}} review",
+  "fromReviews_other": "from {{count}} reviews"
+}

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
 import type { AuthenticatedRestaurant } from '../../lib/api';
@@ -9,40 +10,32 @@ interface AccountStatusScreenProps {
   onSignOut: () => void;
 }
 
-const copy: Record<string, { title: string; body: string }> = {
-  PENDING_REVIEW: {
-    title: 'Pending Review',
-    body: "Your restaurant is still being reviewed by our team. You'll be able to access your dashboard once it's approved.",
-  },
-  REJECTED: {
-    title: 'Application Rejected',
-    body: 'Your restaurant application was not approved.',
-  },
-  SUSPENDED: {
-    title: 'Account Suspended',
-    body: 'Your restaurant listing has been suspended. Contact support for details.',
-  },
+const copyKeys: Record<string, { title: string; body: string }> = {
+  PENDING_REVIEW: { title: 'accountStatus.pendingTitle', body: 'accountStatus.pendingBody' },
+  REJECTED: { title: 'accountStatus.rejectedTitle', body: 'accountStatus.rejectedBody' },
+  SUSPENDED: { title: 'accountStatus.suspendedTitle', body: 'accountStatus.suspendedBody' },
 };
 
 export function AccountStatusScreen({ restaurant, onSignOut }: AccountStatusScreenProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation('auth');
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const info = copy[restaurant.status] ?? copy.PENDING_REVIEW;
+  const keys = copyKeys[restaurant.status] ?? copyKeys.PENDING_REVIEW;
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>{info.title}</Text>
+        <Text style={styles.title}>{t(keys.title)}</Text>
         <Text style={styles.name}>{restaurant.nameEn} · {restaurant.nameAr}</Text>
-        <Text style={styles.body}>{info.body}</Text>
+        <Text style={styles.body}>{t(keys.body)}</Text>
         {restaurant.status === 'REJECTED' && restaurant.rejectionReason && (
           <View style={styles.reasonBox}>
-            <Text style={styles.reasonLabel}>Reason</Text>
+            <Text style={styles.reasonLabel}>{t('accountStatus.reason')}</Text>
             <Text style={styles.reasonText}>{restaurant.rejectionReason}</Text>
           </View>
         )}
         <Pressable style={styles.button} onPress={onSignOut}>
-          <Text style={styles.buttonText}>Sign Out</Text>
+          <Text style={styles.buttonText}>{t('common:signOut')}</Text>
         </Pressable>
       </View>
     </View>

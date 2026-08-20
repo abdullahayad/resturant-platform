@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { UtensilsCrossed } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
 
@@ -11,6 +12,7 @@ interface AuthLandingScreenProps {
 
 export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation('auth');
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
@@ -18,14 +20,14 @@ export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenPro
         <View style={styles.badge}>
           <UtensilsCrossed size={26} color={colors.primaryForeground} />
         </View>
-        <Text style={styles.brand}>Restaurant Partner Portal</Text>
-        <Text style={styles.subtitle}>Manage your restaurant's public profile, menu, and reviews.</Text>
+        <Text style={styles.brand}>{t('landing.brand')}</Text>
+        <Text style={styles.subtitle}>{t('landing.subtitle')}</Text>
 
         <Pressable style={[styles.button, styles.primaryButton]} onPress={onSignIn}>
-          <Text style={styles.primaryButtonText}>Sign In</Text>
+          <Text style={styles.primaryButtonText}>{t('landing.signIn')}</Text>
         </Pressable>
         <Pressable style={[styles.button, styles.secondaryButton]} onPress={onRegister}>
-          <Text style={styles.secondaryButtonText}>Register Restaurant</Text>
+          <Text style={styles.secondaryButtonText}>{t('landing.register')}</Text>
         </Pressable>
       </View>
     </View>

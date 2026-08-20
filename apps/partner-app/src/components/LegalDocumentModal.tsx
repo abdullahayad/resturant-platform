@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { LEGAL_LAST_UPDATED, type LegalSection } from '../lib/legalContent';
@@ -20,6 +21,7 @@ const backdropStyle: ViewStyle = { position: 'fixed' as ViewStyle['position'] };
 
 export function LegalDocumentModal({ visible, title, sections, onClose }: LegalDocumentModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation('common');
   const styles = useMemo(() => createStyles(colors), [colors]);
   if (!visible) return null;
 
@@ -29,10 +31,10 @@ export function LegalDocumentModal({ visible, title, sections, onClose }: LegalD
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>{title}</Text>
-            <Text style={styles.updated}>Last updated {LEGAL_LAST_UPDATED}</Text>
+            <Text style={styles.updated}>{t('lastUpdated', { date: LEGAL_LAST_UPDATED })}</Text>
           </View>
           <Pressable onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Close</Text>
+            <Text style={styles.closeButtonText}>{t('actions.close')}</Text>
           </Pressable>
         </View>
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>

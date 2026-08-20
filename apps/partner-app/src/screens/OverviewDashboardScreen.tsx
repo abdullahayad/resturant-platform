@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { StatCard } from '../components/StatCard';
@@ -9,6 +10,7 @@ import { api, type ReservationItem, type ReviewSummary } from '../lib/api';
 export function OverviewDashboardScreen() {
   const { token, staff } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('dashboard');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reservations, setReservations] = useState<ReservationItem[] | null>(null);
@@ -29,28 +31,26 @@ export function OverviewDashboardScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Overview Dashboard</Text>
+      <Text style={styles.title}>{t('title')}</Text>
       <Text style={styles.subtitle}>
-        {statsVisible
-          ? 'Diner Satisfaction and Chef Table Bookings are live. Profile Views, Followers, and Menu Dish Views need a public customer app to generate real traffic before they can show anything but zero.'
-          : 'Your performance numbers are being prepared and will be enabled by the platform team soon.'}
+        {statsVisible ? t('subtitleLive') : t('subtitlePrepared')}
       </Text>
       <View style={styles.grid}>
-        <StatCard label="Profile Views" value="—" trend="Not tracked yet" />
-        <StatCard label="Total Followers" value="—" trend="Not tracked yet" />
-        <StatCard label="Menu Dish Views" value="—" trend="Not tracked yet" />
+        <StatCard label={t('stats.profileViews')} value="—" trend={t('notTrackedYet')} />
+        <StatCard label={t('stats.totalFollowers')} value="—" trend={t('notTrackedYet')} />
+        <StatCard label={t('stats.menuDishViews')} value="—" trend={t('notTrackedYet')} />
         <StatCard
-          label="Chef Table Bookings"
+          label={t('stats.chefTableBookings')}
           value={statsVisible && confirmedCount != null ? String(confirmedCount) : '—'}
-          trend={statsVisible && pendingCount != null ? `${pendingCount} pending confirmation` : 'Not available yet'}
+          trend={statsVisible && pendingCount != null ? t('pendingConfirmation', { count: pendingCount }) : t('notAvailableYet')}
         />
         <StatCard
-          label="Diner Satisfaction"
+          label={t('stats.dinerSatisfaction')}
           value={statsVisible && summary ? `${summary.overallAverage.toFixed(1)}★` : '—'}
           trend={
             statsVisible && summary
-              ? `from ${summary.totalCount} review${summary.totalCount === 1 ? '' : 's'}`
-              : 'Not available yet'
+              ? t('fromReviews', { count: summary.totalCount })
+              : t('notAvailableYet')
           }
         />
       </View>
