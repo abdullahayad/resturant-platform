@@ -87,6 +87,26 @@ export interface MasterDataItemPayload {
   isActive?: boolean
 }
 
+export type FeaturedStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type FeaturedInitiator = 'RESTAURANT' | 'ADMIN'
+
+export interface FeaturedPlacementItem {
+  id: string
+  restaurantId: string
+  initiator: FeaturedInitiator
+  reason: string | null
+  note: string | null
+  startDate: string | null
+  endDate: string | null
+  status: FeaturedStatus
+  rejectionReason: string | null
+  isActive: boolean
+  isCurrentlyActive: boolean
+  createdAt: string
+  reviewedBy: { fullName: string } | null
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
+}
+
 export type PromotionStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type PromotionDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT'
 export type PromotionScope = 'WHOLE_MENU' | 'SPECIFIC_DISHES'
@@ -262,6 +282,16 @@ export const api = {
     get<PromotionItem[]>(`/admin/promotions${status ? `?status=${status}` : ''}`),
   moderatePromotion: (id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>
     send<PromotionItem>('PATCH', `/admin/promotions/${id}/moderate`, { status, rejectionReason }),
+
+  featured: (status?: FeaturedStatus) =>
+    get<FeaturedPlacementItem[]>(`/admin/featured${status ? `?status=${status}` : ''}`),
+  grantFeatured: (payload: { restaurantId: string; note?: string; startDate?: string; endDate?: string }) =>
+    send<FeaturedPlacementItem>('POST', '/admin/featured/grant', payload),
+  moderateFeatured: (
+    id: string,
+    payload: { status: 'APPROVED' | 'REJECTED'; rejectionReason?: string; startDate?: string; endDate?: string },
+  ) => send<FeaturedPlacementItem>('PATCH', `/admin/featured/${id}/moderate`, payload),
+  revokeFeatured: (id: string) => send<FeaturedPlacementItem>('PATCH', `/admin/featured/${id}/revoke`),
 
   notifications: () => get<NotificationItem[]>('/admin/notifications'),
   createNotification: (payload: CreateNotificationPayload) =>

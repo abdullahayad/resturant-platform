@@ -15,6 +15,7 @@ import { CustomerReviewsScreen } from '../screens/CustomerReviewsScreen';
 import { ReservationsScreen } from '../screens/ReservationsScreen';
 import { DeepAnalyticsScreen } from '../screens/DeepAnalyticsScreen';
 import { PromotionsScreen } from '../screens/PromotionsScreen';
+import { AdvertisingScreen } from '../screens/AdvertisingScreen';
 import { AnnouncementsScreen } from '../screens/AnnouncementsScreen';
 import { SettingsStaffScreen } from '../screens/SettingsStaffScreen';
 import type { AuthenticatedRestaurant } from '../lib/api';
@@ -30,6 +31,7 @@ const screens: Record<ScreenKey, React.ComponentType> = {
   reservations: ReservationsScreen,
   analytics: DeepAnalyticsScreen,
   promotions: PromotionsScreen,
+  advertising: AdvertisingScreen,
   announcements: AnnouncementsScreen,
   settings: SettingsStaffScreen,
 };

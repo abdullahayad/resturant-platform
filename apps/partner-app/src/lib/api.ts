@@ -190,6 +190,29 @@ export interface ChefProfilePayload {
   awards?: string[];
 }
 
+export type FeaturedStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type FeaturedInitiator = 'RESTAURANT' | 'ADMIN';
+
+export interface FeaturedPlacementItem {
+  id: string;
+  initiator: FeaturedInitiator;
+  reason: string | null;
+  note: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  status: FeaturedStatus;
+  rejectionReason: string | null;
+  isActive: boolean;
+  isCurrentlyActive: boolean;
+  createdAt: string;
+}
+
+export interface RequestFeaturedPayload {
+  reason?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export type PromotionDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 export type PromotionScope = 'WHOLE_MENU' | 'SPECIFIC_DISHES';
 export type PromotionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -453,6 +476,12 @@ export const api = {
     send<RestaurantEventItem>('PATCH', `/restaurants/me/events/${id}`, token, payload),
   deleteEvent: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/events/${id}`, token),
+
+  myFeatured: (token: string) => get<FeaturedPlacementItem[]>('/restaurants/me/featured', token),
+  requestFeatured: (token: string, payload: RequestFeaturedPayload) =>
+    send<FeaturedPlacementItem>('POST', '/restaurants/me/featured', token, payload),
+  cancelFeaturedRequest: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/featured/${id}`, token),
 
   announcements: (token: string) => get<Announcement[]>('/restaurants/me/announcements', token),
   markAnnouncementRead: (token: string, id: string) =>

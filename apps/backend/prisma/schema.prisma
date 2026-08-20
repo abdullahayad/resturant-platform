@@ -63,6 +63,17 @@ enum PromotionStatus {
   REJECTED
 }
 
+enum FeaturedStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FeaturedInitiator {
+  RESTAURANT
+  ADMIN
+}
+
 // Ambience album sub-tabs. Food album sub-tabs are derived from menu
 // categories at query time (not stored), except MOST_ORDERED which is a flag.
 enum AmbienceSubCategory {
@@ -214,6 +225,7 @@ model AdminUser {
   reviewReplyActions  ReviewReply[]        @relation("ReviewReplyModeratedBy")
   sentNotifications   AdminNotification[]
   reviewedPromotions  Promotion[]
+  reviewedFeatured    FeaturedPlacement[]
 
   @@map("admin_users")
 }
@@ -283,6 +295,7 @@ model Restaurant {
   chefProfiles      ChefProfile[]
   notifications     NotificationRecipient[]
   promotions        Promotion[]
+  featuredPlacements FeaturedPlacement[]
 
   @@index([status])
   @@index([provinceId])
@@ -572,6 +585,41 @@ model PromotionDish {
 
   @@unique([promotionId, dishId])
   @@map("promotion_dishes")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Featured placement — advertising/visibility, distinct from Promotions
+// (which are the restaurant's own menu discounts). A restaurant can request
+// to be featured, or an admin can grant it directly without a request
+// (initiator tracks which happened). Either way it goes through the same
+// PENDING -> APPROVED/REJECTED lifecycle an admin controls; date range is
+// optional (open-ended until an admin ends it).
+// ────────────────────────────────────────────────────────────────────────────
+
+model FeaturedPlacement {
+  id           String            @id @default(uuid())
+  restaurantId String
+  initiator    FeaturedInitiator
+  reason       String? // restaurant's stated reason when requesting
+  note         String? // admin's internal note, e.g. why they granted it directly
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  status          FeaturedStatus @default(PENDING)
+  rejectionReason String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+
+  isActive  Boolean  @default(true) // lets an admin end an approved placement early
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reviewedBy AdminUser? @relation(fields: [reviewedById], references: [id])
+
+  @@index([restaurantId, status])
+  @@map("featured_placements")
 }
 
 // ────────────────────────────────────────────────────────────────────────────

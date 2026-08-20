@@ -11,6 +11,7 @@ import { ReviewsPage } from '@/pages/ReviewsPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { PromotionsPage } from '@/pages/PromotionsPage'
+import { AdvertisingPage } from '@/pages/AdvertisingPage'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="locations" element={<LocationsPage />} />
           <Route path="reviews" element={<ReviewsPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="advertising" element={<AdvertisingPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="admins" element={<AdminUsersPage />} />
         </Route>

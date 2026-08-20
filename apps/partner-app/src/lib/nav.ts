@@ -9,6 +9,7 @@ export type ScreenKey =
   | 'reservations'
   | 'analytics'
   | 'promotions'
+  | 'advertising'
   | 'announcements'
   | 'settings';
 
@@ -26,6 +27,7 @@ export const navItems: NavItem[] = [
   { key: 'profile', labelEn: 'Profile & Info', managerOrOwnerOnly: true },
   { key: 'menu', labelEn: 'Menu Management' },
   { key: 'promotions', labelEn: 'Promotions' },
+  { key: 'advertising', labelEn: 'Advertising', managerOrOwnerOnly: true },
   { key: 'gallery', labelEn: 'Photo Gallery' },
   { key: 'chefManagement', labelEn: 'Chef Management' },
   { key: 'chefTable', labelEn: 'Chef Table & Events', managerOrOwnerOnly: true },

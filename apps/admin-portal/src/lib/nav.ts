@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Megaphone,
   Percent,
+  Sparkles,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -26,6 +27,7 @@ export const navItems: NavItem[] = [
   { label: 'Cities & Districts', path: '/locations', icon: MapPin },
   { label: 'Reviews Moderation', path: '/reviews', icon: MessageSquareWarning },
   { label: 'Promotions', path: '/promotions', icon: Percent },
+  { label: 'Advertising', path: '/advertising', icon: Sparkles },
   { label: 'Notifications', path: '/notifications', icon: Megaphone },
   { label: 'Admin Users', path: '/admins', icon: ShieldCheck, superAdminOnly: true },
 ]
