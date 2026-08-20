@@ -10,6 +10,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "iq.restaurantplatform.partnerapp",
       "adaptiveIcon": {
         "backgroundColor": "#212328",
         "foregroundImage": "./assets/android-icon-foreground.png",

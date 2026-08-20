@@ -1,4 +1,11 @@
-export const API_BASE_URL = 'http://localhost:3000';
+import { Platform } from 'react-native';
+
+// Web (incl. this app's Playwright-based dev testing) reaches the backend via
+// localhost same as always. A native build (the APK) runs on a separate
+// device, so it needs the dev machine's LAN IP instead — update this if that
+// IP changes, or point it at a real deployed backend for anything beyond a
+// same-network test build.
+export const API_BASE_URL = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.68.74:3000';
 
 export interface MasterDataItem {
   id: string;
