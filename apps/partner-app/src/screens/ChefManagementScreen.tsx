@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -65,6 +66,7 @@ function ChefCard({
 }) {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('chefManagement');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [uploading, setUploading] = useState(false);
 
@@ -98,32 +100,32 @@ function ChefCard({
         ) : uploading ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
-          <Text style={styles.photoPickerText}>Tap to add photo</Text>
+          <Text style={styles.photoPickerText}>{t('tapToAddPhoto')}</Text>
         )}
       </Pressable>
 
-      <FormField label="Name" value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} placeholder="Full name" />
+      <FormField label={t('nameLabel')} value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} placeholder={t('namePlaceholder')} />
       <FormField
-        label="Speciality"
+        label={t('specialityLabel')}
         value={form.speciality}
         onChangeText={(v) => setForm((f) => ({ ...f, speciality: v }))}
-        placeholder="e.g. Iraqi Grilled Meats"
+        placeholder={t('specialityPlaceholder')}
       />
       <FormField
-        label="Years of Experience"
+        label={t('experienceLabel')}
         value={form.yearsExperience}
         onChangeText={(v) => setForm((f) => ({ ...f, yearsExperience: v }))}
-        placeholder="e.g. 12"
+        placeholder={t('experiencePlaceholder')}
         keyboardType="numeric"
       />
 
       <View style={styles.awardsSection}>
-        <Text style={styles.fieldLabel}>Awards</Text>
+        <Text style={styles.fieldLabel}>{t('awards')}</Text>
         {form.awards.map((award, i) => (
           <View key={`${award}-${i}`} style={styles.awardRow}>
             <Text style={styles.awardText}>• {award}</Text>
             <Pressable onPress={() => removeAward(i)}>
-              <Text style={styles.removeLink}>Remove</Text>
+              <Text style={styles.removeLink}>{t('remove')}</Text>
             </Pressable>
           </View>
         ))}
@@ -132,22 +134,22 @@ function ChefCard({
             label=""
             value={form.newAward}
             onChangeText={(v) => setForm((f) => ({ ...f, newAward: v }))}
-            placeholder="Add an award"
+            placeholder={t('addAwardPlaceholder')}
             style={styles.awardInput}
           />
           <Pressable style={styles.smallButton} onPress={addAward}>
-            <Text style={styles.smallButtonText}>Add</Text>
+            <Text style={styles.smallButtonText}>{t('add')}</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.cardActions}>
         <Pressable style={[styles.button, styles.primaryButton]} onPress={onSave} disabled={saving || !form.name.trim()}>
-          {saving ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Save</Text>}
+          {saving ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('save')}</Text>}
         </Pressable>
         {hasProfile && (
           <Pressable onPress={onRemove}>
-            <Text style={styles.removeLink}>Remove profile</Text>
+            <Text style={styles.removeLink}>{t('removeProfile')}</Text>
           </Pressable>
         )}
       </View>
@@ -158,6 +160,7 @@ function ChefCard({
 export function ChefManagementScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('chefManagement');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [headChef, setHeadChef] = useState<ChefProfile | null>(null);
   const [sousChef, setSousChef] = useState<ChefProfile | null>(null);
@@ -182,15 +185,15 @@ export function ChefManagementScreen() {
         setCrewCount(state.crewCount != null ? String(state.crewCount) : '');
         setCrewPhotoUrl(state.crewPhotoUrl ?? '');
       })
-      .catch(() => setError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, [token]);
+      .catch(() => setError(t('common:networkError')));
+  }, [token, t]);
 
   useEffect(load, [load]);
 
   const saveProfile = async (role: ChefRoleSlug, form: ChefFormState, setSaving: (v: boolean) => void) => {
     setError(null);
     if (!form.name.trim()) {
-      setError('Name is required.');
+      setError(t('nameRequired'));
       return;
     }
     setSaving(true);
@@ -204,7 +207,7 @@ export function ChefManagementScreen() {
       });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save chef profile');
+      setError(err instanceof Error ? err.message : t('saveChefFailed'));
     } finally {
       setSaving(false);
     }
@@ -235,7 +238,7 @@ export function ChefManagementScreen() {
       });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save crew info');
+      setError(err instanceof Error ? err.message : t('saveCrewFailed'));
     } finally {
       setSavingCrew(false);
     }
@@ -243,15 +246,13 @@ export function ChefManagementScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Chef Management</Text>
-      <Text style={styles.subtitle}>
-        Introduce your kitchen team. This appears on your public profile once the customer app launches.
-      </Text>
+      <Text style={styles.title}>{t('title')}</Text>
+      <Text style={styles.subtitle}>{t('subtitle')}</Text>
       {error && <Text style={styles.error}>{error}</Text>}
 
       <View style={styles.grid}>
         <ChefCard
-          title="Head Chef"
+          title={t('headChef')}
           role="chef"
           form={headForm}
           setForm={setHeadForm}
@@ -261,7 +262,7 @@ export function ChefManagementScreen() {
           hasProfile={!!headChef}
         />
         <ChefCard
-          title="Sous Chef"
+          title={t('sousChef')}
           role="sous-chef"
           form={sousForm}
           setForm={setSousForm}
@@ -273,19 +274,19 @@ export function ChefManagementScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Kitchen Crew</Text>
+        <Text style={styles.cardTitle}>{t('kitchenCrew')}</Text>
         <Pressable onPress={pickCrewPhoto} style={styles.photoPicker}>
           {crewPhotoUrl ? (
             <Image source={{ uri: crewPhotoUrl }} style={styles.photoPreview} />
           ) : uploadingCrew ? (
             <ActivityIndicator color={colors.primary} />
           ) : (
-            <Text style={styles.photoPickerText}>Tap to add a crew photo</Text>
+            <Text style={styles.photoPickerText}>{t('tapToAddCrewPhoto')}</Text>
           )}
         </Pressable>
-        <FormField label="Number of Crew Members" value={crewCount} onChangeText={setCrewCount} placeholder="e.g. 12" keyboardType="numeric" />
+        <FormField label={t('crewCountLabel')} value={crewCount} onChangeText={setCrewCount} placeholder={t('crewCountPlaceholder')} keyboardType="numeric" />
         <Pressable style={[styles.button, styles.primaryButton]} onPress={saveCrew} disabled={savingCrew}>
-          {savingCrew ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Save</Text>}
+          {savingCrew ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('save')}</Text>}
         </Pressable>
       </View>
     </ScrollView>

@@ -1,1 +1,26 @@
-{}
+{
+  "title": "Chef Management",
+  "subtitle": "Introduce your kitchen team. This appears on your public profile once the customer app launches.",
+  "headChef": "Head Chef",
+  "sousChef": "Sous Chef",
+  "kitchenCrew": "Kitchen Crew",
+  "tapToAddPhoto": "Tap to add photo",
+  "tapToAddCrewPhoto": "Tap to add a crew photo",
+  "nameLabel": "Name",
+  "namePlaceholder": "Full name",
+  "specialityLabel": "Speciality",
+  "specialityPlaceholder": "e.g. Iraqi Grilled Meats",
+  "experienceLabel": "Years of Experience",
+  "experiencePlaceholder": "e.g. 12",
+  "awards": "Awards",
+  "addAwardPlaceholder": "Add an award",
+  "add": "Add",
+  "remove": "Remove",
+  "removeProfile": "Remove profile",
+  "save": "Save",
+  "crewCountLabel": "Number of Crew Members",
+  "crewCountPlaceholder": "e.g. 12",
+  "nameRequired": "Name is required.",
+  "saveChefFailed": "Could not save chef profile",
+  "saveCrewFailed": "Could not save crew info"
+}

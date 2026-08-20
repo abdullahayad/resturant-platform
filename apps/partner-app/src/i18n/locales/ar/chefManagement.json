@@ -1,1 +1,26 @@
-{}
+{
+  "title": "إدارة الطهاة",
+  "subtitle": "قدّم فريق مطبخك. سيظهر هذا في ملفك العام بمجرد إطلاق تطبيق العملاء.",
+  "headChef": "الشيف الرئيسي",
+  "sousChef": "مساعد الشيف",
+  "kitchenCrew": "طاقم المطبخ",
+  "tapToAddPhoto": "اضغط لإضافة صورة",
+  "tapToAddCrewPhoto": "اضغط لإضافة صورة الطاقم",
+  "nameLabel": "الاسم",
+  "namePlaceholder": "الاسم الكامل",
+  "specialityLabel": "التخصص",
+  "specialityPlaceholder": "مثال: مشاوي عراقية",
+  "experienceLabel": "سنوات الخبرة",
+  "experiencePlaceholder": "مثال: 12",
+  "awards": "الجوائز",
+  "addAwardPlaceholder": "إضافة جائزة",
+  "add": "إضافة",
+  "remove": "إزالة",
+  "removeProfile": "إزالة الملف الشخصي",
+  "save": "حفظ",
+  "crewCountLabel": "عدد أفراد الطاقم",
+  "crewCountPlaceholder": "مثال: 12",
+  "nameRequired": "الاسم مطلوب.",
+  "saveChefFailed": "تعذر حفظ ملف الشيف",
+  "saveCrewFailed": "تعذر حفظ معلومات الطاقم"
+}
