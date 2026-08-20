@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
+import { MapPinPicker } from '../components/MapPinPicker';
 import { useAuth } from '../lib/AuthContext';
 import { api, type MasterDataItem, type OpeningHoursDay, type Province, type RestaurantDetail, type Story } from '../lib/api';
 
@@ -219,12 +220,21 @@ export function ProfileInfoScreen() {
             />
           </>
         )}
+        <Text style={styles.fieldLabel}>Tap or drag the pin to set your exact location</Text>
+        <MapPinPicker
+          latitude={hasValidPin ? Number(latitude) : null}
+          longitude={hasValidPin ? Number(longitude) : null}
+          onChange={(lat, lng) => {
+            setLatitude(lat.toFixed(6));
+            setLongitude(lng.toFixed(6));
+          }}
+        />
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <FormField label="Latitude" value={latitude} onChangeText={setLatitude} keyboardType="numeric" placeholder="33.3152" />
+            <FormField label="Latitude" value={latitude} editable={false} placeholder="33.3152" />
           </View>
           <View style={styles.flex1}>
-            <FormField label="Longitude" value={longitude} onChangeText={setLongitude} keyboardType="numeric" placeholder="44.3661" />
+            <FormField label="Longitude" value={longitude} editable={false} placeholder="44.3661" />
           </View>
         </View>
         <Pressable
@@ -234,10 +244,7 @@ export function ProfileInfoScreen() {
         >
           <Text style={styles.secondaryButtonText}>📍 Open in Google Maps</Text>
         </Pressable>
-        <Text style={styles.hint}>
-          Numeric pin for now — an embedded map picker needs a Google Maps API key to enable.
-          Opening in Google Maps above works either way, no key required.
-        </Text>
+        <Text style={styles.hint}>Map tiles by OpenStreetMap — no API key required.</Text>
       </View>
 
       <View style={styles.section}>
