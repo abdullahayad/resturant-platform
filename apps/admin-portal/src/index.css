@@ -38,6 +38,12 @@
   --ring: oklch(0.74 0.16 55);
 
   --radius: 1rem;
+
+  /* Warm-tinted elevation — a neutral dark shadow plus a faint amber glow,
+     so cards feel like they belong to this theme rather than any dark UI. */
+  --shadow-card: 0 1px 2px oklch(0.05 0 0 / 0.4), 0 8px 24px -12px oklch(0.05 0 0 / 0.55);
+  --shadow-card-hover: 0 2px 4px oklch(0.05 0 0 / 0.45), 0 16px 32px -12px oklch(0.05 0 0 / 0.6);
+  --shadow-glow: 0 0 0 1px oklch(0.74 0.16 55 / 0.15), 0 4px 16px -4px oklch(0.74 0.16 55 / 0.25);
 }
 
 @theme inline {
@@ -82,7 +88,82 @@ html[dir="rtl"] {
 }
 
 body {
-  background: var(--color-background);
+  background:
+    radial-gradient(ellipse 1200px 600px at 15% -10%, oklch(0.74 0.16 55 / 0.05), transparent),
+    var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: oklch(0.74 0.16 55 / 0.3);
+  color: var(--color-foreground);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+  border: 2px solid var(--color-background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.74 0.16 55 / 0.5);
+}
+
+/* ── Foundational polish, applied globally so every page picks it up ──── */
+
+/* The recurring "card surface" combo used across every page
+   (rounded-xl border border-border bg-card) gets consistent elevation. */
+.border-border.bg-card {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+
+button {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
+    box-shadow 150ms ease, opacity 150ms ease, transform 100ms ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* Solid amber buttons (bg-primary) get a soft glow instead of a flat fill. */
+button.bg-primary:not(:disabled) {
+  box-shadow: var(--shadow-glow);
+}
+button.bg-primary:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+input,
+select,
+textarea {
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: 0 0 0 3px oklch(0.74 0.16 55 / 0.15);
+}
+
+/* Every routed page fades/slides in through AdminLayout's <main>. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-enter {
+  animation: page-enter 240ms ease both;
 }

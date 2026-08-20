@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClipboardCheck, MessageSquareWarning, Percent, Sparkles } from 'lucide-react'
+import {
+  ClipboardCheck,
+  MessageSquareWarning,
+  Percent,
+  Sparkles,
+  Store,
+  CircleCheck,
+  CircleOff,
+  MessageSquareText,
+  Flag,
+} from 'lucide-react'
 import { StatCard } from '@/components/StatCard'
 import { api, UnauthorizedError, type PlatformStats } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -50,12 +60,12 @@ export function DashboardPage() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Total Partners" value={stats ? String(stats.totalPartners) : '—'} trend="all-time" />
-        <StatCard label="Active" value={stats ? String(stats.activeCount) : '—'} trend="currently live" />
-        <StatCard label="Inactive" value={stats ? String(stats.inactiveCount) : '—'} trend="suspended" />
-        <StatCard label="Pending Approvals" value={stats ? String(stats.pendingApprovals) : '—'} trend="awaiting review" />
-        <StatCard label="Total Reviews" value={stats ? String(stats.totalReviews) : '—'} trend="across all restaurants" />
-        <StatCard label="Flagged Content" value={stats ? String(stats.flaggedReviews) : '—'} trend="needs moderation" />
+        <StatCard label="Total Partners" value={stats ? String(stats.totalPartners) : '—'} trend="all-time" icon={Store} />
+        <StatCard label="Active" value={stats ? String(stats.activeCount) : '—'} trend="currently live" icon={CircleCheck} />
+        <StatCard label="Inactive" value={stats ? String(stats.inactiveCount) : '—'} trend="suspended" icon={CircleOff} />
+        <StatCard label="Pending Approvals" value={stats ? String(stats.pendingApprovals) : '—'} trend="awaiting review" icon={ClipboardCheck} />
+        <StatCard label="Total Reviews" value={stats ? String(stats.totalReviews) : '—'} trend="across all restaurants" icon={MessageSquareText} />
+        <StatCard label="Flagged Content" value={stats ? String(stats.flaggedReviews) : '—'} trend="needs moderation" icon={Flag} />
       </div>
 
       <div>

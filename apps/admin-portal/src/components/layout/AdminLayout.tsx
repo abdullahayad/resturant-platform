@@ -1,11 +1,12 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { LogOut, UtensilsCrossed } from 'lucide-react'
 import { navItems } from '@/lib/nav'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 
 export function AdminLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const admin = auth.getAdmin()
 
   const signOut = () => {
@@ -15,10 +16,15 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card px-3 py-5">
-        <div className="mb-6 px-2">
-          <div className="text-lg font-semibold text-primary">Admin Portal</div>
-          <div className="text-xs text-muted-foreground">Restaurant Platform</div>
+      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card px-3 py-5 shadow-[4px_0_24px_-8px_oklch(0.05_0_0/0.5)]">
+        <div className="mb-6 flex items-center gap-2.5 px-2">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary shadow-[var(--shadow-glow)]">
+            <UtensilsCrossed className="size-4 text-primary-foreground" />
+          </div>
+          <div>
+            <div className="text-lg font-semibold leading-tight text-primary">Admin Portal</div>
+            <div className="text-xs text-muted-foreground">Restaurant Platform</div>
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           {navItems
@@ -30,13 +36,28 @@ export function AdminLayout() {
               end={item.path === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground',
-                  isActive && 'bg-primary/10 text-primary',
+                  'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all duration-150 hover:bg-secondary hover:text-foreground',
+                  isActive && 'bg-primary/10 text-primary font-medium',
                 )
               }
             >
-              <item.icon className="size-4" />
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={cn(
+                      'absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-primary transition-all duration-200',
+                      isActive ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0',
+                    )}
+                  />
+                  <item.icon
+                    className={cn(
+                      'size-4 transition-colors',
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
+                    )}
+                  />
+                  {item.label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -55,7 +76,9 @@ export function AdminLayout() {
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto p-6">
-        <Outlet />
+        <div key={location.pathname} className="page-enter">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

@@ -19,13 +19,13 @@ export function Switch({ checked, onChange, disabled, label }: SwitchProps) {
     >
       <span
         className={cn(
-          'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
+          'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200',
           checked ? 'bg-success' : 'bg-secondary',
         )}
       >
         <span
           className={cn(
-            'inline-block size-3.5 transform rounded-full bg-white transition-transform',
+            'inline-block size-3.5 transform rounded-full bg-white shadow-[0_1px_3px_oklch(0.05_0_0/0.5)] transition-transform duration-200 ease-out',
             checked ? 'translate-x-[19px]' : 'translate-x-[3px]',
           )}
         />

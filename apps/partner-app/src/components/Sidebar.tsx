@@ -15,8 +15,13 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
   return (
     <View style={styles.sidebar}>
       <View style={styles.brand}>
-        <Text style={styles.brandTitle}>Partner Portal</Text>
-        <Text style={styles.brandSubtitle}>#IRQ-00000</Text>
+        <View style={styles.brandBadge}>
+          <Text style={styles.brandBadgeText}>🍴</Text>
+        </View>
+        <View>
+          <Text style={styles.brandTitle}>Partner Portal</Text>
+          <Text style={styles.brandSubtitle}>#IRQ-00000</Text>
+        </View>
       </View>
       <View style={styles.nav}>
         {visibleItems.map((item) => {
@@ -27,6 +32,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
               onPress={() => onSelect(item.key)}
               style={[styles.navItem, isActive && styles.navItemActive]}
             >
+              {isActive && <View style={styles.activeBar} />}
               <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
                 {item.labelEn}
               </Text>
@@ -51,12 +57,30 @@ const styles = StyleSheet.create({
     borderRightColor: colors.border,
     paddingVertical: 20,
     paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
   },
-  brand: { paddingHorizontal: 8, marginBottom: 20 },
-  brandTitle: { color: colors.primary, fontSize: 18, fontWeight: '700' },
-  brandSubtitle: { color: colors.mutedForeground, fontSize: 12, marginTop: 2 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8, marginBottom: 24 },
+  brandBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  brandBadgeText: { fontSize: 16 },
+  brandTitle: { color: colors.primary, fontSize: 17, fontWeight: '700' },
+  brandSubtitle: { color: colors.mutedForeground, fontSize: 12, marginTop: 1 },
   nav: { gap: 2 },
   navItem: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -65,6 +89,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   navItemActive: { backgroundColor: 'rgba(217, 154, 78, 0.15)' },
+  activeBar: {
+    position: 'absolute',
+    left: -12,
+    top: '50%',
+    marginTop: -8,
+    width: 3,
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+  },
   navLabel: { color: colors.mutedForeground, fontSize: 14 },
   navLabelActive: { color: colors.primary, fontWeight: '600' },
   badge: {

@@ -10,6 +10,9 @@ export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenPro
   return (
     <View style={styles.container}>
       <View style={styles.card}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeIcon}>🍴</Text>
+        </View>
         <Text style={styles.brand}>Restaurant Partner Portal</Text>
         <Text style={styles.subtitle}>Manage your restaurant's public profile, menu, and reviews.</Text>
 
@@ -41,7 +44,26 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 28,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
   },
+  badge: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+  },
+  badgeIcon: { fontSize: 26 },
   brand: { fontSize: 22, fontWeight: '700', color: colors.primary, textAlign: 'center' },
   subtitle: {
     fontSize: 14,
@@ -54,7 +76,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  primaryButton: { backgroundColor: colors.primary },
+  primaryButton: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+  },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   secondaryButton: { borderWidth: 1, borderColor: colors.border },
   secondaryButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 15 },

@@ -389,6 +389,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     textAlign: 'center',
     fontSize: 13,
+    outlineWidth: 0,
   },
   hoursDash: { color: colors.mutedForeground },
   hoursClosedToggle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
