@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
@@ -8,6 +9,7 @@ import { api, type Announcement } from '../lib/api';
 export function AnnouncementsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('announcements');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -57,8 +59,8 @@ export function AnnouncementsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Announcements</Text>
-      <Text style={styles.subtitle}>Messages and action items from the platform team.</Text>
+      <Text style={styles.title}>{t('title')}</Text>
+      <Text style={styles.subtitle}>{t('subtitle')}</Text>
 
       {announcements.map((a) => (
         <View key={a.id} style={styles.card}>
@@ -67,7 +69,7 @@ export function AnnouncementsScreen() {
             {a.notification.actionRequired && (
               <View style={[styles.badge, a.acknowledgedAt ? styles.badgeDone : styles.badgeAction]}>
                 <Text style={[styles.badgeText, a.acknowledgedAt && styles.badgeTextDone]}>
-                  {a.acknowledgedAt ? 'Completed' : 'Action Required'}
+                  {a.acknowledgedAt ? t('completed') : t('actionRequired')}
                 </Text>
               </View>
             )}
@@ -86,14 +88,14 @@ export function AnnouncementsScreen() {
               {busyId === a.notification.id ? (
                 <ActivityIndicator color={colors.primaryForeground} />
               ) : (
-                <Text style={styles.primaryButtonText}>Mark as Done</Text>
+                <Text style={styles.primaryButtonText}>{t('markAsDone')}</Text>
               )}
             </Pressable>
           )}
         </View>
       ))}
 
-      {announcements.length === 0 && <Text style={styles.hint}>No announcements yet.</Text>}
+      {announcements.length === 0 && <Text style={styles.hint}>{t('noAnnouncementsYet')}</Text>}
     </ScrollView>
   );
 }

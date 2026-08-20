@@ -1,1 +1,8 @@
-{}
+{
+  "title": "Announcements",
+  "subtitle": "Messages and action items from the platform team.",
+  "completed": "Completed",
+  "actionRequired": "Action Required",
+  "markAsDone": "Mark as Done",
+  "noAnnouncementsYet": "No announcements yet."
+}

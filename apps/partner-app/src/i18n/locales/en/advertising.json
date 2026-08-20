@@ -1,1 +1,26 @@
-{}
+{
+  "title": "Advertising",
+  "subtitle": "Get extra visibility on the platform. Request to be featured, or an admin may feature you directly.",
+  "openEnded": "Open-ended",
+  "currentlyFeatured": "You're currently Featured",
+  "awaitingReview": "Featured request awaiting review",
+  "withdrawRequest": "Withdraw request",
+  "requestToBeFeatured": "Request to be Featured",
+  "reasonLabel": "Why should we feature you? (optional)",
+  "reasonPlaceholder": "e.g. We just launched a new seasonal menu",
+  "startDateLabel": "Preferred start date (optional)",
+  "endDateLabel": "Preferred end date (optional)",
+  "submitRequest": "Submit Request",
+  "submitFailed": "Could not submit request",
+  "history": "History",
+  "grantedByAdmin": "Granted by admin",
+  "yourRequest": "Your request",
+  "reason": "Reason: {{reason}}",
+  "rejected": "Rejected: {{reason}}",
+  "status": {
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "REVOKED": "Revoked"
+  }
+}

@@ -1,1 +1,26 @@
-{}
+{
+  "title": "الإعلانات",
+  "subtitle": "احصل على مزيد من الظهور على المنصة. اطلب أن يتم تمييزك، أو قد يقوم أحد المسؤولين بتمييزك مباشرة.",
+  "openEnded": "غير محدد المدة",
+  "currentlyFeatured": "أنت مميّز حالياً",
+  "awaitingReview": "طلب التمييز بانتظار المراجعة",
+  "withdrawRequest": "سحب الطلب",
+  "requestToBeFeatured": "طلب أن يتم تمييزك",
+  "reasonLabel": "لماذا يجب أن نميزك؟ (اختياري)",
+  "reasonPlaceholder": "مثال: أطلقنا للتو قائمة موسمية جديدة",
+  "startDateLabel": "تاريخ البدء المفضل (اختياري)",
+  "endDateLabel": "تاريخ الانتهاء المفضل (اختياري)",
+  "submitRequest": "إرسال الطلب",
+  "submitFailed": "تعذر إرسال الطلب",
+  "history": "السجل",
+  "grantedByAdmin": "مُنح من قبل الإدارة",
+  "yourRequest": "طلبك",
+  "reason": "السبب: {{reason}}",
+  "rejected": "مرفوض: {{reason}}",
+  "status": {
+    "PENDING": "قيد الانتظار",
+    "APPROVED": "موافق عليه",
+    "REJECTED": "مرفوض",
+    "REVOKED": "ملغى"
+  }
+}

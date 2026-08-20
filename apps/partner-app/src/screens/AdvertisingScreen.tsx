@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BadgeCheck } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
 import { api, type FeaturedPlacementItem } from '../lib/api';
 
-function formatDateRange(p: FeaturedPlacementItem): string {
-  if (!p.startDate && !p.endDate) return 'Open-ended';
+function formatDateRange(p: FeaturedPlacementItem, t: TFunction): string {
+  if (!p.startDate && !p.endDate) return t('openEnded');
   const from = p.startDate ? new Date(p.startDate).toLocaleDateString() : '—';
   const until = p.endDate ? new Date(p.endDate).toLocaleDateString() : '—';
   return `${from} – ${until}`;
@@ -17,6 +19,7 @@ function formatDateRange(p: FeaturedPlacementItem): string {
 export function AdvertisingScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('advertising');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [placements, setPlacements] = useState<FeaturedPlacementItem[] | null>(null);
   const [reason, setReason] = useState('');
@@ -50,7 +53,7 @@ export function AdvertisingScreen() {
       setEndDate('');
       load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Could not submit request');
+      setFormError(err instanceof Error ? err.message : t('submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -76,18 +79,16 @@ export function AdvertisingScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Advertising</Text>
-      <Text style={styles.subtitle}>
-        Get extra visibility on the platform. Request to be featured, or an admin may feature you directly.
-      </Text>
+      <Text style={styles.title}>{t('title')}</Text>
+      <Text style={styles.subtitle}>{t('subtitle')}</Text>
 
       {activePlacement && (
         <View style={[styles.card, styles.activeCard]}>
           <View style={styles.activeTitleRow}>
             <BadgeCheck size={16} color={colors.success} />
-            <Text style={styles.activeTitle}>You're currently Featured</Text>
+            <Text style={styles.activeTitle}>{t('currentlyFeatured')}</Text>
           </View>
-          <Text style={styles.cardMeta}>{formatDateRange(activePlacement)}</Text>
+          <Text style={styles.cardMeta}>{formatDateRange(activePlacement, t)}</Text>
           {activePlacement.note && <Text style={styles.cardMeta}>{activePlacement.note}</Text>}
         </View>
       )}
@@ -95,51 +96,51 @@ export function AdvertisingScreen() {
       {pendingRequest && (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Featured request awaiting review</Text>
+            <Text style={styles.cardTitle}>{t('awaitingReview')}</Text>
             <View style={[styles.badge, styles.badgeInactive]}>
-              <Text style={styles.badgeInactiveText}>PENDING</Text>
+              <Text style={styles.badgeInactiveText}>{t('status.PENDING')}</Text>
             </View>
           </View>
           {pendingRequest.reason && <Text style={styles.cardMeta}>{pendingRequest.reason}</Text>}
-          <Text style={styles.cardMeta}>{formatDateRange(pendingRequest)}</Text>
+          <Text style={styles.cardMeta}>{formatDateRange(pendingRequest, t)}</Text>
           <Pressable onPress={() => withdraw(pendingRequest.id)} disabled={busyId === pendingRequest.id} style={styles.withdrawLink}>
-            <Text style={styles.removeButtonText}>Withdraw request</Text>
+            <Text style={styles.removeButtonText}>{t('withdrawRequest')}</Text>
           </Pressable>
         </View>
       )}
 
       {!pendingRequest && (
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Request to be Featured</Text>
+          <Text style={styles.formTitle}>{t('requestToBeFeatured')}</Text>
           <FormField
-            label="Why should we feature you? (optional)"
+            label={t('reasonLabel')}
             value={reason}
             onChangeText={setReason}
-            placeholder="e.g. We just launched a new seasonal menu"
+            placeholder={t('reasonPlaceholder')}
           />
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <FormField label="Preferred start date (optional)" value={startDate} onChangeText={setStartDate} placeholder="2026-08-20" />
+              <FormField label={t('startDateLabel')} value={startDate} onChangeText={setStartDate} placeholder="2026-08-20" />
             </View>
             <View style={styles.flex1}>
-              <FormField label="Preferred end date (optional)" value={endDate} onChangeText={setEndDate} placeholder="2026-08-27" />
+              <FormField label={t('endDateLabel')} value={endDate} onChangeText={setEndDate} placeholder="2026-08-27" />
             </View>
           </View>
           {formError && <Text style={styles.error}>{formError}</Text>}
           <Pressable style={[styles.button, styles.primaryButton]} onPress={submitRequest} disabled={submitting}>
-            {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Submit Request</Text>}
+            {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('submitRequest')}</Text>}
           </Pressable>
         </View>
       )}
 
       {history.length > 0 && (
         <View style={styles.list}>
-          <Text style={styles.formTitle}>History</Text>
+          <Text style={styles.formTitle}>{t('history')}</Text>
           {history.map((p) => (
             <View key={p.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>
-                  {p.initiator === 'ADMIN' ? 'Granted by admin' : 'Your request'}
+                  {p.initiator === 'ADMIN' ? t('grantedByAdmin') : t('yourRequest')}
                 </Text>
                 <View
                   style={[
@@ -156,14 +157,14 @@ export function AdvertisingScreen() {
                           : styles.badgeInactiveText
                     }
                   >
-                    {p.status === 'APPROVED' && !p.isActive ? 'REVOKED' : p.status}
+                    {p.status === 'APPROVED' && !p.isActive ? t('status.REVOKED') : t(`status.${p.status}`)}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.cardMeta}>{formatDateRange(p)}</Text>
-              {p.reason && <Text style={styles.cardMeta}>Reason: {p.reason}</Text>}
+              <Text style={styles.cardMeta}>{formatDateRange(p, t)}</Text>
+              {p.reason && <Text style={styles.cardMeta}>{t('reason', { reason: p.reason })}</Text>}
               {p.status === 'REJECTED' && p.rejectionReason && (
-                <Text style={styles.rejection}>Rejected: {p.rejectionReason}</Text>
+                <Text style={styles.rejection}>{t('rejected', { reason: p.rejectionReason })}</Text>
               )}
             </View>
           ))}

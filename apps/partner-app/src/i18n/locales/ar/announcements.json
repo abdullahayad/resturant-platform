@@ -1,1 +1,8 @@
-{}
+{
+  "title": "الإشعارات",
+  "subtitle": "رسائل ومهام من فريق المنصة.",
+  "completed": "مكتمل",
+  "actionRequired": "يتطلب إجراءً",
+  "markAsDone": "وضع علامة كمكتمل",
+  "noAnnouncementsYet": "لا توجد إشعارات بعد."
+}
