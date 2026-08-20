@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import type { NavItem, ScreenKey } from '../lib/nav';
@@ -22,6 +23,7 @@ const backdropStyle: ViewStyle = { position: 'fixed' as ViewStyle['position'] };
 export function MoreOverflowSheet({ visible, items, active, onSelect, onClose }: MoreOverflowSheetProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('nav');
   const styles = useMemo(() => createStyles(colors), [colors]);
   if (!visible) return null;
 
@@ -40,10 +42,12 @@ export function MoreOverflowSheet({ visible, items, active, onSelect, onClose }:
                 style={[styles.item, isActive && styles.itemActive]}
               >
                 <item.icon size={18} color={isActive ? colors.primary : colors.mutedForeground} />
-                <Text style={[styles.itemLabel, isActive && styles.itemLabelActive]}>{item.labelEn}</Text>
+                <Text style={[styles.itemLabel, isActive && styles.itemLabelActive]}>
+                  {t(`items.${item.key}`)}
+                </Text>
                 {item.comingSoon && (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Soon</Text>
+                    <Text style={styles.badgeText}>{t('common:soon')}</Text>
                   </View>
                 )}
               </Pressable>

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MoreHorizontal } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import type { NavItem, ScreenKey } from '../lib/nav';
@@ -18,6 +19,7 @@ interface BottomTabBarProps {
 export function BottomTabBar({ primaryItems, active, moreActive, onSelect, onMore }: BottomTabBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('nav');
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
@@ -28,14 +30,14 @@ export function BottomTabBar({ primaryItems, active, moreActive, onSelect, onMor
           <Pressable key={item.key} onPress={() => onSelect(item.key)} style={styles.tab}>
             <item.icon size={22} color={isActive ? colors.primary : colors.mutedForeground} />
             <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]} numberOfLines={1}>
-              {item.labelEn}
+              {t(`items.${item.key}`)}
             </Text>
           </Pressable>
         );
       })}
       <Pressable onPress={onMore} style={styles.tab}>
         <MoreHorizontal size={22} color={moreActive ? colors.primary : colors.mutedForeground} />
-        <Text style={[styles.tabLabel, moreActive && styles.tabLabelActive]}>More</Text>
+        <Text style={[styles.tabLabel, moreActive && styles.tabLabelActive]}>{t('more')}</Text>
       </Pressable>
     </View>
   );

@@ -1,0 +1,30 @@
+{
+  "days": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday"
+  },
+  "roles": {
+    "manager": "Manager",
+    "menuEditor": "Menu Editor"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "confirm": "Confirm",
+    "remove": "Remove"
+  },
+  "signOut": "Sign Out",
+  "loading": "Loading…",
+  "networkError": "Could not reach the server. Is the backend running on localhost:3000?",
+  "soon": "Soon"
+}

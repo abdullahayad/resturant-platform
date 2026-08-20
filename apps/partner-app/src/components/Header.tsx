@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Moon, Sun } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { useLanguage } from '../i18n/LanguageContext';
 import { useAuth } from '../lib/AuthContext';
-
-const roleLabels = { MANAGER: 'Manager', MENU_EDITOR: 'Menu Editor' } as const;
 
 interface HeaderProps {
   nameEn: string;
@@ -17,7 +17,10 @@ interface HeaderProps {
 export function Header({ nameEn, nameAr, codeNumber, onSignOut }: HeaderProps) {
   const { staff } = useAuth();
   const { colors, theme, toggleTheme } = useTheme();
+  const { language, toggleLanguage } = useLanguage();
+  const { t } = useTranslation('common');
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const roleLabel = staff ? t(staff.role === 'MANAGER' ? 'roles.manager' : 'roles.menuEditor') : '';
   return (
     <View style={styles.header}>
       <View style={styles.logo}>
@@ -27,9 +30,12 @@ export function Header({ nameEn, nameAr, codeNumber, onSignOut }: HeaderProps) {
         <Text style={styles.name} numberOfLines={1}>{nameEn} · {nameAr}</Text>
         <Text style={styles.code} numberOfLines={1}>
           {codeNumber}
-          {staff ? ` · Signed in as ${staff.fullName} (${roleLabels[staff.role]})` : ''}
+          {staff ? ` · ${staff.fullName} (${roleLabel})` : ''}
         </Text>
       </View>
+      <Pressable onPress={toggleLanguage} style={styles.themeToggle}>
+        <Text style={styles.langToggleText}>{language === 'en' ? 'AR' : 'EN'}</Text>
+      </Pressable>
       <Pressable onPress={toggleTheme} style={styles.themeToggle}>
         {theme === 'dark' ? (
           <Sun size={16} color={colors.mutedForeground} />
@@ -38,7 +44,7 @@ export function Header({ nameEn, nameAr, codeNumber, onSignOut }: HeaderProps) {
         )}
       </Pressable>
       <Pressable onPress={onSignOut} style={styles.signOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
+        <Text style={styles.signOutText}>{t('signOut')}</Text>
       </Pressable>
     </View>
   );
@@ -85,6 +91,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  langToggleText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '700' },
   signOut: {
     borderRadius: 10,
     borderWidth: 1,

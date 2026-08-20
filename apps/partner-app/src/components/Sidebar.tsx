@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { UtensilsCrossed } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { useLanguage } from '../i18n/LanguageContext';
 import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
 import { useAuth } from '../lib/AuthContext';
 
@@ -14,7 +16,9 @@ interface SidebarProps {
 export function Sidebar({ active, onSelect }: SidebarProps) {
   const { staff } = useAuth();
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isRTL } = useLanguage();
+  const { t } = useTranslation('nav');
+  const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
   const visibleItems = getVisibleNavItems(staff?.role);
 
   return (
@@ -24,7 +28,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
           <UtensilsCrossed size={18} color={colors.primaryForeground} />
         </View>
         <View>
-          <Text style={styles.brandTitle}>Partner Portal</Text>
+          <Text style={styles.brandTitle}>{t('brand')}</Text>
           <Text style={styles.brandSubtitle}>#IRQ-00000</Text>
         </View>
       </View>
@@ -41,12 +45,12 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
               <View style={styles.navItemContent}>
                 <item.icon size={16} color={isActive ? colors.primary : colors.mutedForeground} />
                 <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                  {item.labelEn}
+                  {t(`items.${item.key}`)}
                 </Text>
               </View>
               {item.comingSoon && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Soon</Text>
+                  <Text style={styles.badgeText}>{t('common:soon')}</Text>
                 </View>
               )}
             </Pressable>
@@ -57,16 +61,18 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create({
   sidebar: {
     width: 260,
     backgroundColor: colors.card,
-    borderRightWidth: 1,
+    borderRightWidth: isRTL ? 0 : 1,
+    borderLeftWidth: isRTL ? 1 : 0,
     borderRightColor: colors.border,
+    borderLeftColor: colors.border,
     paddingVertical: 20,
     paddingHorizontal: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 4, height: 0 },
+    shadowOffset: { width: isRTL ? -4 : 4, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
   },
@@ -100,7 +106,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   navItemContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   activeBar: {
     position: 'absolute',
-    left: -12,
+    left: isRTL ? undefined : -12,
+    right: isRTL ? -12 : undefined,
     top: '50%',
     marginTop: -8,
     width: 3,

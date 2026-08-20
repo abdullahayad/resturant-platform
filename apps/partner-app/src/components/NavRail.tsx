@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { UtensilsCrossed } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { useLanguage } from '../i18n/LanguageContext';
 import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
 import { useAuth } from '../lib/AuthContext';
 
@@ -15,7 +16,8 @@ interface NavRailProps {
 export function NavRail({ active, onSelect }: NavRailProps) {
   const { staff } = useAuth();
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isRTL } = useLanguage();
+  const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
   const visibleItems = getVisibleNavItems(staff?.role);
 
   return (
@@ -41,17 +43,19 @@ export function NavRail({ active, onSelect }: NavRailProps) {
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create({
   rail: {
     width: 64,
     backgroundColor: colors.card,
-    borderRightWidth: 1,
+    borderRightWidth: isRTL ? 0 : 1,
+    borderLeftWidth: isRTL ? 1 : 0,
     borderRightColor: colors.border,
+    borderLeftColor: colors.border,
     alignItems: 'center',
     paddingVertical: 16,
     gap: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 4, height: 0 },
+    shadowOffset: { width: isRTL ? -4 : 4, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
   },

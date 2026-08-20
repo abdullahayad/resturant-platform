@@ -1,0 +1,19 @@
+{
+  "brand": "Partner Portal",
+  "more": "More",
+  "items": {
+    "dashboard": "Overview Dashboard",
+    "profile": "Profile & Info",
+    "menu": "Menu Management",
+    "promotions": "Promotions",
+    "advertising": "Advertising",
+    "gallery": "Photo Gallery",
+    "chefManagement": "Chef Management",
+    "chefTable": "Chef Table & Events",
+    "reviews": "Customer Reviews",
+    "reservations": "Reservations",
+    "analytics": "Deep Analytics",
+    "announcements": "Announcements",
+    "settings": "Settings & Staff"
+  }
+}

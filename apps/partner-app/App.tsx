@@ -1,30 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import type { ThemeColors } from './src/theme/colors';
+import './src/i18n';
+import { LanguageProvider } from './src/i18n/LanguageContext';
+import { getStoredSession, setStoredSession, type StoredSession } from './src/lib/session/storage';
 import { AuthLandingScreen } from './src/screens/auth/AuthLandingScreen';
 import { RegisterRestaurantScreen } from './src/screens/auth/RegisterRestaurantScreen';
 import { SignInScreen } from './src/screens/auth/SignInScreen';
 import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
 import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
-import type { AuthenticatedRestaurant, StaffSession } from './src/lib/api';
 
 type View = 'landing' | 'register' | 'signIn';
-
-interface Session {
-  token: string;
-  restaurant: AuthenticatedRestaurant;
-  staff?: StaffSession;
-}
+type Session = StoredSession;
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppContent />
+        <LanguageProvider>
+          <AppContent />
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
@@ -35,11 +34,32 @@ function AppContent() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [view, setView] = useState<View>('landing');
   const [session, setSession] = useState<Session | null>(null);
+  const [bootstrapped, setBootstrapped] = useState(false);
+
+  useEffect(() => {
+    getStoredSession().then((stored) => {
+      if (stored) setSession(stored);
+      setBootstrapped(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!bootstrapped) return; // don't clobber storage with null before rehydration finishes
+    setStoredSession(session);
+  }, [session, bootstrapped]);
 
   const signOut = () => {
     setSession(null);
     setView('landing');
   };
+
+  if (!bootstrapped) {
+    return (
+      <SafeAreaView style={[styles.root, styles.centered]}>
+        <ActivityIndicator color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.root}>
@@ -84,4 +104,5 @@ function AppContent() {
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
+    centered: { alignItems: 'center', justifyContent: 'center' },
   });
