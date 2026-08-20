@@ -15,32 +15,48 @@ interface LanguageContextValue {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
+/** Applies the visual/i18n side effects for a language on web — the DOM dir/lang
+ * attributes and RNW's I18nManager flag, both of which react-i18next's own
+ * language switch does NOT handle for us. Used on both interactive toggle and
+ * on rehydrating a stored preference at boot, so neither path can drift from
+ * the other (a prior version only did this on toggle, silently staying
+ * English/LTR after a reload with a stored Arabic preference). */
+function applyWebSideEffects(next: Language) {
+  const isRTL = next === 'ar';
+  I18nManager.forceRTL(isRTL);
+  if (typeof document !== 'undefined') {
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+    document.documentElement.lang = next;
+  }
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
+  const [bootstrapped, setBootstrapped] = useState(false);
 
   useEffect(() => {
-    getStoredLanguage().then((stored) => {
-      if (stored) setLanguageState(stored);
+    getStoredLanguage().then(async (stored) => {
+      const initial = stored ?? 'en';
+      await i18n.changeLanguage(initial);
+      if (Platform.OS === 'web') applyWebSideEffects(initial);
+      setLanguageState(initial);
+      setBootstrapped(true);
     });
   }, []);
 
   const applyLanguage = async (next: Language) => {
-    const isRTL = next === 'ar';
     await setStoredLanguage(next);
     await i18n.changeLanguage(next);
 
     if (Platform.OS === 'web') {
-      I18nManager.forceRTL(isRTL);
-      if (typeof document !== 'undefined') {
-        document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-        document.documentElement.lang = next;
-      }
+      applyWebSideEffects(next);
       setLanguageState(next);
       return;
     }
 
     // Native: I18nManager.forceRTL only affects layout after a fresh
     // mount, so persist everything first, then reload the JS runtime.
+    const isRTL = next === 'ar';
     if (I18nManager.isRTL !== isRTL) {
       I18nManager.allowRTL(isRTL);
       I18nManager.forceRTL(isRTL);
@@ -63,6 +79,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const toggleLanguage = () => {
     applyLanguage(language === 'en' ? 'ar' : 'en');
   };
+
+  if (!bootstrapped) return null;
 
   return (
     <LanguageContext.Provider value={{ language, isRTL: language === 'ar', setLanguage, toggleLanguage }}>
