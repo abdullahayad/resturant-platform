@@ -27,6 +27,12 @@
         {
           "photosPermission": "Allow the app to access your photos to upload restaurant content."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow the app to use your current location to pin your restaurant more accurately on the map."
+        }
       ]
     ]
   }
