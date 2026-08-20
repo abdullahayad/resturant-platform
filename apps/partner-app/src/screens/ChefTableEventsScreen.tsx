@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -7,13 +9,14 @@ import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
 import { api, type EventTypeItem, type ReservationItem, type ReservationStatus, type RestaurantEventItem } from '../lib/api';
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
-function formatSchedule(event: RestaurantEventItem): string {
+function formatSchedule(event: RestaurantEventItem, t: TFunction): string {
   if (event.isRecurring) {
-    return `Every ${DAY_NAMES[event.recurringDayOfWeek ?? 0]} at ${event.recurringTime}`;
+    const day = t(`common:days.${DAY_KEYS[event.recurringDayOfWeek ?? 0]}`);
+    return t('every', { day, time: event.recurringTime });
   }
-  if (!event.eventDate) return 'Date not set';
+  if (!event.eventDate) return t('dateNotSet');
   const d = new Date(event.eventDate);
   return d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) +
     ' · ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -49,6 +52,7 @@ function formatReservationDate(iso: string): string {
 export function ChefTableEventsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('chefTable');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
   const [events, setEvents] = useState<RestaurantEventItem[]>([]);
@@ -67,23 +71,23 @@ export function ChefTableEventsScreen() {
         setEvents(mine);
         setReservations(myReservations);
       })
-      .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, [token]);
+      .catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
 
   const submit = async () => {
     setFormError(null);
     if (!form.titleEn.trim() || !form.titleAr.trim() || !form.eventTypeId) {
-      setFormError('Fill in title (EN/AR) and pick an event type.');
+      setFormError(t('validation.titleAndType'));
       return;
     }
     if (form.isRecurring && !form.recurringTime) {
-      setFormError('Set a time for the recurring event.');
+      setFormError(t('validation.recurringTime'));
       return;
     }
     if (!form.isRecurring && (!form.eventDate || !form.eventTime)) {
-      setFormError('Set a date and time for the event.');
+      setFormError(t('validation.dateAndTime'));
       return;
     }
 
@@ -104,7 +108,7 @@ export function ChefTableEventsScreen() {
       setEvents((prev) => [created, ...prev]);
       setForm(emptyForm);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Could not create event');
+      setFormError(err instanceof Error ? err.message : t('createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -142,11 +146,8 @@ export function ChefTableEventsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Chef Table & Events</Text>
-      <Text style={styles.subtitle}>
-        Announce buffet nights, live music, chef's table experiences, or anything else, and manage
-        reservation requests against them.
-      </Text>
+      <Text style={styles.title}>{t('title')}</Text>
+      <Text style={styles.subtitle}>{t('subtitle')}</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
       <View style={styles.list}>
@@ -166,37 +167,37 @@ export function ChefTableEventsScreen() {
                 style={[styles.badge, event.isActive ? styles.badgeActive : styles.badgeInactive]}
               >
                 <Text style={event.isActive ? styles.badgeActiveText : styles.badgeInactiveText}>
-                  {event.isActive ? 'Visible' : 'Hidden'}
+                  {event.isActive ? t('visible') : t('hidden')}
                 </Text>
               </Pressable>
             </View>
-            <Text style={styles.eventSchedule}>{formatSchedule(event)}</Text>
+            <Text style={styles.eventSchedule}>{formatSchedule(event, t)}</Text>
             {event.price && <Text style={styles.eventPrice}>{Number(event.price).toLocaleString()} IQD</Text>}
-            {event.capacity != null && <Text style={styles.eventPrice}>Capacity: {event.capacity} guests</Text>}
+            {event.capacity != null && <Text style={styles.eventPrice}>{t('capacity', { count: event.capacity })}</Text>}
             {event.descriptionEn && <Text style={styles.eventDescription}>{event.descriptionEn}</Text>}
             <Pressable onPress={() => removeEvent(event.id)} disabled={busyId === event.id} style={styles.removeButton}>
-              <Text style={styles.removeButtonText}>Delete</Text>
+              <Text style={styles.removeButtonText}>{t('delete')}</Text>
             </Pressable>
           </View>
         ))}
-        {events.length === 0 && !loadError && <Text style={styles.hint}>No events yet.</Text>}
+        {events.length === 0 && !loadError && <Text style={styles.hint}>{t('noEventsYet')}</Text>}
       </View>
 
       <View style={styles.formCard}>
-        <Text style={styles.formTitle}>Reservations</Text>
+        <Text style={styles.formTitle}>{t('reservations')}</Text>
         {reservations.map((r) => {
           const statusStyle = reservationStatusStyles[r.status];
           return (
             <View key={r.id} style={styles.reservationRow}>
               <View style={styles.reservationInfo}>
-                <Text style={styles.reservationGuest}>{r.guestName} · party of {r.partySize}</Text>
+                <Text style={styles.reservationGuest}>{t('partyOf', { name: r.guestName, size: r.partySize })}</Text>
                 <Text style={styles.eventType}>{r.event.titleEn} — {formatReservationDate(r.reservationDate)}</Text>
                 <Text style={styles.eventType}>{r.guestPhone}</Text>
                 {r.notes && <Text style={styles.eventDescription}>{r.notes}</Text>}
               </View>
               <View style={styles.reservationActions}>
                 <View style={[styles.badge, styles[statusStyle.badge]]}>
-                  <Text style={styles[statusStyle.text]}>{r.status}</Text>
+                  <Text style={styles[statusStyle.text]}>{t(`status.${r.status}`)}</Text>
                 </View>
                 {r.status === 'PENDING' && (
                   <Pressable
@@ -204,7 +205,7 @@ export function ChefTableEventsScreen() {
                     onPress={() => setReservationStatus(r.id, 'CONFIRMED')}
                     style={styles.confirmLink}
                   >
-                    <Text style={styles.confirmLinkText}>Confirm</Text>
+                    <Text style={styles.confirmLinkText}>{t('confirm')}</Text>
                   </Pressable>
                 )}
                 {(r.status === 'PENDING' || r.status === 'CONFIRMED') && (
@@ -213,30 +214,30 @@ export function ChefTableEventsScreen() {
                     onPress={() => setReservationStatus(r.id, 'CANCELLED')}
                     style={styles.removeButton}
                   >
-                    <Text style={styles.removeButtonText}>Cancel</Text>
+                    <Text style={styles.removeButtonText}>{t('cancel')}</Text>
                   </Pressable>
                 )}
               </View>
             </View>
           );
         })}
-        {reservations.length === 0 && !loadError && <Text style={styles.hint}>No reservation requests yet.</Text>}
+        {reservations.length === 0 && !loadError && <Text style={styles.hint}>{t('noReservationsYet')}</Text>}
       </View>
 
       <View style={styles.formCard}>
-        <Text style={styles.formTitle}>Create Event</Text>
-        <FormField label="Title (English)" value={form.titleEn} onChangeText={(v) => setForm((f) => ({ ...f, titleEn: v }))} placeholder="Friday Live Music" />
-        <FormField label="Title (Arabic)" value={form.titleAr} onChangeText={(v) => setForm((f) => ({ ...f, titleAr: v }))} placeholder="موسيقى حية كل جمعة" />
+        <Text style={styles.formTitle}>{t('createEvent')}</Text>
+        <FormField label={t('titleEnLabel')} value={form.titleEn} onChangeText={(v) => setForm((f) => ({ ...f, titleEn: v }))} placeholder={t('titleEnPlaceholder')} />
+        <FormField label={t('titleArLabel')} value={form.titleAr} onChangeText={(v) => setForm((f) => ({ ...f, titleAr: v }))} placeholder={t('titleArPlaceholder')} />
         <FormField
-          label="Description (optional)"
+          label={t('descriptionLabel')}
           value={form.descriptionEn}
           onChangeText={(v) => setForm((f) => ({ ...f, descriptionEn: v }))}
-          placeholder="What should customers expect?"
+          placeholder={t('descriptionPlaceholder')}
         />
         <View style={styles.row}>
           <View style={styles.flex1}>
             <FormField
-              label="Price per person, IQD (optional)"
+              label={t('priceLabel')}
               value={form.price}
               onChangeText={(v) => setForm((f) => ({ ...f, price: v }))}
               keyboardType="numeric"
@@ -245,7 +246,7 @@ export function ChefTableEventsScreen() {
           </View>
           <View style={styles.flex1}>
             <FormField
-              label="Capacity, guests (optional)"
+              label={t('capacityLabel')}
               value={form.capacity}
               onChangeText={(v) => setForm((f) => ({ ...f, capacity: v }))}
               keyboardType="numeric"
@@ -254,18 +255,18 @@ export function ChefTableEventsScreen() {
           </View>
         </View>
 
-        <Text style={styles.fieldLabel}>Event Type</Text>
+        <Text style={styles.fieldLabel}>{t('eventType')}</Text>
         <ChipSelect
-          options={eventTypes.map((t) => ({ id: t.id, label: `${t.icon ?? ''} ${t.nameEn}`.trim() }))}
+          options={eventTypes.map((type) => ({ id: type.id, label: `${type.icon ?? ''} ${type.nameEn}`.trim() }))}
           selectedIds={form.eventTypeId ? [form.eventTypeId] : []}
           onToggle={(id) => setForm((f) => ({ ...f, eventTypeId: id === f.eventTypeId ? '' : id }))}
         />
 
-        <Text style={styles.fieldLabel}>Schedule</Text>
+        <Text style={styles.fieldLabel}>{t('schedule')}</Text>
         <ChipSelect
           options={[
-            { id: 'once', label: 'One-off date' },
-            { id: 'weekly', label: 'Every week' },
+            { id: 'once', label: t('oneOffDate') },
+            { id: 'weekly', label: t('everyWeek') },
           ]}
           selectedIds={[form.isRecurring ? 'weekly' : 'once']}
           onToggle={(id) => setForm((f) => ({ ...f, isRecurring: id === 'weekly' }))}
@@ -273,14 +274,14 @@ export function ChefTableEventsScreen() {
 
         {form.isRecurring ? (
           <>
-            <Text style={styles.fieldLabel}>Day of the week</Text>
+            <Text style={styles.fieldLabel}>{t('dayOfWeek')}</Text>
             <ChipSelect
-              options={DAY_NAMES.map((label, id) => ({ id: String(id), label }))}
+              options={DAY_KEYS.map((key, id) => ({ id: String(id), label: t(`common:days.${key}`) }))}
               selectedIds={[String(form.recurringDayOfWeek)]}
               onToggle={(id) => setForm((f) => ({ ...f, recurringDayOfWeek: Number(id) }))}
             />
             <FormField
-              label="Time"
+              label={t('timeLabel')}
               value={form.recurringTime}
               onChangeText={(v) => setForm((f) => ({ ...f, recurringTime: v }))}
               placeholder="20:00"
@@ -289,17 +290,17 @@ export function ChefTableEventsScreen() {
         ) : (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <FormField label="Date" value={form.eventDate} onChangeText={(v) => setForm((f) => ({ ...f, eventDate: v }))} placeholder="2026-08-28" />
+              <FormField label={t('dateLabel')} value={form.eventDate} onChangeText={(v) => setForm((f) => ({ ...f, eventDate: v }))} placeholder="2026-08-28" />
             </View>
             <View style={styles.flex1}>
-              <FormField label="Time" value={form.eventTime} onChangeText={(v) => setForm((f) => ({ ...f, eventTime: v }))} placeholder="20:00" />
+              <FormField label={t('timeLabel')} value={form.eventTime} onChangeText={(v) => setForm((f) => ({ ...f, eventTime: v }))} placeholder="20:00" />
             </View>
           </View>
         )}
 
         {formError && <Text style={styles.error}>{formError}</Text>}
         <Pressable style={[styles.button, styles.primaryButton]} onPress={submit} disabled={submitting}>
-          {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Create Event</Text>}
+          {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('submit')}</Text>}
         </Pressable>
       </View>
     </ScrollView>

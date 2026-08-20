@@ -1,1 +1,45 @@
-{}
+{
+  "title": "طاولة الشيف والفعاليات",
+  "subtitle": "أعلن عن ليالي البوفيه، الموسيقى الحية، تجارب طاولة الشيف، أو أي شيء آخر، وأدر طلبات الحجز الخاصة بها.",
+  "dateNotSet": "لم يتم تحديد التاريخ",
+  "every": "كل {{day}} الساعة {{time}}",
+  "visible": "ظاهر",
+  "hidden": "مخفي",
+  "capacity": "السعة: {{count}} ضيوف",
+  "delete": "حذف",
+  "noEventsYet": "لا توجد فعاليات بعد.",
+  "reservations": "الحجوزات",
+  "partyOf": "{{name}} · مجموعة من {{size}}",
+  "confirm": "تأكيد",
+  "cancel": "إلغاء",
+  "noReservationsYet": "لا توجد طلبات حجز بعد.",
+  "createEvent": "إنشاء فعالية",
+  "titleEnLabel": "العنوان (بالإنجليزية)",
+  "titleEnPlaceholder": "Friday Live Music",
+  "titleArLabel": "العنوان (بالعربية)",
+  "titleArPlaceholder": "موسيقى حية كل جمعة",
+  "descriptionLabel": "الوصف (اختياري)",
+  "descriptionPlaceholder": "ماذا يجب أن يتوقع الزبائن؟",
+  "priceLabel": "السعر للشخص، دينار عراقي (اختياري)",
+  "capacityLabel": "السعة، عدد الضيوف (اختياري)",
+  "eventType": "نوع الفعالية",
+  "schedule": "الجدول الزمني",
+  "oneOffDate": "تاريخ واحد",
+  "everyWeek": "كل أسبوع",
+  "dayOfWeek": "يوم الأسبوع",
+  "timeLabel": "الوقت",
+  "dateLabel": "التاريخ",
+  "submit": "إنشاء فعالية",
+  "validation": {
+    "titleAndType": "أدخل العنوان (بالإنجليزية والعربية) واختر نوع الفعالية.",
+    "recurringTime": "حدد وقتاً للفعالية المتكررة.",
+    "dateAndTime": "حدد تاريخاً ووقتاً للفعالية."
+  },
+  "createFailed": "تعذر إنشاء الفعالية",
+  "status": {
+    "PENDING": "قيد الانتظار",
+    "CONFIRMED": "مؤكد",
+    "CANCELLED": "ملغى",
+    "COMPLETED": "مكتمل"
+  }
+}

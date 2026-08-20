@@ -1,1 +1,45 @@
-{}
+{
+  "title": "Chef Table & Events",
+  "subtitle": "Announce buffet nights, live music, chef's table experiences, or anything else, and manage reservation requests against them.",
+  "dateNotSet": "Date not set",
+  "every": "Every {{day}} at {{time}}",
+  "visible": "Visible",
+  "hidden": "Hidden",
+  "capacity": "Capacity: {{count}} guests",
+  "delete": "Delete",
+  "noEventsYet": "No events yet.",
+  "reservations": "Reservations",
+  "partyOf": "{{name}} · party of {{size}}",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "noReservationsYet": "No reservation requests yet.",
+  "createEvent": "Create Event",
+  "titleEnLabel": "Title (English)",
+  "titleEnPlaceholder": "Friday Live Music",
+  "titleArLabel": "Title (Arabic)",
+  "titleArPlaceholder": "موسيقى حية كل جمعة",
+  "descriptionLabel": "Description (optional)",
+  "descriptionPlaceholder": "What should customers expect?",
+  "priceLabel": "Price per person, IQD (optional)",
+  "capacityLabel": "Capacity, guests (optional)",
+  "eventType": "Event Type",
+  "schedule": "Schedule",
+  "oneOffDate": "One-off date",
+  "everyWeek": "Every week",
+  "dayOfWeek": "Day of the week",
+  "timeLabel": "Time",
+  "dateLabel": "Date",
+  "submit": "Create Event",
+  "validation": {
+    "titleAndType": "Fill in title (EN/AR) and pick an event type.",
+    "recurringTime": "Set a time for the recurring event.",
+    "dateAndTime": "Set a date and time for the event."
+  },
+  "createFailed": "Could not create event",
+  "status": {
+    "PENDING": "Pending",
+    "CONFIRMED": "Confirmed",
+    "CANCELLED": "Cancelled",
+    "COMPLETED": "Completed"
+  }
+}
