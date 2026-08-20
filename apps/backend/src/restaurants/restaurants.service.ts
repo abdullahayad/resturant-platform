@@ -7,6 +7,7 @@ import type { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import type { DayHoursDto } from './dto/opening-hours.dto';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const restaurantListSelect = {
   id: true,
@@ -96,7 +97,9 @@ export class RestaurantsService {
     districtId?: string;
     businessTypeId?: string;
     foodCategoryId?: string;
+    search?: string;
   }) {
+    const search = filters.search?.trim();
     return this.prisma.db.restaurant.findMany({
       where: {
         status: filters.status,
@@ -107,6 +110,14 @@ export class RestaurantsService {
           : undefined,
         foodCategories: filters.foodCategoryId
           ? { some: { foodCategoryId: filters.foodCategoryId } }
+          : undefined,
+        OR: search
+          ? [
+              { nameEn: { contains: search, mode: 'insensitive' } },
+              { nameAr: { contains: search, mode: 'insensitive' } },
+              { codeNumber: { contains: search, mode: 'insensitive' } },
+              { ownerEmail: { contains: search, mode: 'insensitive' } },
+            ]
           : undefined,
       },
       orderBy: { createdAt: 'desc' },
@@ -200,7 +211,17 @@ export class RestaurantsService {
     return this.findOne(id);
   }
 
-  async changePassword(id: string, dto: ChangePasswordDto) {
+  // "My password" means the owner's password when called by the owner, or
+  // the caller's own staff password when called by a staff login — same
+  // endpoint either way, branching on which kind of session this is.
+  async changePassword(user: PartnerJwtPayload, dto: ChangePasswordDto) {
+    if (user.staffId) {
+      return this.changeStaffPassword(user.sub, user.staffId, dto);
+    }
+    return this.changeOwnerPassword(user.sub, dto);
+  }
+
+  private async changeOwnerPassword(id: string, dto: ChangePasswordDto) {
     const restaurant = await this.prisma.db.restaurant.findUnique({ where: { id } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
@@ -221,6 +242,35 @@ export class RestaurantsService {
       type: 'partner',
       restaurantStatus: updated.status,
       tokenVersion: updated.tokenVersion,
+    });
+    return { success: true, accessToken };
+  }
+
+  private async changeStaffPassword(restaurantId: string, staffId: string, dto: ChangePasswordDto) {
+    const staff = await this.prisma.db.partnerStaffUser.findUnique({ where: { id: staffId } });
+    if (!staff) throw new NotFoundException('Staff account not found');
+
+    const matches = await bcrypt.compare(dto.currentPassword, staff.passwordHash);
+    if (!matches) throw new BadRequestException('Current password is incorrect');
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    const updated = await this.prisma.db.partnerStaffUser.update({
+      where: { id: staffId },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
+    });
+
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { status: true },
+    });
+
+    const accessToken = await this.jwt.signAsync({
+      sub: restaurantId,
+      type: 'partner',
+      restaurantStatus: restaurant?.status,
+      tokenVersion: updated.tokenVersion,
+      staffId: updated.id,
+      staffRole: updated.role,
     });
     return { success: true, accessToken };
   }

@@ -228,6 +228,7 @@ export const api = {
     districtId?: string
     businessTypeId?: string
     foodCategoryId?: string
+    search?: string
   }) => {
     const params = new URLSearchParams()
     if (filters?.status) params.set('status', filters.status)
@@ -235,6 +236,7 @@ export const api = {
     if (filters?.districtId) params.set('districtId', filters.districtId)
     if (filters?.businessTypeId) params.set('businessTypeId', filters.businessTypeId)
     if (filters?.foodCategoryId) params.set('foodCategoryId', filters.foodCategoryId)
+    if (filters?.search) params.set('search', filters.search)
     const qs = params.toString()
     return get<RestaurantListItem[]>(`/restaurants${qs ? `?${qs}` : ''}`)
   },

@@ -11,7 +11,6 @@ import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
-import { OwnerOnlyGuard } from '../auth/guards/owner-only.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 @Controller('restaurants')
@@ -35,10 +34,10 @@ export class RestaurantsController {
     return this.restaurants.updateProfile(req.user.sub, dto);
   }
 
-  @UseGuards(OwnerOnlyGuard)
+  @UseGuards(PartnerAuthGuard)
   @Patch('me/password')
   changePassword(@Req() req: { user: PartnerJwtPayload }, @Body() dto: ChangePasswordDto) {
-    return this.restaurants.changePassword(req.user.sub, dto);
+    return this.restaurants.changePassword(req.user, dto);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)

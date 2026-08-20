@@ -25,9 +25,15 @@ export class PartnerAuthGuard extends JwtAuthGuard {
       // staying valid for the rest of the token's lifetime.
       const staff = await this.prisma.db.partnerStaffUser.findUnique({
         where: { id: partner.staffId },
-        select: { isActive: true, role: true, restaurantId: true },
+        select: { isActive: true, role: true, restaurantId: true, tokenVersion: true },
       });
-      if (!staff || !staff.isActive || staff.restaurantId !== partner.sub || staff.role === 'OWNER') {
+      if (
+        !staff ||
+        !staff.isActive ||
+        staff.restaurantId !== partner.sub ||
+        staff.role === 'OWNER' ||
+        staff.tokenVersion !== partner.tokenVersion
+      ) {
         // OWNER is reserved for the restaurant's own login and is never
         // assigned to a PartnerStaffUser row (see staff/dto/staff.dto.ts);
         // seeing it here would mean the invariant broke somewhere.

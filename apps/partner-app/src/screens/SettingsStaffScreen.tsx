@@ -9,7 +9,11 @@ import { api, type RestaurantDetail, type StaffMember, type StaffRole } from '..
 const roleLabels: Record<StaffRole, string> = { MANAGER: 'Manager', MENU_EDITOR: 'Menu Editor' };
 
 export function SettingsStaffScreen() {
-  const { token, setToken } = useAuth();
+  const { token, setToken, staff: authStaff } = useAuth();
+  // Menu Editors can reach this screen to change their own password, but
+  // notification prefs and staff management stay Manager/Owner only —
+  // matches the same split enforced on the backend.
+  const isManagerOrOwner = authStaff?.role !== 'MENU_EDITOR';
 
   // ── Account settings ──────────────────────────────────────────────
   const [profile, setProfile] = useState<RestaurantDetail | null>(null);
@@ -21,8 +25,9 @@ export function SettingsStaffScreen() {
   const [savingPrefs, setSavingPrefs] = useState(false);
 
   const loadProfile = useCallback(() => {
+    if (!isManagerOrOwner) return;
     api.me(token).then(setProfile).catch(() => {});
-  }, [token]);
+  }, [token, isManagerOrOwner]);
 
   useEffect(loadProfile, [loadProfile]);
 
@@ -62,7 +67,7 @@ export function SettingsStaffScreen() {
   };
 
   // ── Staff ──────────────────────────────────────────────────────────
-  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [staffError, setStaffError] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [invitePassword, setInvitePassword] = useState('');
@@ -72,8 +77,9 @@ export function SettingsStaffScreen() {
   const [busyStaffId, setBusyStaffId] = useState<string | null>(null);
 
   const loadStaff = useCallback(() => {
-    api.staff(token).then(setStaff).catch(() => setStaffError('Could not load staff.'));
-  }, [token]);
+    if (!isManagerOrOwner) return;
+    api.staff(token).then(setStaffList).catch(() => setStaffError('Could not load staff.'));
+  }, [token, isManagerOrOwner]);
 
   useEffect(loadStaff, [loadStaff]);
 
@@ -91,7 +97,7 @@ export function SettingsStaffScreen() {
         fullName: inviteName.trim(),
         role: inviteRole,
       });
-      setStaff((prev) => [...prev, created]);
+      setStaffList((prev) => [...prev, created]);
       setInviteEmail('');
       setInvitePassword('');
       setInviteName('');
@@ -106,7 +112,7 @@ export function SettingsStaffScreen() {
     setBusyStaffId(member.id);
     try {
       const updated = await api.updateStaff(token, member.id, { isActive: !member.isActive });
-      setStaff((prev) => prev.map((s) => (s.id === member.id ? updated : s)));
+      setStaffList((prev) => prev.map((s) => (s.id === member.id ? updated : s)));
     } finally {
       setBusyStaffId(null);
     }
@@ -116,7 +122,7 @@ export function SettingsStaffScreen() {
     setBusyStaffId(id);
     try {
       await api.removeStaff(token, id);
-      setStaff((prev) => prev.filter((s) => s.id !== id));
+      setStaffList((prev) => prev.filter((s) => s.id !== id));
     } finally {
       setBusyStaffId(null);
     }
@@ -157,108 +163,112 @@ export function SettingsStaffScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notification Preferences</Text>
-        <View style={styles.prefRow}>
-          <View style={styles.prefLabelBlock}>
-            <Text style={styles.prefLabel}>New review notifications</Text>
-            <Text style={styles.prefHint}>Get notified when a customer leaves a review</Text>
-          </View>
-          <Switch
-            value={profile?.notifyNewReview ?? false}
-            onValueChange={() => toggleNotification('notifyNewReview')}
-            disabled={!profile || savingPrefs}
-            trackColor={{ true: colors.primary, false: colors.secondary }}
-          />
-        </View>
-        <View style={styles.prefRow}>
-          <View style={styles.prefLabelBlock}>
-            <Text style={styles.prefLabel}>New booking notifications</Text>
-            <Text style={styles.prefHint}>Get notified for new chef table bookings</Text>
-          </View>
-          <Switch
-            value={profile?.notifyNewBooking ?? false}
-            onValueChange={() => toggleNotification('notifyNewBooking')}
-            disabled={!profile || savingPrefs}
-            trackColor={{ true: colors.primary, false: colors.secondary }}
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Staff</Text>
-        <Text style={styles.sectionHint}>
-          Invite staff with limited access — they can help manage the menu without touching your profile
-          or account settings.
-        </Text>
-
-        {staff.map((member) => (
-          <View key={member.id} style={styles.staffRow}>
-            <View style={styles.staffInfo}>
-              <Text style={styles.staffName}>{member.fullName}</Text>
-              <Text style={styles.staffMeta}>{member.email} · {roleLabels[member.role]}</Text>
+      {isManagerOrOwner && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notification Preferences</Text>
+          <View style={styles.prefRow}>
+            <View style={styles.prefLabelBlock}>
+              <Text style={styles.prefLabel}>New review notifications</Text>
+              <Text style={styles.prefHint}>Get notified when a customer leaves a review</Text>
             </View>
-            <View style={styles.staffActions}>
-              <Pressable
-                onPress={() => toggleStaffActive(member)}
-                disabled={busyStaffId === member.id}
-                style={[styles.badge, member.isActive ? styles.badgeActive : styles.badgeInactive]}
-              >
-                <Text style={member.isActive ? styles.badgeActiveText : styles.badgeInactiveText}>
-                  {member.isActive ? 'Active' : 'Inactive'}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => removeStaffMember(member.id)}
-                disabled={busyStaffId === member.id}
-                style={styles.removeButton}
-              >
-                <Text style={styles.removeButtonText}>Remove</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
-        {staff.length === 0 && <Text style={styles.hint}>No staff invited yet.</Text>}
-
-        <View style={styles.inviteForm}>
-          <Text style={styles.inviteTitle}>Invite Staff</Text>
-          <FormField label="Full name" value={inviteName} onChangeText={setInviteName} placeholder="Staff member's name" />
-          <FormField
-            label="Email"
-            value={inviteEmail}
-            onChangeText={setInviteEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="staff@restaurant.iq"
-          />
-          <FormField
-            label="Temporary password"
-            value={invitePassword}
-            onChangeText={setInvitePassword}
-            secureTextEntry
-            placeholder="At least 8 characters"
-          />
-          <View style={styles.roleField}>
-            <Text style={styles.roleLabel}>Role</Text>
-            <ChipSelect
-              options={[
-                { id: 'MANAGER', label: 'Manager' },
-                { id: 'MENU_EDITOR', label: 'Menu Editor' },
-              ]}
-              selectedIds={[inviteRole]}
-              onToggle={(id) => setInviteRole(id as StaffRole)}
+            <Switch
+              value={profile?.notifyNewReview ?? false}
+              onValueChange={() => toggleNotification('notifyNewReview')}
+              disabled={!profile || savingPrefs}
+              trackColor={{ true: colors.primary, false: colors.secondary }}
             />
           </View>
-          {staffError && <Text style={styles.error}>{staffError}</Text>}
-          <Pressable style={[styles.button, styles.primaryButton]} onPress={submitInvite} disabled={inviting}>
-            {inviting ? (
-              <ActivityIndicator color={colors.primaryForeground} />
-            ) : (
-              <Text style={styles.primaryButtonText}>Send Invite</Text>
-            )}
-          </Pressable>
+          <View style={styles.prefRow}>
+            <View style={styles.prefLabelBlock}>
+              <Text style={styles.prefLabel}>New booking notifications</Text>
+              <Text style={styles.prefHint}>Get notified for new chef table bookings</Text>
+            </View>
+            <Switch
+              value={profile?.notifyNewBooking ?? false}
+              onValueChange={() => toggleNotification('notifyNewBooking')}
+              disabled={!profile || savingPrefs}
+              trackColor={{ true: colors.primary, false: colors.secondary }}
+            />
+          </View>
         </View>
-      </View>
+      )}
+
+      {isManagerOrOwner && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Staff</Text>
+          <Text style={styles.sectionHint}>
+            Invite staff with limited access — they can help manage the menu without touching your profile
+            or account settings.
+          </Text>
+
+          {staffList.map((member) => (
+            <View key={member.id} style={styles.staffRow}>
+              <View style={styles.staffInfo}>
+                <Text style={styles.staffName}>{member.fullName}</Text>
+                <Text style={styles.staffMeta}>{member.email} · {roleLabels[member.role]}</Text>
+              </View>
+              <View style={styles.staffActions}>
+                <Pressable
+                  onPress={() => toggleStaffActive(member)}
+                  disabled={busyStaffId === member.id}
+                  style={[styles.badge, member.isActive ? styles.badgeActive : styles.badgeInactive]}
+                >
+                  <Text style={member.isActive ? styles.badgeActiveText : styles.badgeInactiveText}>
+                    {member.isActive ? 'Active' : 'Inactive'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => removeStaffMember(member.id)}
+                  disabled={busyStaffId === member.id}
+                  style={styles.removeButton}
+                >
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+          {staffList.length === 0 && <Text style={styles.hint}>No staff invited yet.</Text>}
+
+          <View style={styles.inviteForm}>
+            <Text style={styles.inviteTitle}>Invite Staff</Text>
+            <FormField label="Full name" value={inviteName} onChangeText={setInviteName} placeholder="Staff member's name" />
+            <FormField
+              label="Email"
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="staff@restaurant.iq"
+            />
+            <FormField
+              label="Temporary password"
+              value={invitePassword}
+              onChangeText={setInvitePassword}
+              secureTextEntry
+              placeholder="At least 8 characters"
+            />
+            <View style={styles.roleField}>
+              <Text style={styles.roleLabel}>Role</Text>
+              <ChipSelect
+                options={[
+                  { id: 'MANAGER', label: 'Manager' },
+                  { id: 'MENU_EDITOR', label: 'Menu Editor' },
+                ]}
+                selectedIds={[inviteRole]}
+                onToggle={(id) => setInviteRole(id as StaffRole)}
+              />
+            </View>
+            {staffError && <Text style={styles.error}>{staffError}</Text>}
+            <Pressable style={[styles.button, styles.primaryButton]} onPress={submitInvite} disabled={inviting}>
+              {inviting ? (
+                <ActivityIndicator color={colors.primaryForeground} />
+              ) : (
+                <Text style={styles.primaryButtonText}>Send Invite</Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }

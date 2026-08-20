@@ -27,4 +27,9 @@ export class ListRestaurantsQuery {
   @IsOptional()
   @IsUUID()
   foodCategoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
 }

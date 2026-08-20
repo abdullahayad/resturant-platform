@@ -36,6 +36,8 @@ export function RestaurantsPage() {
   const [districtId, setDistrictId] = useState(ALL)
   const [businessTypeId, setBusinessTypeId] = useState(ALL)
   const [foodCategoryId, setFoodCategoryId] = useState(ALL)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
   const [provinces, setProvinces] = useState<Province[]>([])
   const [businessTypes, setBusinessTypes] = useState<MasterDataItemFull[]>([])
@@ -54,6 +56,12 @@ export function RestaurantsPage() {
     api.masterData('food-categories').then(setFoodCategories).catch(() => {})
   }, [])
 
+  // Debounce the search box so we're not firing a request on every keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
   const load = () => {
     setLoading(true)
     api
@@ -63,6 +71,7 @@ export function RestaurantsPage() {
         districtId: districtId === ALL ? undefined : districtId,
         businessTypeId: businessTypeId === ALL ? undefined : businessTypeId,
         foodCategoryId: foodCategoryId === ALL ? undefined : foodCategoryId,
+        search: debouncedSearch || undefined,
       })
       .then(setRestaurants)
       .catch((err) => {
@@ -72,7 +81,7 @@ export function RestaurantsPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [filter, provinceId, districtId, businessTypeId, foodCategoryId])
+  useEffect(load, [filter, provinceId, districtId, businessTypeId, foodCategoryId, debouncedSearch])
 
   const selectedProvince = provinces.find((p) => p.id === provinceId)
 
@@ -145,6 +154,15 @@ export function RestaurantsPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, code, or owner email…"
+          className="min-w-[260px] flex-1 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-3">
         <select
           value={provinceId}
           onChange={(e) => {
@@ -193,13 +211,14 @@ export function RestaurantsPage() {
           ))}
         </select>
 
-        {(provinceId !== ALL || districtId !== ALL || businessTypeId !== ALL || foodCategoryId !== ALL) && (
+        {(provinceId !== ALL || districtId !== ALL || businessTypeId !== ALL || foodCategoryId !== ALL || search) && (
           <button
             onClick={() => {
               setProvinceId(ALL)
               setDistrictId(ALL)
               setBusinessTypeId(ALL)
               setFoodCategoryId(ALL)
+              setSearch('')
             }}
             className="rounded-lg px-3 py-1.5 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >

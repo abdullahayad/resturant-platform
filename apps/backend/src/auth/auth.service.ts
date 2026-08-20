@@ -50,7 +50,11 @@ export class AuthService {
       sub: restaurant.id,
       type: 'partner',
       restaurantStatus: restaurant.status,
-      tokenVersion: restaurant.tokenVersion,
+      // A staff login's tokenVersion tracks the staff row's own version
+      // (bumped when they change their password), not the restaurant's —
+      // otherwise the owner changing their password would also invalidate
+      // every staff member's session, and vice versa.
+      tokenVersion: staff ? staff.tokenVersion : restaurant.tokenVersion,
       staffId: staff?.id,
       staffRole: staff?.role,
     });

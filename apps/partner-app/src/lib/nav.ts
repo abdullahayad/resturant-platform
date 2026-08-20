@@ -35,5 +35,5 @@ export const navItems: NavItem[] = [
   { key: 'reservations', labelEn: 'Reservations', comingSoon: true, managerOrOwnerOnly: true },
   { key: 'analytics', labelEn: 'Deep Analytics', comingSoon: true, managerOrOwnerOnly: true },
   { key: 'announcements', labelEn: 'Announcements' },
-  { key: 'settings', labelEn: 'Settings & Staff', managerOrOwnerOnly: true },
+  { key: 'settings', labelEn: 'Settings & Staff' },
 ];
