@@ -1,1 +1,22 @@
-{}
+{
+  "title": "Menu Management",
+  "editDish": "Edit Dish",
+  "addDish": "Add Dish",
+  "nameEnLabel": "Name (English)",
+  "nameArLabel": "Name (Arabic)",
+  "priceLabel": "Price (IQD)",
+  "category": "Category",
+  "noPhoto": "No photo",
+  "choosePhoto": "Choose Photo",
+  "mostOrdered": "Most Ordered",
+  "saveChanges": "Save Changes",
+  "cancel": "Cancel",
+  "uncategorized": "Uncategorized",
+  "edit": "Edit",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "noDishesYet": "No dishes yet.",
+  "validation": "Name (EN/AR) and a valid price are required.",
+  "photoUploadFailed": "Photo upload failed",
+  "saveFailed": "Save failed"
+}

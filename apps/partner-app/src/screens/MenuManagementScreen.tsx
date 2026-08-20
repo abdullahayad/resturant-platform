@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -13,6 +14,7 @@ const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as strin
 export function MenuManagementScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('menu');
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -32,8 +34,8 @@ export function MenuManagementScreen() {
         setDishes(d);
         setCategories(c);
       })
-      .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, [token]);
+      .catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
 
@@ -71,7 +73,7 @@ export function MenuManagementScreen() {
       });
       setForm((f) => ({ ...f, photoUrl: url }));
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Photo upload failed');
+      setFormError(err instanceof Error ? err.message : t('photoUploadFailed'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -81,7 +83,7 @@ export function MenuManagementScreen() {
     setFormError(null);
     const price = Number(form.price);
     if (!form.nameEn.trim() || !form.nameAr.trim() || !price || price <= 0) {
-      setFormError('Name (EN/AR) and a valid price are required.');
+      setFormError(t('validation'));
       return;
     }
     setSubmitting(true);
@@ -103,7 +105,7 @@ export function MenuManagementScreen() {
       }
       resetForm();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Save failed');
+      setFormError(err instanceof Error ? err.message : t('saveFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -118,30 +120,30 @@ export function MenuManagementScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Menu Management</Text>
+      <Text style={styles.title}>{t('title')}</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
       <View style={styles.formCard}>
-        <Text style={styles.formTitle}>{editingId ? 'Edit Dish' : 'Add Dish'}</Text>
+        <Text style={styles.formTitle}>{editingId ? t('editDish') : t('addDish')}</Text>
 
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <FormField label="Name (English)" value={form.nameEn} onChangeText={(v) => setForm((f) => ({ ...f, nameEn: v }))} />
+            <FormField label={t('nameEnLabel')} value={form.nameEn} onChangeText={(v) => setForm((f) => ({ ...f, nameEn: v }))} />
           </View>
           <View style={styles.flex1}>
-            <FormField label="Name (Arabic)" value={form.nameAr} onChangeText={(v) => setForm((f) => ({ ...f, nameAr: v }))} />
+            <FormField label={t('nameArLabel')} value={form.nameAr} onChangeText={(v) => setForm((f) => ({ ...f, nameAr: v }))} />
           </View>
         </View>
 
         <FormField
-          label="Price (IQD)"
+          label={t('priceLabel')}
           value={form.price}
           onChangeText={(v) => setForm((f) => ({ ...f, price: v }))}
           keyboardType="numeric"
           placeholder="10000"
         />
 
-        <Text style={styles.fieldLabel}>Category</Text>
+        <Text style={styles.fieldLabel}>{t('category')}</Text>
         <ChipSelect
           options={categories.map((c) => ({ id: c.id, label: c.nameEn }))}
           selectedIds={form.categoryId ? [form.categoryId] : []}
@@ -153,16 +155,16 @@ export function MenuManagementScreen() {
             <Image source={{ uri: form.photoUrl }} style={styles.photoPreview} />
           ) : (
             <View style={[styles.photoPreview, styles.photoPlaceholder]}>
-              <Text style={styles.hint}>No photo</Text>
+              <Text style={styles.hint}>{t('noPhoto')}</Text>
             </View>
           )}
           <Pressable style={[styles.button, styles.secondaryButton]} onPress={pickPhoto} disabled={uploadingPhoto}>
-            {uploadingPhoto ? <ActivityIndicator color={colors.foreground} /> : <Text style={styles.secondaryButtonText}>Choose Photo</Text>}
+            {uploadingPhoto ? <ActivityIndicator color={colors.foreground} /> : <Text style={styles.secondaryButtonText}>{t('choosePhoto')}</Text>}
           </Pressable>
         </View>
 
         <View style={styles.switchRow}>
-          <Text style={styles.fieldLabel}>Most Ordered</Text>
+          <Text style={styles.fieldLabel}>{t('mostOrdered')}</Text>
           <Switch
             value={form.isMostOrdered}
             onValueChange={(v) => setForm((f) => ({ ...f, isMostOrdered: v }))}
@@ -177,12 +179,12 @@ export function MenuManagementScreen() {
             {submitting ? (
               <ActivityIndicator color={colors.primaryForeground} />
             ) : (
-              <Text style={styles.primaryButtonText}>{editingId ? 'Save Changes' : 'Add Dish'}</Text>
+              <Text style={styles.primaryButtonText}>{editingId ? t('saveChanges') : t('addDish')}</Text>
             )}
           </Pressable>
           {editingId && (
             <Pressable style={[styles.button, styles.secondaryButton]} onPress={resetForm}>
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
+              <Text style={styles.secondaryButtonText}>{t('cancel')}</Text>
             </Pressable>
           )}
         </View>
@@ -199,32 +201,32 @@ export function MenuManagementScreen() {
             <View style={styles.dishBody}>
               <Text style={styles.dishName}>{dish.nameEn} · {dish.nameAr}</Text>
               <Text style={styles.dishMeta}>
-                {dish.menuCategory?.nameEn ?? 'Uncategorized'} · {Number(dish.price).toLocaleString()} IQD
+                {dish.menuCategory?.nameEn ?? t('uncategorized')} · {Number(dish.price).toLocaleString()} IQD
               </Text>
-              {dish.isMostOrdered && <Text style={styles.badge}>Most Ordered</Text>}
+              {dish.isMostOrdered && <Text style={styles.badge}>{t('mostOrdered')}</Text>}
               <View style={styles.dishActions}>
                 <Pressable onPress={() => startEdit(dish)}>
-                  <Text style={styles.link}>Edit</Text>
+                  <Text style={styles.link}>{t('edit')}</Text>
                 </Pressable>
                 {confirmDeleteId === dish.id ? (
                   <View style={styles.row}>
                     <Pressable onPress={() => remove(dish.id)}>
-                      <Text style={[styles.link, styles.destructiveLink]}>Confirm</Text>
+                      <Text style={[styles.link, styles.destructiveLink]}>{t('confirm')}</Text>
                     </Pressable>
                     <Pressable onPress={() => setConfirmDeleteId(null)}>
-                      <Text style={styles.link}>Cancel</Text>
+                      <Text style={styles.link}>{t('cancel')}</Text>
                     </Pressable>
                   </View>
                 ) : (
                   <Pressable onPress={() => setConfirmDeleteId(dish.id)}>
-                    <Text style={[styles.link, styles.destructiveLink]}>Delete</Text>
+                    <Text style={[styles.link, styles.destructiveLink]}>{t('delete')}</Text>
                   </Pressable>
                 )}
               </View>
             </View>
           </View>
         ))}
-        {dishes.length === 0 && !loadError && <Text style={styles.hint}>No dishes yet.</Text>}
+        {dishes.length === 0 && !loadError && <Text style={styles.hint}>{t('noDishesYet')}</Text>}
       </View>
     </ScrollView>
   );
@@ -271,6 +273,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   dishMeta: { color: colors.mutedForeground, fontSize: 12 },
   badge: { color: colors.primary, fontSize: 11, fontWeight: '700' },
   dishActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  link: { color: colors.mutedForeground, fontSize: 13, marginRight: 12 },
+  link: { color: colors.mutedForeground, fontSize: 13 },
   destructiveLink: { color: colors.destructive },
 });

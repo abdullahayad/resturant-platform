@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
@@ -13,22 +14,21 @@ import {
   type GalleryPhoto,
 } from '../lib/api';
 
-const albumTabs: { key: GalleryAlbum; label: string }[] = [
-  { key: 'FOOD', label: 'Food Album' },
-  { key: 'MENU', label: 'Menu Album' },
-  { key: 'AMBIENCE', label: 'Ambience Album' },
-];
-
-const ambienceTabs: { key: AmbienceSubCategory; label: string }[] = [
-  { key: 'OUTDOOR', label: 'Outdoor' },
-  { key: 'INDOOR', label: 'Indoor' },
-  { key: 'OTHER', label: 'Other' },
-];
-
 export function PhotoGalleryScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('gallery');
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const albumTabs: { key: GalleryAlbum; label: string }[] = [
+    { key: 'FOOD', label: t('tabs.food') },
+    { key: 'MENU', label: t('tabs.menu') },
+    { key: 'AMBIENCE', label: t('tabs.ambience') },
+  ];
+  const ambienceTabs: { key: AmbienceSubCategory; label: string }[] = [
+    { key: 'OUTDOOR', label: t('ambienceTabs.outdoor') },
+    { key: 'INDOOR', label: t('ambienceTabs.indoor') },
+    { key: 'OTHER', label: t('ambienceTabs.other') },
+  ];
 
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -47,8 +47,8 @@ export function PhotoGalleryScreen() {
         setPhotos(p);
         setDishes(d);
       })
-      .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, [token]);
+      .catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
 
@@ -80,7 +80,7 @@ export function PhotoGalleryScreen() {
   const addPhoto = async () => {
     setError(null);
     if (album === 'FOOD' && !selectedDishId) {
-      setError('Pick a dish for this photo first.');
+      setError(t('pickDishFirst'));
       return;
     }
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -104,7 +104,7 @@ export function PhotoGalleryScreen() {
       });
       loadAll();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : t('uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -122,17 +122,17 @@ export function PhotoGalleryScreen() {
           <Image source={{ uri: photo.url }} style={styles.photoImage} />
           {photo.dish && <Text style={styles.photoCaption}>{photo.dish.nameEn}</Text>}
           <Pressable onPress={() => removePhoto(photo.id)}>
-            <Text style={styles.removeLink}>Remove</Text>
+            <Text style={styles.removeLink}>{t('remove')}</Text>
           </Pressable>
         </View>
       ))}
-      {list.length === 0 && <Text style={styles.hint}>No photos yet.</Text>}
+      {list.length === 0 && <Text style={styles.hint}>{t('noPhotosYet')}</Text>}
     </View>
   );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Photo Gallery</Text>
+      <Text style={styles.title}>{t('title')}</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
       <View style={styles.albumTabs}>
@@ -151,15 +151,15 @@ export function PhotoGalleryScreen() {
         <>
           <ChipSelect
             options={[
-              { id: 'ALL', label: 'All Photos' },
-              { id: 'MOST_ORDERED', label: 'Most Ordered' },
+              { id: 'ALL', label: t('foodFilters.all') },
+              { id: 'MOST_ORDERED', label: t('foodFilters.mostOrdered') },
               ...foodCategoryTabs,
             ]}
             selectedIds={[foodTab]}
             onToggle={(id) => setFoodTab(id)}
           />
           <View style={styles.addRow}>
-            <Text style={styles.fieldLabel}>Add to dish:</Text>
+            <Text style={styles.fieldLabel}>{t('addToDish')}</Text>
             <ChipSelect
               options={dishes.map((d) => ({ id: d.id, label: d.nameEn }))}
               selectedIds={selectedDishId ? [selectedDishId] : []}
@@ -171,7 +171,7 @@ export function PhotoGalleryScreen() {
 
       {album === 'AMBIENCE' && (
         <ChipSelect
-          options={ambienceTabs.map((t) => ({ id: t.key, label: t.label }))}
+          options={ambienceTabs.map((tab) => ({ id: tab.key, label: tab.label }))}
           selectedIds={[ambienceTab]}
           onToggle={(id) => setAmbienceTab(id as AmbienceSubCategory)}
         />
@@ -180,7 +180,7 @@ export function PhotoGalleryScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
 
       <Pressable style={[styles.button, styles.primaryButton]} onPress={addPhoto} disabled={uploading}>
-        {uploading ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Add Photo</Text>}
+        {uploading ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('addPhoto')}</Text>}
       </Pressable>
 
       {album === 'FOOD' && renderGrid(foodPhotos)}

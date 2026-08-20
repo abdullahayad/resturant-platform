@@ -1,1 +1,22 @@
-{}
+{
+  "title": "إدارة القائمة",
+  "editDish": "تعديل الطبق",
+  "addDish": "إضافة طبق",
+  "nameEnLabel": "الاسم (بالإنجليزية)",
+  "nameArLabel": "الاسم (بالعربية)",
+  "priceLabel": "السعر (دينار عراقي)",
+  "category": "الفئة",
+  "noPhoto": "لا توجد صورة",
+  "choosePhoto": "اختيار صورة",
+  "mostOrdered": "الأكثر طلباً",
+  "saveChanges": "حفظ التغييرات",
+  "cancel": "إلغاء",
+  "uncategorized": "بدون تصنيف",
+  "edit": "تعديل",
+  "confirm": "تأكيد",
+  "delete": "حذف",
+  "noDishesYet": "لا توجد أطباق بعد.",
+  "validation": "الاسم بالإنجليزية والعربية وسعر صحيح مطلوبة.",
+  "photoUploadFailed": "فشل رفع الصورة",
+  "saveFailed": "فشل الحفظ"
+}

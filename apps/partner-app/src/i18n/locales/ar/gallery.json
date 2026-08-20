@@ -1,1 +1,23 @@
-{}
+{
+  "title": "معرض الصور",
+  "tabs": {
+    "food": "ألبوم الطعام",
+    "menu": "ألبوم القائمة",
+    "ambience": "ألبوم الأجواء"
+  },
+  "foodFilters": {
+    "all": "كل الصور",
+    "mostOrdered": "الأكثر طلباً"
+  },
+  "ambienceTabs": {
+    "outdoor": "خارجي",
+    "indoor": "داخلي",
+    "other": "أخرى"
+  },
+  "addToDish": "إضافة إلى طبق:",
+  "addPhoto": "إضافة صورة",
+  "remove": "إزالة",
+  "noPhotosYet": "لا توجد صور بعد.",
+  "pickDishFirst": "اختر طبقاً لهذه الصورة أولاً.",
+  "uploadFailed": "فشل الرفع"
+}

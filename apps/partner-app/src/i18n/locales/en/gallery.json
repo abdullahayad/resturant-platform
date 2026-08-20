@@ -1,1 +1,23 @@
-{}
+{
+  "title": "Photo Gallery",
+  "tabs": {
+    "food": "Food Album",
+    "menu": "Menu Album",
+    "ambience": "Ambience Album"
+  },
+  "foodFilters": {
+    "all": "All Photos",
+    "mostOrdered": "Most Ordered"
+  },
+  "ambienceTabs": {
+    "outdoor": "Outdoor",
+    "indoor": "Indoor",
+    "other": "Other"
+  },
+  "addToDish": "Add to dish:",
+  "addPhoto": "Add Photo",
+  "remove": "Remove",
+  "noPhotosYet": "No photos yet.",
+  "pickDishFirst": "Pick a dish for this photo first.",
+  "uploadFailed": "Upload failed"
+}
