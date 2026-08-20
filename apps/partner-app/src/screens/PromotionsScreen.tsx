@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -7,25 +9,29 @@ import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Dish, type PromotionItem } from '../lib/api';
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
-function formatDiscount(p: PromotionItem): string {
-  return p.discountType === 'PERCENTAGE' ? `${Number(p.discountValue)}% off` : `${Number(p.discountValue).toLocaleString()} IQD off`;
+function formatDiscount(p: PromotionItem, t: TFunction): string {
+  return p.discountType === 'PERCENTAGE'
+    ? t('percentOff', { value: Number(p.discountValue) })
+    : t('amountOff', { value: Number(p.discountValue).toLocaleString() });
 }
 
-function formatScope(p: PromotionItem): string {
-  if (p.scope === 'WHOLE_MENU') return 'Whole menu';
-  return `On: ${p.dishes.map((d) => d.dish.nameEn).join(', ') || '—'}`;
+function formatScope(p: PromotionItem, t: TFunction): string {
+  if (p.scope === 'WHOLE_MENU') return t('wholeMenu');
+  return t('onDishes', { dishes: p.dishes.map((d) => d.dish.nameEn).join(', ') || '—' });
 }
 
-function formatSchedule(p: PromotionItem): string {
+function formatSchedule(p: PromotionItem, t: TFunction): string {
   if (p.isRecurring) {
-    const day = p.recurringDayOfWeek != null ? DAY_NAMES[p.recurringDayOfWeek] : '—';
-    return p.startTime && p.endTime ? `Every ${day}, ${p.startTime}–${p.endTime}` : `Every ${day} (all day)`;
+    const day = p.recurringDayOfWeek != null ? t(`common:days.${DAY_KEYS[p.recurringDayOfWeek]}`) : '—';
+    return p.startTime && p.endTime
+      ? t('everyDayTime', { day, start: p.startTime, end: p.endTime })
+      : t('everyDayAllDay', { day });
   }
   const from = p.validFrom ? new Date(p.validFrom).toLocaleDateString() : '—';
   const until = p.validUntil ? new Date(p.validUntil).toLocaleDateString() : '—';
-  return `${from} – ${until}`;
+  return t('dateRange', { from, until });
 }
 
 const emptyForm = {
@@ -47,6 +53,7 @@ const emptyForm = {
 export function PromotionsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('promotions');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [promotions, setPromotions] = useState<PromotionItem[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -62,31 +69,31 @@ export function PromotionsScreen() {
         setPromotions(mine);
         setDishes(myDishes);
       })
-      .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, [token]);
+      .catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
 
   const submit = async () => {
     setFormError(null);
     if (!form.titleEn.trim() || !form.titleAr.trim()) {
-      setFormError('Fill in title (EN/AR).');
+      setFormError(t('validation.title'));
       return;
     }
     if (!form.discountValue || Number(form.discountValue) <= 0) {
-      setFormError('Enter a discount value greater than 0.');
+      setFormError(t('validation.discountValue'));
       return;
     }
     if (form.discountType === 'PERCENTAGE' && Number(form.discountValue) > 100) {
-      setFormError('A percentage discount cannot exceed 100.');
+      setFormError(t('validation.percentageMax'));
       return;
     }
     if (form.scope === 'SPECIFIC_DISHES' && form.dishIds.length === 0) {
-      setFormError('Pick at least one dish for a dish-specific promotion.');
+      setFormError(t('validation.dishesRequired'));
       return;
     }
     if (!form.isRecurring && (!form.validFrom || !form.validUntil)) {
-      setFormError('Set a start and end date.');
+      setFormError(t('validation.dateRange'));
       return;
     }
 
@@ -110,7 +117,7 @@ export function PromotionsScreen() {
       setPromotions((prev) => [created, ...prev]);
       setForm(emptyForm);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Could not create promotion');
+      setFormError(err instanceof Error ? err.message : t('createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -138,11 +145,8 @@ export function PromotionsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Promotions</Text>
-      <Text style={styles.subtitle}>
-        Offer a discount on your menu or a specific dish. New and edited promotions need admin approval
-        before they go live.
-      </Text>
+      <Text style={styles.title}>{t('title')}</Text>
+      <Text style={styles.subtitle}>{t('subtitle')}</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
       <View style={styles.list}>
@@ -151,8 +155,8 @@ export function PromotionsScreen() {
             <View style={styles.cardHeader}>
               <View style={styles.flex1}>
                 <Text style={styles.cardTitle}>{p.titleEn} · {p.titleAr}</Text>
-                <Text style={styles.cardMeta}>{formatDiscount(p)} · {formatScope(p)}</Text>
-                <Text style={styles.cardMeta}>{formatSchedule(p)}</Text>
+                <Text style={styles.cardMeta}>{formatDiscount(p, t)} · {formatScope(p, t)}</Text>
+                <Text style={styles.cardMeta}>{formatSchedule(p, t)}</Text>
               </View>
               <View
                 style={[
@@ -169,61 +173,61 @@ export function PromotionsScreen() {
                         : styles.badgeInactiveText
                   }
                 >
-                  {p.status}
+                  {t(`status.${p.status}`)}
                 </Text>
               </View>
             </View>
             {p.status === 'REJECTED' && p.rejectionReason && (
-              <Text style={styles.rejection}>Rejected: {p.rejectionReason}</Text>
+              <Text style={styles.rejection}>{t('rejected', { reason: p.rejectionReason })}</Text>
             )}
             <View style={styles.cardActions}>
               {p.status === 'APPROVED' && (
                 <Pressable onPress={() => toggleActive(p)} disabled={busyId === p.id}>
-                  <Text style={styles.toggleLink}>{p.isActive ? 'Turn off' : 'Turn on'}</Text>
+                  <Text style={styles.toggleLink}>{p.isActive ? t('turnOff') : t('turnOn')}</Text>
                 </Pressable>
               )}
               <Pressable onPress={() => remove(p.id)} disabled={busyId === p.id}>
-                <Text style={styles.removeButtonText}>Delete</Text>
+                <Text style={styles.removeButtonText}>{t('delete')}</Text>
               </Pressable>
             </View>
           </View>
         ))}
-        {promotions.length === 0 && !loadError && <Text style={styles.hint}>No promotions yet.</Text>}
+        {promotions.length === 0 && !loadError && <Text style={styles.hint}>{t('noPromotionsYet')}</Text>}
       </View>
 
       <View style={styles.formCard}>
-        <Text style={styles.formTitle}>Create Promotion</Text>
-        <FormField label="Title (English)" value={form.titleEn} onChangeText={(v) => setForm((f) => ({ ...f, titleEn: v }))} placeholder="Weekend Sale" />
-        <FormField label="Title (Arabic)" value={form.titleAr} onChangeText={(v) => setForm((f) => ({ ...f, titleAr: v }))} placeholder="تخفيضات نهاية الأسبوع" />
+        <Text style={styles.formTitle}>{t('createPromotion')}</Text>
+        <FormField label={t('titleEnLabel')} value={form.titleEn} onChangeText={(v) => setForm((f) => ({ ...f, titleEn: v }))} placeholder={t('titleEnPlaceholder')} />
+        <FormField label={t('titleArLabel')} value={form.titleAr} onChangeText={(v) => setForm((f) => ({ ...f, titleAr: v }))} placeholder={t('titleArPlaceholder')} />
         <FormField
-          label="Description (optional)"
+          label={t('descriptionLabel')}
           value={form.descriptionEn}
           onChangeText={(v) => setForm((f) => ({ ...f, descriptionEn: v }))}
-          placeholder="What's included?"
+          placeholder={t('descriptionPlaceholder')}
         />
 
-        <Text style={styles.fieldLabel}>Discount Type</Text>
+        <Text style={styles.fieldLabel}>{t('discountType')}</Text>
         <ChipSelect
           options={[
-            { id: 'PERCENTAGE', label: 'Percentage off' },
-            { id: 'FIXED_AMOUNT', label: 'Fixed amount off' },
+            { id: 'PERCENTAGE', label: t('percentageOff') },
+            { id: 'FIXED_AMOUNT', label: t('fixedAmountOff') },
           ]}
           selectedIds={[form.discountType]}
           onToggle={(id) => setForm((f) => ({ ...f, discountType: id as 'PERCENTAGE' | 'FIXED_AMOUNT' }))}
         />
         <FormField
-          label={form.discountType === 'PERCENTAGE' ? 'Discount, % (e.g. 20)' : 'Discount, IQD (e.g. 5000)'}
+          label={form.discountType === 'PERCENTAGE' ? t('discountPercentLabel') : t('discountAmountLabel')}
           value={form.discountValue}
           onChangeText={(v) => setForm((f) => ({ ...f, discountValue: v }))}
           keyboardType="numeric"
           placeholder={form.discountType === 'PERCENTAGE' ? '20' : '5000'}
         />
 
-        <Text style={styles.fieldLabel}>Applies To</Text>
+        <Text style={styles.fieldLabel}>{t('appliesTo')}</Text>
         <ChipSelect
           options={[
-            { id: 'WHOLE_MENU', label: 'Whole menu' },
-            { id: 'SPECIFIC_DISHES', label: 'Specific dishes' },
+            { id: 'WHOLE_MENU', label: t('wholeMenu') },
+            { id: 'SPECIFIC_DISHES', label: t('specificDishes') },
           ]}
           selectedIds={[form.scope]}
           onToggle={(id) => setForm((f) => ({ ...f, scope: id as 'WHOLE_MENU' | 'SPECIFIC_DISHES' }))}
@@ -241,11 +245,11 @@ export function PromotionsScreen() {
           />
         )}
 
-        <Text style={styles.fieldLabel}>Schedule</Text>
+        <Text style={styles.fieldLabel}>{t('schedule')}</Text>
         <ChipSelect
           options={[
-            { id: 'once', label: 'Date range' },
-            { id: 'weekly', label: 'Recurring (day of week)' },
+            { id: 'once', label: t('dateRangeOption') },
+            { id: 'weekly', label: t('recurringOption') },
           ]}
           selectedIds={[form.isRecurring ? 'weekly' : 'once']}
           onToggle={(id) => setForm((f) => ({ ...f, isRecurring: id === 'weekly' }))}
@@ -253,36 +257,36 @@ export function PromotionsScreen() {
 
         {form.isRecurring ? (
           <>
-            <Text style={styles.fieldLabel}>Day of the week</Text>
+            <Text style={styles.fieldLabel}>{t('dayOfWeek')}</Text>
             <ChipSelect
-              options={DAY_NAMES.map((label, id) => ({ id: String(id), label }))}
+              options={DAY_KEYS.map((key, id) => ({ id: String(id), label: t(`common:days.${key}`) }))}
               selectedIds={[String(form.recurringDayOfWeek)]}
               onToggle={(id) => setForm((f) => ({ ...f, recurringDayOfWeek: Number(id) }))}
             />
-            <Text style={styles.hint}>Leave start/end time blank for an all-day "day special".</Text>
+            <Text style={styles.hint}>{t('recurringHint')}</Text>
             <View style={styles.row}>
               <View style={styles.flex1}>
-                <FormField label="Start time (optional)" value={form.startTime} onChangeText={(v) => setForm((f) => ({ ...f, startTime: v }))} placeholder="17:00" />
+                <FormField label={t('startTimeLabel')} value={form.startTime} onChangeText={(v) => setForm((f) => ({ ...f, startTime: v }))} placeholder="17:00" />
               </View>
               <View style={styles.flex1}>
-                <FormField label="End time (optional)" value={form.endTime} onChangeText={(v) => setForm((f) => ({ ...f, endTime: v }))} placeholder="19:00" />
+                <FormField label={t('endTimeLabel')} value={form.endTime} onChangeText={(v) => setForm((f) => ({ ...f, endTime: v }))} placeholder="19:00" />
               </View>
             </View>
           </>
         ) : (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <FormField label="Start date" value={form.validFrom} onChangeText={(v) => setForm((f) => ({ ...f, validFrom: v }))} placeholder="2026-08-20" />
+              <FormField label={t('startDateLabel')} value={form.validFrom} onChangeText={(v) => setForm((f) => ({ ...f, validFrom: v }))} placeholder="2026-08-20" />
             </View>
             <View style={styles.flex1}>
-              <FormField label="End date" value={form.validUntil} onChangeText={(v) => setForm((f) => ({ ...f, validUntil: v }))} placeholder="2026-08-22" />
+              <FormField label={t('endDateLabel')} value={form.validUntil} onChangeText={(v) => setForm((f) => ({ ...f, validUntil: v }))} placeholder="2026-08-22" />
             </View>
           </View>
         )}
 
         {formError && <Text style={styles.error}>{formError}</Text>}
         <Pressable style={[styles.button, styles.primaryButton]} onPress={submit} disabled={submitting}>
-          {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Submit for Approval</Text>}
+          {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('submit')}</Text>}
         </Pressable>
       </View>
     </ScrollView>
