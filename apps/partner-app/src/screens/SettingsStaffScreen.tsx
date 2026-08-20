@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -7,12 +8,15 @@ import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
 import { api, type RestaurantDetail, type StaffMember, type StaffRole } from '../lib/api';
 
-const roleLabels: Record<StaffRole, string> = { MANAGER: 'Manager', MENU_EDITOR: 'Menu Editor' };
-
 export function SettingsStaffScreen() {
   const { token, setToken, staff: authStaff } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('settings');
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const roleLabels: Record<StaffRole, string> = {
+    MANAGER: t('common:roles.manager'),
+    MENU_EDITOR: t('common:roles.menuEditor'),
+  };
   // Menu Editors can reach this screen to change their own password, but
   // notification prefs and staff management stay Manager/Owner only —
   // matches the same split enforced on the backend.
@@ -38,7 +42,7 @@ export function SettingsStaffScreen() {
     setPasswordError(null);
     setPasswordSuccess(false);
     if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
+      setPasswordError(t('passwordTooShort'));
       return;
     }
     setChangingPassword(true);
@@ -49,7 +53,7 @@ export function SettingsStaffScreen() {
       setCurrentPassword('');
       setNewPassword('');
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'Could not change password');
+      setPasswordError(err instanceof Error ? err.message : t('passwordChangeFailed'));
     } finally {
       setChangingPassword(false);
     }
@@ -81,15 +85,15 @@ export function SettingsStaffScreen() {
 
   const loadStaff = useCallback(() => {
     if (!isManagerOrOwner) return;
-    api.staff(token).then(setStaffList).catch(() => setStaffError('Could not load staff.'));
-  }, [token, isManagerOrOwner]);
+    api.staff(token).then(setStaffList).catch(() => setStaffError(t('loadStaffFailed')));
+  }, [token, isManagerOrOwner, t]);
 
   useEffect(loadStaff, [loadStaff]);
 
   const submitInvite = async () => {
     setStaffError(null);
     if (!inviteEmail.trim() || invitePassword.length < 8 || !inviteName.trim()) {
-      setStaffError('Fill in name, email, and an 8+ character password.');
+      setStaffError(t('inviteValidation'));
       return;
     }
     setInviting(true);
@@ -105,7 +109,7 @@ export function SettingsStaffScreen() {
       setInvitePassword('');
       setInviteName('');
     } catch (err) {
-      setStaffError(err instanceof Error ? err.message : 'Could not invite staff member');
+      setStaffError(err instanceof Error ? err.message : t('inviteFailed'));
     } finally {
       setInviting(false);
     }
@@ -133,26 +137,26 @@ export function SettingsStaffScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Settings & Staff</Text>
+      <Text style={styles.title}>{t('title')}</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Change Password</Text>
+        <Text style={styles.sectionTitle}>{t('changePassword')}</Text>
         <FormField
-          label="Current password"
+          label={t('currentPasswordLabel')}
           value={currentPassword}
           onChangeText={setCurrentPassword}
           secureTextEntry
-          placeholder="Current password"
+          placeholder={t('currentPasswordLabel')}
         />
         <FormField
-          label="New password"
+          label={t('newPasswordLabel')}
           value={newPassword}
           onChangeText={setNewPassword}
           secureTextEntry
-          placeholder="At least 8 characters"
+          placeholder={t('newPasswordPlaceholder')}
         />
         {passwordError && <Text style={styles.error}>{passwordError}</Text>}
-        {passwordSuccess && <Text style={styles.success}>Password updated.</Text>}
+        {passwordSuccess && <Text style={styles.success}>{t('passwordUpdated')}</Text>}
         <Pressable
           style={[styles.button, styles.primaryButton]}
           onPress={submitPasswordChange}
@@ -161,18 +165,18 @@ export function SettingsStaffScreen() {
           {changingPassword ? (
             <ActivityIndicator color={colors.primaryForeground} />
           ) : (
-            <Text style={styles.primaryButtonText}>Update Password</Text>
+            <Text style={styles.primaryButtonText}>{t('updatePassword')}</Text>
           )}
         </Pressable>
       </View>
 
       {isManagerOrOwner && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notification Preferences</Text>
+          <Text style={styles.sectionTitle}>{t('notificationPreferences')}</Text>
           <View style={styles.prefRow}>
             <View style={styles.prefLabelBlock}>
-              <Text style={styles.prefLabel}>New review notifications</Text>
-              <Text style={styles.prefHint}>Get notified when a customer leaves a review</Text>
+              <Text style={styles.prefLabel}>{t('newReviewNotifications')}</Text>
+              <Text style={styles.prefHint}>{t('newReviewNotificationsHint')}</Text>
             </View>
             <Switch
               value={profile?.notifyNewReview ?? false}
@@ -183,8 +187,8 @@ export function SettingsStaffScreen() {
           </View>
           <View style={styles.prefRow}>
             <View style={styles.prefLabelBlock}>
-              <Text style={styles.prefLabel}>New booking notifications</Text>
-              <Text style={styles.prefHint}>Get notified for new chef table bookings</Text>
+              <Text style={styles.prefLabel}>{t('newBookingNotifications')}</Text>
+              <Text style={styles.prefHint}>{t('newBookingNotificationsHint')}</Text>
             </View>
             <Switch
               value={profile?.notifyNewBooking ?? false}
@@ -198,11 +202,8 @@ export function SettingsStaffScreen() {
 
       {isManagerOrOwner && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Staff</Text>
-          <Text style={styles.sectionHint}>
-            Invite staff with limited access — they can help manage the menu without touching your profile
-            or account settings.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('staff')}</Text>
+          <Text style={styles.sectionHint}>{t('staffHint')}</Text>
 
           {staffList.map((member) => (
             <View key={member.id} style={styles.staffRow}>
@@ -217,7 +218,7 @@ export function SettingsStaffScreen() {
                   style={[styles.badge, member.isActive ? styles.badgeActive : styles.badgeInactive]}
                 >
                   <Text style={member.isActive ? styles.badgeActiveText : styles.badgeInactiveText}>
-                    {member.isActive ? 'Active' : 'Inactive'}
+                    {member.isActive ? t('active') : t('inactive')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -225,18 +226,18 @@ export function SettingsStaffScreen() {
                   disabled={busyStaffId === member.id}
                   style={styles.removeButton}
                 >
-                  <Text style={styles.removeButtonText}>Remove</Text>
+                  <Text style={styles.removeButtonText}>{t('remove')}</Text>
                 </Pressable>
               </View>
             </View>
           ))}
-          {staffList.length === 0 && <Text style={styles.hint}>No staff invited yet.</Text>}
+          {staffList.length === 0 && <Text style={styles.hint}>{t('noStaffInvitedYet')}</Text>}
 
           <View style={styles.inviteForm}>
-            <Text style={styles.inviteTitle}>Invite Staff</Text>
-            <FormField label="Full name" value={inviteName} onChangeText={setInviteName} placeholder="Staff member's name" />
+            <Text style={styles.inviteTitle}>{t('inviteStaff')}</Text>
+            <FormField label={t('fullNameLabel')} value={inviteName} onChangeText={setInviteName} placeholder={t('fullNamePlaceholder')} />
             <FormField
-              label="Email"
+              label={t('emailLabel')}
               value={inviteEmail}
               onChangeText={setInviteEmail}
               autoCapitalize="none"
@@ -244,18 +245,18 @@ export function SettingsStaffScreen() {
               placeholder="staff@restaurant.iq"
             />
             <FormField
-              label="Temporary password"
+              label={t('tempPasswordLabel')}
               value={invitePassword}
               onChangeText={setInvitePassword}
               secureTextEntry
-              placeholder="At least 8 characters"
+              placeholder={t('newPasswordPlaceholder')}
             />
             <View style={styles.roleField}>
-              <Text style={styles.roleLabel}>Role</Text>
+              <Text style={styles.roleLabel}>{t('role')}</Text>
               <ChipSelect
                 options={[
-                  { id: 'MANAGER', label: 'Manager' },
-                  { id: 'MENU_EDITOR', label: 'Menu Editor' },
+                  { id: 'MANAGER', label: t('common:roles.manager') },
+                  { id: 'MENU_EDITOR', label: t('common:roles.menuEditor') },
                 ]}
                 selectedIds={[inviteRole]}
                 onToggle={(id) => setInviteRole(id as StaffRole)}
@@ -266,7 +267,7 @@ export function SettingsStaffScreen() {
               {inviting ? (
                 <ActivityIndicator color={colors.primaryForeground} />
               ) : (
-                <Text style={styles.primaryButtonText}>Send Invite</Text>
+                <Text style={styles.primaryButtonText}>{t('sendInvite')}</Text>
               )}
             </Pressable>
           </View>
