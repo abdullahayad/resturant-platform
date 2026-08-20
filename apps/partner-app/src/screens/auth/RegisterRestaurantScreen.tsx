@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import type { ThemeColors } from '../../theme/colors';
 import { FormField } from '../../components/FormField';
 import { ChipSelect } from '../../components/ChipSelect';
 import { LegalDocumentModal } from '../../components/LegalDocumentModal';
@@ -13,6 +14,8 @@ interface RegisterRestaurantScreenProps {
 }
 
 export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterRestaurantScreenProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [businessTypes, setBusinessTypes] = useState<MasterDataItem[]>([]);
   const [foodCategories, setFoodCategories] = useState<MasterDataItem[]>([]);
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -192,7 +195,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { padding: 24, gap: 16, maxWidth: 560, width: '100%', alignSelf: 'center' },
   back: { color: colors.mutedForeground, fontSize: 14, marginBottom: 4 },
   title: { fontSize: 22, fontWeight: '700', color: colors.primary },

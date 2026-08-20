@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 
 interface ChipOption {
   id: string;
@@ -14,6 +16,8 @@ interface ChipSelectProps {
 }
 
 export function ChipSelect({ options, selectedIds, onToggle, multi = true }: ChipSelectProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.wrap}>
       {options.map((option) => {
@@ -35,7 +39,7 @@ export function ChipSelect({ options, selectedIds, onToggle, multi = true }: Chi
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingVertical: 8,

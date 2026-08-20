@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Review, type ReviewSummary } from '../lib/api';
@@ -14,6 +15,8 @@ const categoryIcons: Record<string, string> = {
 
 export function CustomerReviewsScreen() {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -193,7 +196,7 @@ export function CustomerReviewsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 24, maxWidth: 900 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
   },
   headlineTop: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   headlineTitle: { fontSize: 15, fontWeight: '700', color: colors.foreground },
-  sentimentBadge: { backgroundColor: 'rgba(92, 184, 110, 0.15)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  sentimentBadge: { backgroundColor: colors.successTint15, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   sentimentText: { color: colors.success, fontSize: 11, fontWeight: '700' },
   headlineBody: { fontSize: 12, color: colors.mutedForeground, lineHeight: 17 },
 

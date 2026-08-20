@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 
 interface PlaceholderScreenProps {
   title: string;
@@ -8,6 +10,8 @@ interface PlaceholderScreenProps {
 }
 
 export function PlaceholderScreen({ title, description, comingSoon }: PlaceholderScreenProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
@@ -19,7 +23,7 @@ export function PlaceholderScreen({ title, description, comingSoon }: Placeholde
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1, gap: 8 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   description: { fontSize: 14, color: colors.mutedForeground },

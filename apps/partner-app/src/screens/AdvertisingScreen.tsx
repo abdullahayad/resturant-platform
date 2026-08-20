@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
 import { api, type FeaturedPlacementItem } from '../lib/api';
@@ -14,6 +15,8 @@ function formatDateRange(p: FeaturedPlacementItem): string {
 
 export function AdvertisingScreen() {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [placements, setPlacements] = useState<FeaturedPlacementItem[] | null>(null);
   const [reason, setReason] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -166,7 +169,7 @@ export function AdvertisingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { gap: 16, paddingBottom: 40, maxWidth: 620 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
@@ -184,18 +187,18 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 6,
   },
-  activeCard: { borderColor: colors.success, backgroundColor: 'rgba(92, 184, 110, 0.08)' },
+  activeCard: { borderColor: colors.success, backgroundColor: colors.successTint08 },
   activeTitle: { color: colors.success, fontSize: 15, fontWeight: '700' },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   cardTitle: { color: colors.foreground, fontSize: 14, fontWeight: '600' },
   cardMeta: { color: colors.mutedForeground, fontSize: 12, marginTop: 2 },
   rejection: { color: colors.destructive, fontSize: 12 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeActive: { backgroundColor: 'rgba(92, 184, 110, 0.15)' },
+  badgeActive: { backgroundColor: colors.successTint15 },
   badgeInactive: { backgroundColor: colors.secondary },
   badgeActiveText: { color: colors.success, fontSize: 12, fontWeight: '600' },
   badgeInactiveText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },
-  badgeCancelled: { backgroundColor: 'rgba(217, 83, 79, 0.15)' },
+  badgeCancelled: { backgroundColor: colors.destructiveTint15 },
   badgeCancelledText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
   withdrawLink: { marginTop: 4, alignSelf: 'flex-start' },
   removeButtonText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },

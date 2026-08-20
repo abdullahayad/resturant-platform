@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { LEGAL_LAST_UPDATED, type LegalSection } from '../lib/legalContent';
 
 interface LegalDocumentModalProps {
@@ -17,6 +19,8 @@ interface LegalDocumentModalProps {
 const backdropStyle: ViewStyle = { position: 'fixed' as ViewStyle['position'] };
 
 export function LegalDocumentModal({ visible, title, sections, onClose }: LegalDocumentModalProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!visible) return null;
 
   return (
@@ -44,7 +48,7 @@ export function LegalDocumentModal({ visible, title, sections, onClose }: LegalD
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   backdrop: {
     top: 0,
     left: 0,

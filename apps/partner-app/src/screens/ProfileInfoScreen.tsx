@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { MapPinPicker } from '../components/MapPinPicker';
@@ -15,6 +16,8 @@ const defaultOpeningHours = (): OpeningHoursDay[] =>
 
 export function ProfileInfoScreen() {
   const { token, restaurant, setRestaurant } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [detail, setDetail] = useState<RestaurantDetail | null>(null);
   const [businessTypes, setBusinessTypes] = useState<MasterDataItem[]>([]);
@@ -340,7 +343,7 @@ export function ProfileInfoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { padding: 4, gap: 20, maxWidth: 640 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },

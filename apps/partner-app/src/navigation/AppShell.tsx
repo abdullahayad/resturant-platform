@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { AnnouncementBanner } from '../components/AnnouncementBanner';
@@ -42,6 +43,8 @@ interface AppShellProps {
 }
 
 export function AppShell({ restaurant, onSignOut }: AppShellProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [active, setActive] = useState<ScreenKey>('dashboard');
   const ActiveScreen = screens[active];
 
@@ -64,7 +67,7 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1, flexDirection: 'row', backgroundColor: colors.background },
   content: { flex: 1 },
   body: { flex: 1, padding: 24 },

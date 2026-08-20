@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
@@ -32,7 +33,9 @@ const emptyForm = {
   recurringTime: '',
 };
 
-const reservationStatusStyles: Record<ReservationStatus, { badge: keyof typeof styles; text: keyof typeof styles }> = {
+type ScreenStyles = ReturnType<typeof createStyles>;
+
+const reservationStatusStyles: Record<ReservationStatus, { badge: keyof ScreenStyles; text: keyof ScreenStyles }> = {
   PENDING: { badge: 'badgeInactive', text: 'badgeInactiveText' },
   CONFIRMED: { badge: 'badgeActive', text: 'badgeActiveText' },
   CANCELLED: { badge: 'badgeCancelled', text: 'badgeCancelledText' },
@@ -45,6 +48,8 @@ function formatReservationDate(iso: string): string {
 
 export function ChefTableEventsScreen() {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
   const [events, setEvents] = useState<RestaurantEventItem[]>([]);
   const [reservations, setReservations] = useState<ReservationItem[]>([]);
@@ -301,7 +306,7 @@ export function ChefTableEventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 40, maxWidth: 620 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   subtitle: { fontSize: 13, color: colors.mutedForeground },
@@ -326,11 +331,11 @@ const styles = StyleSheet.create({
   eventPrice: { color: colors.foreground, fontSize: 12 },
   eventDescription: { color: colors.mutedForeground, fontSize: 12 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeActive: { backgroundColor: 'rgba(92, 184, 110, 0.15)' },
+  badgeActive: { backgroundColor: colors.successTint15 },
   badgeInactive: { backgroundColor: colors.secondary },
   badgeActiveText: { color: colors.success, fontSize: 12, fontWeight: '600' },
   badgeInactiveText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },
-  badgeCancelled: { backgroundColor: 'rgba(217, 83, 79, 0.15)' },
+  badgeCancelled: { backgroundColor: colors.destructiveTint15 },
   badgeCancelledText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
   removeButton: { alignSelf: 'flex-start', marginTop: 4 },
   removeButtonText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },

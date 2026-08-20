@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
@@ -10,6 +11,8 @@ const roleLabels: Record<StaffRole, string> = { MANAGER: 'Manager', MENU_EDITOR:
 
 export function SettingsStaffScreen() {
   const { token, setToken, staff: authStaff } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   // Menu Editors can reach this screen to change their own password, but
   // notification prefs and staff management stay Manager/Owner only —
   // matches the same split enforced on the backend.
@@ -273,7 +276,7 @@ export function SettingsStaffScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 40, maxWidth: 560 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   section: {
@@ -311,7 +314,7 @@ const styles = StyleSheet.create({
   staffMeta: { color: colors.mutedForeground, fontSize: 12, marginTop: 2 },
   staffActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeActive: { backgroundColor: 'rgba(92, 184, 110, 0.15)' },
+  badgeActive: { backgroundColor: colors.successTint15 },
   badgeInactive: { backgroundColor: colors.secondary },
   badgeActiveText: { color: colors.success, fontSize: 12, fontWeight: '600' },
   badgeInactiveText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },

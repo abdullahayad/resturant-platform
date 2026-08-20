@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
 import { api, type ChefProfile, type ChefRoleSlug } from '../lib/api';
@@ -63,6 +64,8 @@ function ChefCard({
   hasProfile: boolean;
 }) {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [uploading, setUploading] = useState(false);
 
   const pickPhoto = async () => {
@@ -154,6 +157,8 @@ function ChefCard({
 
 export function ChefManagementScreen() {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [headChef, setHeadChef] = useState<ChefProfile | null>(null);
   const [sousChef, setSousChef] = useState<ChefProfile | null>(null);
   const [headForm, setHeadForm] = useState<ChefFormState>(emptyForm);
@@ -287,7 +292,7 @@ export function ChefManagementScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 16, paddingBottom: 24 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   subtitle: { fontSize: 14, color: colors.mutedForeground },

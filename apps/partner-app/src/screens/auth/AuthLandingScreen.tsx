@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import type { ThemeColors } from '../../theme/colors';
 
 interface AuthLandingScreenProps {
   onSignIn: () => void;
@@ -7,6 +9,8 @@ interface AuthLandingScreenProps {
 }
 
 export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -27,7 +31,7 @@ export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenPro
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

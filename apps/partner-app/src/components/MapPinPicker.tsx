@@ -2,7 +2,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import * as Location from 'expo-location';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 
 const BAGHDAD = { lat: 33.3152, lng: 44.3661 };
 
@@ -12,13 +13,13 @@ interface MapPinPickerProps {
   onChange: (lat: number, lng: number) => void;
 }
 
-function buildHtml(lat: number, lng: number) {
+function buildHtml(lat: number, lng: number, mapBackground: string) {
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>html,body,#map{height:100%;margin:0;padding:0;background:${colors.secondary};}</style>
+<style>html,body,#map{height:100%;margin:0;padding:0;background:${mapBackground};}</style>
 </head>
 <body>
 <div id="map"></div>
@@ -49,6 +50,8 @@ function buildHtml(lat: number, lng: number) {
 
 /** Native (iOS/Android) pin picker: OpenStreetMap tiles rendered inside a WebView — no API key needed. */
 export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const webViewRef = useRef<WebView>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
@@ -57,7 +60,10 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
     lat: latitude ?? BAGHDAD.lat,
     lng: longitude ?? BAGHDAD.lng,
   }).current;
-  const html = useMemo(() => buildHtml(initial.lat, initial.lng), [initial.lat, initial.lng]);
+  const html = useMemo(
+    () => buildHtml(initial.lat, initial.lng, colors.secondary),
+    [initial.lat, initial.lng, colors.secondary],
+  );
 
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
@@ -106,7 +112,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     height: 260,
     borderRadius: 12,

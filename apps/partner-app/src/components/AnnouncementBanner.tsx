@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
 import { api } from '../lib/api';
 import type { ScreenKey } from '../lib/nav';
@@ -12,6 +13,8 @@ interface AnnouncementBannerProps {
 
 export function AnnouncementBanner({ active, onView }: AnnouncementBannerProps) {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -36,7 +39,7 @@ export function AnnouncementBanner({ active, onView }: AnnouncementBannerProps) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -44,9 +47,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: 'rgba(217, 154, 78, 0.15)',
+    backgroundColor: colors.primaryTint15,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(217, 154, 78, 0.3)',
+    borderBottomColor: colors.primaryTint30,
   },
   text: { color: colors.foreground, fontSize: 13, flex: 1 },
   button: {

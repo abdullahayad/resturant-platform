@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 
 interface StatCardProps {
   label: string;
@@ -10,6 +12,8 @@ interface StatCardProps {
 }
 
 export function StatCard({ label, value, trend, tone = 'neutral' }: StatCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{label}</Text>
@@ -30,7 +34,7 @@ export function StatCard({ label, value, trend, tone = 'neutral' }: StatCardProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     flexGrow: 1,
     flexBasis: 220,

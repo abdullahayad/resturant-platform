@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { navItems, type ScreenKey } from '../lib/nav';
 import { useAuth } from '../lib/AuthContext';
 
@@ -10,6 +12,8 @@ interface SidebarProps {
 
 export function Sidebar({ active, onSelect }: SidebarProps) {
   const { staff } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const visibleItems = navItems.filter((item) => !(item.managerOrOwnerOnly && staff?.role === 'MENU_EDITOR'));
 
   return (
@@ -49,7 +53,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   sidebar: {
     width: 260,
     backgroundColor: colors.card,
@@ -88,7 +92,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 10,
   },
-  navItemActive: { backgroundColor: 'rgba(217, 154, 78, 0.15)' },
+  navItemActive: { backgroundColor: colors.primaryTint15 },
   activeBar: {
     position: 'absolute',
     left: -12,

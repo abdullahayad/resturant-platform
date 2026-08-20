@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Announcement } from '../lib/api';
 
 export function AnnouncementsScreen() {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const markedRead = useRef(false);
@@ -95,7 +98,7 @@ export function AnnouncementsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { gap: 12, paddingBottom: 24 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
@@ -113,8 +116,8 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground, flex: 1 },
   cardTitleAr: { fontSize: 14, color: colors.mutedForeground },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeAction: { backgroundColor: 'rgba(217, 154, 78, 0.15)' },
-  badgeDone: { backgroundColor: 'rgba(92, 184, 110, 0.15)' },
+  badgeAction: { backgroundColor: colors.primaryTint15 },
+  badgeDone: { backgroundColor: colors.successTint15 },
   badgeText: { fontSize: 11, fontWeight: '600', color: colors.primary },
   badgeTextDone: { color: colors.success },
   body: { fontSize: 14, color: colors.foreground, marginTop: 6 },

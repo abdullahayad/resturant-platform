@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { StatCard } from '../components/StatCard';
 import { useAuth } from '../lib/AuthContext';
 import { api, type ReservationItem, type ReviewSummary } from '../lib/api';
 
 export function OverviewDashboardScreen() {
   const { token, staff } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reservations, setReservations] = useState<ReservationItem[] | null>(null);
   const [statsVisible, setStatsVisible] = useState(false);
@@ -55,7 +58,7 @@ export function OverviewDashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 8, paddingBottom: 24 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   subtitle: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },

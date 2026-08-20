@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
@@ -45,6 +46,8 @@ const emptyForm = {
 
 export function PromotionsScreen() {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [promotions, setPromotions] = useState<PromotionItem[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -286,7 +289,7 @@ export function PromotionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 40, maxWidth: 620 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   subtitle: { fontSize: 13, color: colors.mutedForeground },
@@ -309,11 +312,11 @@ const styles = StyleSheet.create({
   cardMeta: { color: colors.mutedForeground, fontSize: 12, marginTop: 2 },
   rejection: { color: colors.destructive, fontSize: 12 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeActive: { backgroundColor: 'rgba(92, 184, 110, 0.15)' },
+  badgeActive: { backgroundColor: colors.successTint15 },
   badgeInactive: { backgroundColor: colors.secondary },
   badgeActiveText: { color: colors.success, fontSize: 12, fontWeight: '600' },
   badgeInactiveText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },
-  badgeCancelled: { backgroundColor: 'rgba(217, 83, 79, 0.15)' },
+  badgeCancelled: { backgroundColor: colors.destructiveTint15 },
   badgeCancelledText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
   cardActions: { flexDirection: 'row', gap: 16, marginTop: 4 },
   toggleLink: { color: colors.primary, fontSize: 12, fontWeight: '600' },

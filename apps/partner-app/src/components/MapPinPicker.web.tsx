@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Location from 'expo-location';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 
 const BAGHDAD = { lat: 33.3152, lng: 44.3661 };
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
@@ -37,6 +38,8 @@ interface MapPinPickerProps {
 
 /** Web pin picker: OpenStreetMap tiles rendered via Leaflet directly in the DOM — no API key needed. */
 export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const containerRef = useRef<View>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -120,7 +123,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     height: 260,
     borderRadius: 12,

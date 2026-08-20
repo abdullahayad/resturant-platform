@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
 import { useAuth } from '../lib/AuthContext';
 import {
@@ -26,6 +27,8 @@ const ambienceTabs: { key: AmbienceSubCategory; label: string }[] = [
 
 export function PhotoGalleryScreen() {
   const { token } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -187,7 +190,7 @@ export function PhotoGalleryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 16, paddingBottom: 24 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
@@ -195,7 +198,7 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
   albumTabs: { flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 12 },
   albumTab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10 },
-  albumTabActive: { backgroundColor: 'rgba(217, 154, 78, 0.15)' },
+  albumTabActive: { backgroundColor: colors.primaryTint15 },
   albumTabText: { color: colors.mutedForeground, fontSize: 14, fontWeight: '600' },
   albumTabTextActive: { color: colors.primary },
   addRow: { gap: 8 },

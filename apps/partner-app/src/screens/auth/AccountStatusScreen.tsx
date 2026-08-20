@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import type { ThemeColors } from '../../theme/colors';
 import type { AuthenticatedRestaurant } from '../../lib/api';
 
 interface AccountStatusScreenProps {
@@ -23,6 +25,8 @@ const copy: Record<string, { title: string; body: string }> = {
 };
 
 export function AccountStatusScreen({ restaurant, onSignOut }: AccountStatusScreenProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const info = copy[restaurant.status] ?? copy.PENDING_REVIEW;
 
   return (
@@ -45,7 +49,7 @@ export function AccountStatusScreen({ restaurant, onSignOut }: AccountStatusScre
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   card: {
     width: '100%',
