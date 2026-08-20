@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Check } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
 import { FormField } from '../../components/FormField';
@@ -160,7 +161,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       <View style={styles.termsRow}>
         <Pressable onPress={() => setAgreedToTerms((v) => !v)}>
           <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-            {agreedToTerms && <Text style={styles.checkboxMark}>✓</Text>}
+            {agreedToTerms && <Check size={13} color={colors.primaryForeground} strokeWidth={3} />}
           </View>
         </Pressable>
         <Text style={styles.termsText}>
@@ -214,7 +215,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 1,
   },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
-  checkboxMark: { color: colors.primaryForeground, fontSize: 13, fontWeight: '700' },
   termsText: { color: colors.foreground, fontSize: 13, flex: 1, lineHeight: 19 },
   termsLink: { color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },

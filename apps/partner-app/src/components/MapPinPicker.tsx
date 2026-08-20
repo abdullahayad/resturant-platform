@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import * as Location from 'expo-location';
+import { LocateFixed } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 
@@ -101,7 +102,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
     <View style={styles.container}>
       <WebView ref={webViewRef} originWhitelist={['*']} source={{ html }} onMessage={handleMessage} style={styles.webview} />
       <Pressable style={styles.locateButton} onPress={useMyLocation} disabled={locating}>
-        {locating ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={styles.locateIcon}>🎯</Text>}
+        {locating ? <ActivityIndicator size="small" color={colors.primary} /> : <LocateFixed size={18} color={colors.primary} />}
       </Pressable>
       {locateError && (
         <View style={styles.errorBadge}>
@@ -138,7 +139,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
-  locateIcon: { fontSize: 18 },
   errorBadge: {
     position: 'absolute',
     left: 10,

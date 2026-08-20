@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { UtensilsCrossed } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
 
@@ -15,7 +16,7 @@ export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenPro
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.badge}>
-          <Text style={styles.badgeIcon}>🍴</Text>
+          <UtensilsCrossed size={26} color={colors.primaryForeground} />
         </View>
         <Text style={styles.brand}>Restaurant Partner Portal</Text>
         <Text style={styles.subtitle}>Manage your restaurant's public profile, menu, and reviews.</Text>
@@ -67,7 +68,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 12,
   },
-  badgeIcon: { fontSize: 26 },
   brand: { fontSize: 22, fontWeight: '700', color: colors.primary, textAlign: 'center' },
   subtitle: {
     fontSize: 14,

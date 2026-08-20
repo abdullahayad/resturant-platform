@@ -1,3 +1,20 @@
+import type { LucideIcon } from 'lucide-react-native';
+import {
+  LayoutDashboard,
+  Store,
+  BookOpen,
+  Percent,
+  Sparkles,
+  Images,
+  ChefHat,
+  CalendarClock,
+  Star,
+  CalendarCheck,
+  BarChart3,
+  Megaphone,
+  Settings,
+} from 'lucide-react-native';
+
 export type ScreenKey =
   | 'dashboard'
   | 'profile'
@@ -16,6 +33,7 @@ export type ScreenKey =
 export interface NavItem {
   key: ScreenKey;
   labelEn: string;
+  icon: LucideIcon;
   comingSoon?: boolean;
   // Hidden from MENU_EDITOR staff logins — the restaurant owner and
   // MANAGER staff always see every item.
@@ -23,17 +41,17 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { key: 'dashboard', labelEn: 'Overview Dashboard' },
-  { key: 'profile', labelEn: 'Profile & Info', managerOrOwnerOnly: true },
-  { key: 'menu', labelEn: 'Menu Management' },
-  { key: 'promotions', labelEn: 'Promotions' },
-  { key: 'advertising', labelEn: 'Advertising', managerOrOwnerOnly: true },
-  { key: 'gallery', labelEn: 'Photo Gallery' },
-  { key: 'chefManagement', labelEn: 'Chef Management' },
-  { key: 'chefTable', labelEn: 'Chef Table & Events', managerOrOwnerOnly: true },
-  { key: 'reviews', labelEn: 'Customer Reviews' },
-  { key: 'reservations', labelEn: 'Reservations', comingSoon: true, managerOrOwnerOnly: true },
-  { key: 'analytics', labelEn: 'Deep Analytics', comingSoon: true, managerOrOwnerOnly: true },
-  { key: 'announcements', labelEn: 'Announcements' },
-  { key: 'settings', labelEn: 'Settings & Staff' },
+  { key: 'dashboard', labelEn: 'Overview Dashboard', icon: LayoutDashboard },
+  { key: 'profile', labelEn: 'Profile & Info', icon: Store, managerOrOwnerOnly: true },
+  { key: 'menu', labelEn: 'Menu Management', icon: BookOpen },
+  { key: 'promotions', labelEn: 'Promotions', icon: Percent },
+  { key: 'advertising', labelEn: 'Advertising', icon: Sparkles, managerOrOwnerOnly: true },
+  { key: 'gallery', labelEn: 'Photo Gallery', icon: Images },
+  { key: 'chefManagement', labelEn: 'Chef Management', icon: ChefHat },
+  { key: 'chefTable', labelEn: 'Chef Table & Events', icon: CalendarClock, managerOrOwnerOnly: true },
+  { key: 'reviews', labelEn: 'Customer Reviews', icon: Star },
+  { key: 'reservations', labelEn: 'Reservations', icon: CalendarCheck, comingSoon: true, managerOrOwnerOnly: true },
+  { key: 'analytics', labelEn: 'Deep Analytics', icon: BarChart3, comingSoon: true, managerOrOwnerOnly: true },
+  { key: 'announcements', labelEn: 'Announcements', icon: Megaphone },
+  { key: 'settings', labelEn: 'Settings & Staff', icon: Settings },
 ];

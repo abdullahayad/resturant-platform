@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { UtensilsCrossed } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { navItems, type ScreenKey } from '../lib/nav';
@@ -20,7 +21,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
     <View style={styles.sidebar}>
       <View style={styles.brand}>
         <View style={styles.brandBadge}>
-          <Text style={styles.brandBadgeText}>🍴</Text>
+          <UtensilsCrossed size={18} color={colors.primaryForeground} />
         </View>
         <View>
           <Text style={styles.brandTitle}>Partner Portal</Text>
@@ -37,9 +38,12 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
               style={[styles.navItem, isActive && styles.navItemActive]}
             >
               {isActive && <View style={styles.activeBar} />}
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                {item.labelEn}
-              </Text>
+              <View style={styles.navItemContent}>
+                <item.icon size={16} color={isActive ? colors.primary : colors.mutedForeground} />
+                <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                  {item.labelEn}
+                </Text>
+              </View>
               {item.comingSoon && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>Soon</Text>
@@ -79,7 +83,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
   },
-  brandBadgeText: { fontSize: 16 },
   brandTitle: { color: colors.primary, fontSize: 17, fontWeight: '700' },
   brandSubtitle: { color: colors.mutedForeground, fontSize: 12, marginTop: 1 },
   nav: { gap: 2 },
@@ -88,11 +91,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
     borderRadius: 10,
   },
   navItemActive: { backgroundColor: colors.primaryTint15 },
+  navItemContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   activeBar: {
     position: 'absolute',
     left: -12,

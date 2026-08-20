@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BadgeCheck } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -82,7 +83,10 @@ export function AdvertisingScreen() {
 
       {activePlacement && (
         <View style={[styles.card, styles.activeCard]}>
-          <Text style={styles.activeTitle}>✓ You're currently Featured</Text>
+          <View style={styles.activeTitleRow}>
+            <BadgeCheck size={16} color={colors.success} />
+            <Text style={styles.activeTitle}>You're currently Featured</Text>
+          </View>
           <Text style={styles.cardMeta}>{formatDateRange(activePlacement)}</Text>
           {activePlacement.note && <Text style={styles.cardMeta}>{activePlacement.note}</Text>}
         </View>
@@ -188,6 +192,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 6,
   },
   activeCard: { borderColor: colors.success, backgroundColor: colors.successTint08 },
+  activeTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   activeTitle: { color: colors.success, fontSize: 15, fontWeight: '700' },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   cardTitle: { color: colors.foreground, fontSize: 14, fontWeight: '600' },

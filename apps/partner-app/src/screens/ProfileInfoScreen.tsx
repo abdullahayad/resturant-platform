@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { MapPin } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -241,11 +242,12 @@ export function ProfileInfoScreen() {
           </View>
         </View>
         <Pressable
-          style={[styles.button, styles.secondaryButton, !hasValidPin && styles.buttonDisabled]}
+          style={[styles.button, styles.secondaryButton, styles.buttonRow, !hasValidPin && styles.buttonDisabled]}
           onPress={openInGoogleMaps}
           disabled={!hasValidPin}
         >
-          <Text style={styles.secondaryButtonText}>📍 Open in Google Maps</Text>
+          <MapPin size={16} color={colors.foreground} />
+          <Text style={styles.secondaryButtonText}>Open in Google Maps</Text>
         </Pressable>
         <Text style={styles.hint}>Map tiles by OpenStreetMap — no API key required.</Text>
       </View>
@@ -360,6 +362,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   flex1: { flex: 1 },
   hint: { fontSize: 12, color: colors.mutedForeground },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  buttonRow: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   buttonDisabled: { opacity: 0.5 },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },

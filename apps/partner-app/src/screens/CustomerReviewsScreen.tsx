@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
+import { StarRating } from '../components/StarRating';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Review, type ReviewSummary } from '../lib/api';
 
-const categoryIcons: Record<string, string> = {
-  food: '🍽️',
-  service: '🛎️',
-  staff: '👥',
-  ambience: '🏛️',
+const categoryIcons: Record<string, LucideIcon> = {
+  food: UtensilsCrossed,
+  service: Bell,
+  staff: Users,
+  ambience: Building2,
 };
 
 export function CustomerReviewsScreen() {
@@ -64,10 +66,7 @@ export function CustomerReviewsScreen() {
             <View style={styles.overallCard}>
               <Text style={styles.overallLabel}>OVERALL</Text>
               <Text style={styles.overallScore}>{summary.overallAverage.toFixed(1)}★</Text>
-              <Text style={styles.overallStars}>
-                {'★'.repeat(Math.round(summary.overallAverage))}
-                {'☆'.repeat(5 - Math.round(summary.overallAverage))}
-              </Text>
+              <StarRating value={summary.overallAverage} size={15} />
               <Text style={styles.overallCount}>{summary.totalCount.toLocaleString()} reviews</Text>
             </View>
 
@@ -103,16 +102,20 @@ export function CustomerReviewsScreen() {
           </View>
 
           <View>
-            <Text style={styles.sectionHeading}>✨ Category Scores & 30-Day Trends</Text>
+            <View style={styles.sectionHeadingRow}>
+              <Sparkles size={15} color={colors.primary} />
+              <Text style={styles.sectionHeading}>Category Scores & 30-Day Trends</Text>
+            </View>
             <Text style={styles.sectionSubheading}>Genuinely useful operational insights for restaurant managers</Text>
             <View style={styles.categoryRow}>
               {summary.categoryScores.map((cat) => {
                 const trendUp = cat.trend != null && cat.trend > 0;
                 const trendDown = cat.trend != null && cat.trend < 0;
+                const CategoryIcon = categoryIcons[cat.key] ?? Star;
                 return (
                   <View key={cat.key} style={styles.categoryCard}>
                     <View style={styles.categoryHeader}>
-                      <Text style={styles.categoryIcon}>{categoryIcons[cat.key] ?? '⭐'}</Text>
+                      <CategoryIcon size={18} color={colors.primary} />
                       <Text style={styles.categoryScore}>{cat.average != null ? `${cat.average}★` : '—'}</Text>
                     </View>
                     <Text style={styles.categoryLabel}>
@@ -154,7 +157,7 @@ export function CustomerReviewsScreen() {
           <View key={review.id} style={styles.reviewCard}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewerName}>{review.reviewerName}</Text>
-              <Text style={styles.reviewStars}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</Text>
+              <StarRating value={review.rating} size={13} />
             </View>
             <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
             {review.moderationStatus !== 'VISIBLE' && (
@@ -216,7 +219,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   overallLabel: { fontSize: 11, color: colors.primary, fontWeight: '700', letterSpacing: 1 },
   overallScore: { fontSize: 28, fontWeight: '800', color: colors.foreground },
-  overallStars: { color: colors.primary, fontSize: 13 },
   overallCount: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
 
   headlineCard: {
@@ -254,6 +256,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   distFill: { height: '100%', backgroundColor: colors.primary },
   distPct: { width: 32, fontSize: 11, color: colors.mutedForeground, textAlign: 'right' },
 
+  sectionHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionHeading: { fontSize: 14, fontWeight: '700', color: colors.primary },
   sectionSubheading: { fontSize: 12, color: colors.mutedForeground, marginTop: 2, marginBottom: 10 },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
@@ -267,7 +270,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 4,
   },
   categoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  categoryIcon: { fontSize: 18 },
   categoryScore: { fontSize: 16, fontWeight: '700', color: colors.primary },
   categoryLabel: { fontSize: 13, color: colors.foreground, fontWeight: '600' },
   categoryLabelAr: { color: colors.mutedForeground, fontWeight: '400' },
@@ -301,7 +303,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   reviewerName: { color: colors.foreground, fontWeight: '600', fontSize: 14 },
-  reviewStars: { color: colors.primary, fontSize: 13 },
   reviewDate: { color: colors.mutedForeground, fontSize: 11 },
   reviewText: { color: colors.foreground, fontSize: 13, marginTop: 4 },
   moderationBadge: { color: colors.destructive, fontSize: 11, fontWeight: '600' },
