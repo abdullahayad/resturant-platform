@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { MapPin } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -10,14 +11,15 @@ import { MapPinPicker } from '../components/MapPinPicker';
 import { useAuth } from '../lib/AuthContext';
 import { api, type MasterDataItem, type OpeningHoursDay, type Province, type RestaurantDetail, type Story } from '../lib/api';
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
 const defaultOpeningHours = (): OpeningHoursDay[] =>
-  DAY_NAMES.map((_, dayOfWeek) => ({ dayOfWeek, isClosed: false, openTime: '09:00', closeTime: '22:00' }));
+  DAY_KEYS.map((_, dayOfWeek) => ({ dayOfWeek, isClosed: false, openTime: '09:00', closeTime: '22:00' }));
 
 export function ProfileInfoScreen() {
   const { token, restaurant, setRestaurant } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation('profile');
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [detail, setDetail] = useState<RestaurantDetail | null>(null);
@@ -78,8 +80,8 @@ export function ProfileInfoScreen() {
           setOpeningHours([...me.openingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek));
         }
       })
-      .catch(() => setLoadError('Could not reach the server. Is the backend running on localhost:3000?'));
-  }, [token]);
+      .catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
 
@@ -114,9 +116,9 @@ export function ProfileInfoScreen() {
       });
       setDetail(updated);
       setRestaurant({ ...restaurant, nameEn: updated.nameEn, nameAr: updated.nameAr, codeNumber: updated.codeNumber });
-      setSaveMessage('Saved.');
+      setSaveMessage(t('saved'));
     } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : 'Save failed');
+      setSaveMessage(err instanceof Error ? err.message : t('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -132,9 +134,9 @@ export function ProfileInfoScreen() {
     try {
       const updated = await api.updateOpeningHours(token, openingHours);
       setOpeningHours([...updated.openingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek));
-      setHoursMessage('Hours saved.');
+      setHoursMessage(t('hoursSaved'));
     } catch (err) {
-      setHoursMessage(err instanceof Error ? err.message : 'Could not save hours');
+      setHoursMessage(err instanceof Error ? err.message : t('hoursSaveFailed'));
     } finally {
       setSavingHours(false);
     }
@@ -163,7 +165,7 @@ export function ProfileInfoScreen() {
       const fresh = await api.activeStories(token);
       setStories(fresh);
     } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : 'Story upload failed');
+      setSaveMessage(err instanceof Error ? err.message : t('storyUploadFailed'));
     } finally {
       setUploadingStory(false);
     }
@@ -179,23 +181,23 @@ export function ProfileInfoScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Profile & Info</Text>
+      <Text style={styles.title}>{t('title')}</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>General Information</Text>
-        <FormField label="Restaurant name (English)" value={nameEn} onChangeText={setNameEn} />
-        <FormField label="Restaurant name (Arabic)" value={nameAr} onChangeText={setNameAr} />
-        <FormField label="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <Text style={styles.sectionTitle}>{t('sections.general')}</Text>
+        <FormField label={t('nameEnLabel')} value={nameEn} onChangeText={setNameEn} />
+        <FormField label={t('nameArLabel')} value={nameAr} onChangeText={setNameAr} />
+        <FormField label={t('phoneLabel')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
 
-        <Text style={styles.fieldLabel}>Business Types</Text>
+        <Text style={styles.fieldLabel}>{t('businessTypes')}</Text>
         <ChipSelect
           options={businessTypes.map((b) => ({ id: b.id, label: b.nameEn }))}
           selectedIds={businessTypeIds}
           onToggle={(id) => toggle(businessTypeIds, setBusinessTypeIds, id)}
         />
 
-        <Text style={styles.fieldLabel}>Food Categories</Text>
+        <Text style={styles.fieldLabel}>{t('foodCategories')}</Text>
         <ChipSelect
           options={foodCategories.map((f) => ({ id: f.id, label: f.nameEn }))}
           selectedIds={foodCategoryIds}
@@ -204,8 +206,8 @@ export function ProfileInfoScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Location & Map</Text>
-        <Text style={styles.fieldLabel}>City</Text>
+        <Text style={styles.sectionTitle}>{t('sections.location')}</Text>
+        <Text style={styles.fieldLabel}>{t('city')}</Text>
         <ChipSelect
           options={provinces.map((p) => ({ id: p.id, label: p.nameEn }))}
           selectedIds={provinceId ? [provinceId] : []}
@@ -216,7 +218,7 @@ export function ProfileInfoScreen() {
         />
         {selectedProvince && (
           <>
-            <Text style={styles.fieldLabel}>District</Text>
+            <Text style={styles.fieldLabel}>{t('district')}</Text>
             <ChipSelect
               options={selectedProvince.districts.map((d) => ({ id: d.id, label: d.nameEn }))}
               selectedIds={districtId ? [districtId] : []}
@@ -224,7 +226,7 @@ export function ProfileInfoScreen() {
             />
           </>
         )}
-        <Text style={styles.fieldLabel}>Tap or drag the pin to set your exact location</Text>
+        <Text style={styles.fieldLabel}>{t('pinHint')}</Text>
         <MapPinPicker
           latitude={hasValidPin ? Number(latitude) : null}
           longitude={hasValidPin ? Number(longitude) : null}
@@ -235,10 +237,10 @@ export function ProfileInfoScreen() {
         />
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <FormField label="Latitude" value={latitude} editable={false} placeholder="33.3152" />
+            <FormField label={t('latitude')} value={latitude} editable={false} placeholder="33.3152" />
           </View>
           <View style={styles.flex1}>
-            <FormField label="Longitude" value={longitude} editable={false} placeholder="44.3661" />
+            <FormField label={t('longitude')} value={longitude} editable={false} placeholder="44.3661" />
           </View>
         </View>
         <Pressable
@@ -247,16 +249,16 @@ export function ProfileInfoScreen() {
           disabled={!hasValidPin}
         >
           <MapPin size={16} color={colors.foreground} />
-          <Text style={styles.secondaryButtonText}>Open in Google Maps</Text>
+          <Text style={styles.secondaryButtonText}>{t('openInGoogleMaps')}</Text>
         </Pressable>
-        <Text style={styles.hint}>Map tiles by OpenStreetMap — no API key required.</Text>
+        <Text style={styles.hint}>{t('mapAttribution')}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Opening Hours</Text>
+        <Text style={styles.sectionTitle}>{t('sections.hours')}</Text>
         {openingHours.map((day) => (
           <View key={day.dayOfWeek} style={styles.hoursRow}>
-            <Text style={styles.hoursDayLabel}>{DAY_NAMES[day.dayOfWeek]}</Text>
+            <Text style={styles.hoursDayLabel}>{t(`common:days.${DAY_KEYS[day.dayOfWeek]}`)}</Text>
             {!day.isClosed && (
               <View style={styles.hoursTimes}>
                 <TextInput
@@ -277,7 +279,7 @@ export function ProfileInfoScreen() {
               </View>
             )}
             <View style={styles.hoursClosedToggle}>
-              <Text style={styles.hoursClosedLabel}>Closed</Text>
+              <Text style={styles.hoursClosedLabel}>{t('closed')}</Text>
               <Switch
                 value={day.isClosed}
                 onValueChange={(v) => updateDay(day.dayOfWeek, { isClosed: v })}
@@ -291,13 +293,13 @@ export function ProfileInfoScreen() {
           {savingHours ? (
             <ActivityIndicator color={colors.foreground} />
           ) : (
-            <Text style={styles.secondaryButtonText}>Save Hours</Text>
+            <Text style={styles.secondaryButtonText}>{t('saveHours')}</Text>
           )}
         </Pressable>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Facilities & Amenities</Text>
+        <Text style={styles.sectionTitle}>{t('sections.facilities')}</Text>
         <ChipSelect
           options={facilities.map((f) => ({ id: f.id, label: f.nameEn }))}
           selectedIds={facilityIds}
@@ -307,13 +309,13 @@ export function ProfileInfoScreen() {
 
       {saveMessage && <Text style={styles.saveMessage}>{saveMessage}</Text>}
       <Pressable style={[styles.button, styles.primaryButton]} onPress={handleSave} disabled={saving}>
-        {saving ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>Save Changes</Text>}
+        {saving ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('saveChanges')}</Text>}
       </Pressable>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>24-Hour Daily Story</Text>
+        <Text style={styles.sectionTitle}>{t('sections.story')}</Text>
         {stories.length === 0 ? (
-          <Text style={styles.hint}>No active story.</Text>
+          <Text style={styles.hint}>{t('noActiveStory')}</Text>
         ) : (
           <View style={styles.storyRow}>
             {stories.map((s) => (
@@ -321,23 +323,23 @@ export function ProfileInfoScreen() {
                 <Image source={{ uri: s.mediaUrl }} style={styles.storyImage} />
                 {s.caption && <Text style={styles.storyCaption}>{s.caption}</Text>}
                 <Text style={styles.storyExpiry}>
-                  Expires {new Date(s.expiresAt).toLocaleTimeString()}
+                  {t('expires', { time: new Date(s.expiresAt).toLocaleTimeString() })}
                 </Text>
               </View>
             ))}
           </View>
         )}
         <FormField
-          label="Caption (optional)"
+          label={t('captionLabel')}
           value={storyCaption}
           onChangeText={setStoryCaption}
-          placeholder="Today's special…"
+          placeholder={t('captionPlaceholder')}
         />
         <Pressable style={[styles.button, styles.secondaryButton]} onPress={handleAddStory} disabled={uploadingStory}>
           {uploadingStory ? (
             <ActivityIndicator color={colors.foreground} />
           ) : (
-            <Text style={styles.secondaryButtonText}>Add Photo to Story</Text>
+            <Text style={styles.secondaryButtonText}>{t('addPhotoToStory')}</Text>
           )}
         </Pressable>
       </View>

@@ -2,5 +2,38 @@
   "map": {
     "permissionDenied": "تم رفض إذن الوصول إلى الموقع.",
     "locationFailed": "تعذر الحصول على موقعك."
-  }
+  },
+  "title": "الملف الشخصي والمعلومات",
+  "sections": {
+    "general": "المعلومات العامة",
+    "location": "الموقع والخريطة",
+    "hours": "ساعات العمل",
+    "facilities": "المرافق والخدمات",
+    "story": "القصة اليومية (24 ساعة)"
+  },
+  "nameEnLabel": "اسم المطعم (بالإنجليزية)",
+  "nameArLabel": "اسم المطعم (بالعربية)",
+  "phoneLabel": "رقم الهاتف",
+  "businessTypes": "أنواع النشاط التجاري",
+  "foodCategories": "فئات الطعام",
+  "city": "المدينة",
+  "district": "المنطقة",
+  "pinHint": "اضغط أو اسحب الدبوس لتحديد موقعك بدقة",
+  "latitude": "خط العرض",
+  "longitude": "خط الطول",
+  "openInGoogleMaps": "فتح في خرائط جوجل",
+  "mapAttribution": "خرائط من OpenStreetMap — لا حاجة لمفتاح API.",
+  "closed": "مغلق",
+  "saveHours": "حفظ الساعات",
+  "hoursSaved": "تم حفظ الساعات.",
+  "hoursSaveFailed": "تعذر حفظ الساعات",
+  "saved": "تم الحفظ.",
+  "saveFailed": "فشل الحفظ",
+  "saveChanges": "حفظ التغييرات",
+  "noActiveStory": "لا توجد قصة نشطة.",
+  "captionLabel": "تعليق (اختياري)",
+  "captionPlaceholder": "عرض اليوم…",
+  "addPhotoToStory": "إضافة صورة إلى القصة",
+  "storyUploadFailed": "فشل رفع القصة",
+  "expires": "تنتهي الساعة {{time}}"
 }

@@ -2,5 +2,38 @@
   "map": {
     "permissionDenied": "Location permission denied.",
     "locationFailed": "Could not get your location."
-  }
+  },
+  "title": "Profile & Info",
+  "sections": {
+    "general": "General Information",
+    "location": "Location & Map",
+    "hours": "Opening Hours",
+    "facilities": "Facilities & Amenities",
+    "story": "24-Hour Daily Story"
+  },
+  "nameEnLabel": "Restaurant name (English)",
+  "nameArLabel": "Restaurant name (Arabic)",
+  "phoneLabel": "Phone number",
+  "businessTypes": "Business Types",
+  "foodCategories": "Food Categories",
+  "city": "City",
+  "district": "District",
+  "pinHint": "Tap or drag the pin to set your exact location",
+  "latitude": "Latitude",
+  "longitude": "Longitude",
+  "openInGoogleMaps": "Open in Google Maps",
+  "mapAttribution": "Map tiles by OpenStreetMap — no API key required.",
+  "closed": "Closed",
+  "saveHours": "Save Hours",
+  "hoursSaved": "Hours saved.",
+  "hoursSaveFailed": "Could not save hours",
+  "saved": "Saved.",
+  "saveFailed": "Save failed",
+  "saveChanges": "Save Changes",
+  "noActiveStory": "No active story.",
+  "captionLabel": "Caption (optional)",
+  "captionPlaceholder": "Today's special…",
+  "addPhotoToStory": "Add Photo to Story",
+  "storyUploadFailed": "Story upload failed",
+  "expires": "Expires {{time}}"
 }
