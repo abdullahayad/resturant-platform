@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react-native';
+import type { StaffRole } from './api';
 import {
   LayoutDashboard,
   Store,
@@ -38,20 +39,28 @@ export interface NavItem {
   // Hidden from MENU_EDITOR staff logins — the restaurant owner and
   // MANAGER staff always see every item.
   managerOrOwnerOnly?: boolean;
+  // One of the 4 items shown directly on the phone-tier bottom tab bar;
+  // everything else lives in its "More" overflow sheet.
+  primary?: boolean;
 }
 
 export const navItems: NavItem[] = [
-  { key: 'dashboard', labelEn: 'Overview Dashboard', icon: LayoutDashboard },
+  { key: 'dashboard', labelEn: 'Overview Dashboard', icon: LayoutDashboard, primary: true },
   { key: 'profile', labelEn: 'Profile & Info', icon: Store, managerOrOwnerOnly: true },
-  { key: 'menu', labelEn: 'Menu Management', icon: BookOpen },
-  { key: 'promotions', labelEn: 'Promotions', icon: Percent },
+  { key: 'menu', labelEn: 'Menu Management', icon: BookOpen, primary: true },
+  { key: 'promotions', labelEn: 'Promotions', icon: Percent, primary: true },
   { key: 'advertising', labelEn: 'Advertising', icon: Sparkles, managerOrOwnerOnly: true },
   { key: 'gallery', labelEn: 'Photo Gallery', icon: Images },
   { key: 'chefManagement', labelEn: 'Chef Management', icon: ChefHat },
   { key: 'chefTable', labelEn: 'Chef Table & Events', icon: CalendarClock, managerOrOwnerOnly: true },
-  { key: 'reviews', labelEn: 'Customer Reviews', icon: Star },
+  { key: 'reviews', labelEn: 'Customer Reviews', icon: Star, primary: true },
   { key: 'reservations', labelEn: 'Reservations', icon: CalendarCheck, comingSoon: true, managerOrOwnerOnly: true },
   { key: 'analytics', labelEn: 'Deep Analytics', icon: BarChart3, comingSoon: true, managerOrOwnerOnly: true },
   { key: 'announcements', labelEn: 'Announcements', icon: Megaphone },
   { key: 'settings', labelEn: 'Settings & Staff', icon: Settings },
 ];
+
+/** Shared across Sidebar/NavRail/BottomTabBar/MoreOverflowSheet so the role filter lives in one place. */
+export function getVisibleNavItems(role?: StaffRole): NavItem[] {
+  return navItems.filter((item) => !(item.managerOrOwnerOnly && role === 'MENU_EDITOR'));
+}

@@ -24,8 +24,8 @@ export function Header({ nameEn, nameAr, codeNumber, onSignOut }: HeaderProps) {
         <Text style={styles.logoText}>{nameEn.charAt(0).toUpperCase()}</Text>
       </View>
       <View style={styles.info}>
-        <Text style={styles.name}>{nameEn} · {nameAr}</Text>
-        <Text style={styles.code}>
+        <Text style={styles.name} numberOfLines={1}>{nameEn} · {nameAr}</Text>
+        <Text style={styles.code} numberOfLines={1}>
           {codeNumber}
           {staff ? ` · Signed in as ${staff.fullName} (${roleLabels[staff.role]})` : ''}
         </Text>

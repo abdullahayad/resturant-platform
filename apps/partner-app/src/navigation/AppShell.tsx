@@ -2,10 +2,15 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { Sidebar } from '../components/Sidebar';
+import { NavRail } from '../components/NavRail';
+import { BottomTabBar } from '../components/BottomTabBar';
+import { MoreOverflowSheet } from '../components/MoreOverflowSheet';
 import { Header } from '../components/Header';
 import { AnnouncementBanner } from '../components/AnnouncementBanner';
-import type { ScreenKey } from '../lib/nav';
+import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
+import { useAuth } from '../lib/AuthContext';
 import { OverviewDashboardScreen } from '../screens/OverviewDashboardScreen';
 import { ProfileInfoScreen } from '../screens/ProfileInfoScreen';
 import { MenuManagementScreen } from '../screens/MenuManagementScreen';
@@ -43,14 +48,27 @@ interface AppShellProps {
 }
 
 export function AppShell({ restaurant, onSignOut }: AppShellProps) {
+  const { staff } = useAuth();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tier = useBreakpoint();
   const [active, setActive] = useState<ScreenKey>('dashboard');
+  const [moreVisible, setMoreVisible] = useState(false);
   const ActiveScreen = screens[active];
 
+  const visibleItems = useMemo(() => getVisibleNavItems(staff?.role), [staff?.role]);
+  const primaryItems = useMemo(() => visibleItems.filter((item) => item.primary), [visibleItems]);
+  const overflowItems = useMemo(() => visibleItems.filter((item) => !item.primary), [visibleItems]);
+
+  const selectAndClose = (key: ScreenKey) => {
+    setActive(key);
+    setMoreVisible(false);
+  };
+
   return (
-    <View style={styles.container}>
-      <Sidebar active={active} onSelect={setActive} />
+    <View style={[styles.container, tier === 'phone' && styles.containerPhone]}>
+      {tier === 'sidebar' && <Sidebar active={active} onSelect={setActive} />}
+      {tier === 'rail' && <NavRail active={active} onSelect={setActive} />}
       <View style={styles.content}>
         <Header
           nameEn={restaurant.nameEn}
@@ -59,16 +77,36 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
           onSignOut={onSignOut}
         />
         <AnnouncementBanner active={active} onView={() => setActive('announcements')} />
-        <View style={styles.body}>
+        <View style={[styles.body, tier === 'phone' && styles.bodyPhone]}>
           <ActiveScreen />
         </View>
       </View>
+      {tier === 'phone' && (
+        <>
+          <BottomTabBar
+            primaryItems={primaryItems}
+            active={active}
+            moreActive={moreVisible}
+            onSelect={selectAndClose}
+            onMore={() => setMoreVisible(true)}
+          />
+          <MoreOverflowSheet
+            visible={moreVisible}
+            items={overflowItems}
+            active={active}
+            onSelect={selectAndClose}
+            onClose={() => setMoreVisible(false)}
+          />
+        </>
+      )}
     </View>
   );
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1, flexDirection: 'row', backgroundColor: colors.background },
+  containerPhone: { flexDirection: 'column' },
   content: { flex: 1 },
   body: { flex: 1, padding: 24 },
+  bodyPhone: { padding: 16 },
 });

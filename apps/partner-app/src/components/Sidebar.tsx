@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { UtensilsCrossed } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
-import { navItems, type ScreenKey } from '../lib/nav';
+import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
 import { useAuth } from '../lib/AuthContext';
 
 interface SidebarProps {
@@ -15,7 +15,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
   const { staff } = useAuth();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const visibleItems = navItems.filter((item) => !(item.managerOrOwnerOnly && staff?.role === 'MENU_EDITOR'));
+  const visibleItems = getVisibleNavItems(staff?.role);
 
   return (
     <View style={styles.sidebar}>
@@ -28,7 +28,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
           <Text style={styles.brandSubtitle}>#IRQ-00000</Text>
         </View>
       </View>
-      <View style={styles.nav}>
+      <ScrollView style={styles.nav} contentContainerStyle={styles.navContent} showsVerticalScrollIndicator={false}>
         {visibleItems.map((item) => {
           const isActive = item.key === active;
           return (
@@ -52,7 +52,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -85,7 +85,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   brandTitle: { color: colors.primary, fontSize: 17, fontWeight: '700' },
   brandSubtitle: { color: colors.mutedForeground, fontSize: 12, marginTop: 1 },
-  nav: { gap: 2 },
+  nav: { flex: 1 },
+  navContent: { gap: 2 },
   navItem: {
     position: 'relative',
     flexDirection: 'row',
