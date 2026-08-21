@@ -82,7 +82,14 @@ export function MenuManagementScreen() {
   const submit = async () => {
     setFormError(null);
     const price = Number(form.price);
-    if (!form.nameEn.trim() || !form.nameAr.trim() || !price || price <= 0) {
+    if (
+      !form.nameEn.trim() ||
+      !form.nameAr.trim() ||
+      !price ||
+      price <= 0 ||
+      !form.categoryId ||
+      !form.photoUrl
+    ) {
       setFormError(t('validation'));
       return;
     }

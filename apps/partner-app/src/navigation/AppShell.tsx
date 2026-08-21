@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useNavBadges } from '../hooks/useNavBadges';
 import { Sidebar } from '../components/Sidebar';
 import { NavRail } from '../components/NavRail';
 import { BottomTabBar } from '../components/BottomTabBar';
@@ -55,11 +56,12 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
   const ActiveScreen = screens[active];
 
   const visibleItems = useMemo(() => getVisibleNavItems(staff?.role), [staff?.role]);
+  const badges = useNavBadges(active);
 
   return (
     <View style={[styles.container, tier === 'phone' && styles.containerPhone]}>
-      {tier === 'sidebar' && <Sidebar active={active} onSelect={setActive} />}
-      {tier === 'rail' && <NavRail active={active} onSelect={setActive} />}
+      {tier === 'sidebar' && <Sidebar active={active} badges={badges} onSelect={setActive} />}
+      {tier === 'rail' && <NavRail active={active} badges={badges} onSelect={setActive} />}
       <View style={styles.content}>
         <Header
           nameEn={restaurant.nameEn}
@@ -73,7 +75,7 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
         </View>
       </View>
       {tier === 'phone' && (
-        <BottomTabBar items={visibleItems} active={active} onSelect={setActive} />
+        <BottomTabBar items={visibleItems} active={active} badges={badges} onSelect={setActive} />
       )}
     </View>
   );

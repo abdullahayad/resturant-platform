@@ -10,10 +10,11 @@ import { useAuth } from '../lib/AuthContext';
 
 interface SidebarProps {
   active: ScreenKey;
+  badges: Partial<Record<ScreenKey, number>>;
   onSelect: (key: ScreenKey) => void;
 }
 
-export function Sidebar({ active, onSelect }: SidebarProps) {
+export function Sidebar({ active, badges, onSelect }: SidebarProps) {
   const { staff } = useAuth();
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
@@ -35,6 +36,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
       <ScrollView style={styles.nav} contentContainerStyle={styles.navContent} showsVerticalScrollIndicator={false}>
         {visibleItems.map((item) => {
           const isActive = item.key === active;
+          const badgeCount = badges[item.key] ?? 0;
           return (
             <Pressable
               key={item.key}
@@ -51,6 +53,11 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
               {item.comingSoon && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{t('common:soon')}</Text>
+                </View>
+              )}
+              {badgeCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{badgeCount > 9 ? '9+' : badgeCount}</Text>
                 </View>
               )}
             </Pressable>
@@ -124,4 +131,14 @@ const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create(
     backgroundColor: colors.secondary,
   },
   badgeText: { color: colors.mutedForeground, fontSize: 10 },
+  notifBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    backgroundColor: colors.destructive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 });

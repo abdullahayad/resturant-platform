@@ -16,7 +16,7 @@
   "confirm": "Confirm",
   "delete": "Delete",
   "noDishesYet": "No dishes yet.",
-  "validation": "Name (EN/AR) and a valid price are required.",
+  "validation": "Fill in both names and a valid price, then choose a category and a photo.",
   "photoUploadFailed": "Photo upload failed",
   "saveFailed": "Save failed"
 }
