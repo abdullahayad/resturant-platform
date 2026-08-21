@@ -412,13 +412,12 @@ export const api = {
 
   async uploadFile(token: string, file: { uri: string; name: string; type: string }): Promise<{ url: string }> {
     const form = new FormData();
-    // React Native's FormData accepts this {uri,name,type} shape directly; web (Expo web) uses a Blob instead.
-    if (file.uri.startsWith('blob:') || file.uri.startsWith('data:')) {
-      const blob = await (await fetch(file.uri)).blob();
-      form.append('file', blob, file.name);
-    } else {
-      form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
-    }
+    // RN's old {uri,name,type} FormData shorthand throws "Unsupported FormDataPart
+    // implementation" under the new architecture (SDK 57 / RN 0.86) — fetching the
+    // URI into a real Blob works uniformly for web blob:/data: URIs and native
+    // file:/content: URIs alike.
+    const blob = await (await fetch(file.uri)).blob();
+    form.append('file', blob, file.name);
     const res = await fetch(`${API_BASE_URL}/uploads`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },

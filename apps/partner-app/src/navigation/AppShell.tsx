@@ -6,7 +6,6 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { Sidebar } from '../components/Sidebar';
 import { NavRail } from '../components/NavRail';
 import { BottomTabBar } from '../components/BottomTabBar';
-import { MoreOverflowSheet } from '../components/MoreOverflowSheet';
 import { Header } from '../components/Header';
 import { AnnouncementBanner } from '../components/AnnouncementBanner';
 import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
@@ -53,17 +52,9 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const tier = useBreakpoint();
   const [active, setActive] = useState<ScreenKey>('dashboard');
-  const [moreVisible, setMoreVisible] = useState(false);
   const ActiveScreen = screens[active];
 
   const visibleItems = useMemo(() => getVisibleNavItems(staff?.role), [staff?.role]);
-  const primaryItems = useMemo(() => visibleItems.filter((item) => item.primary), [visibleItems]);
-  const overflowItems = useMemo(() => visibleItems.filter((item) => !item.primary), [visibleItems]);
-
-  const selectAndClose = (key: ScreenKey) => {
-    setActive(key);
-    setMoreVisible(false);
-  };
 
   return (
     <View style={[styles.container, tier === 'phone' && styles.containerPhone]}>
@@ -82,22 +73,7 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
         </View>
       </View>
       {tier === 'phone' && (
-        <>
-          <BottomTabBar
-            primaryItems={primaryItems}
-            active={active}
-            moreActive={moreVisible}
-            onSelect={selectAndClose}
-            onMore={() => setMoreVisible(true)}
-          />
-          <MoreOverflowSheet
-            visible={moreVisible}
-            items={overflowItems}
-            active={active}
-            onSelect={selectAndClose}
-            onClose={() => setMoreVisible(false)}
-          />
-        </>
+        <BottomTabBar items={visibleItems} active={active} onSelect={setActive} />
       )}
     </View>
   );
