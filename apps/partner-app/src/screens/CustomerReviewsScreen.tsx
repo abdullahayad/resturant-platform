@@ -8,6 +8,7 @@ import { FormField } from '../components/FormField';
 import { StarRating } from '../components/StarRating';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Review, type ReviewSummary } from '../lib/api';
+import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
 
 const categoryIcons: Record<string, LucideIcon> = {
   food: UtensilsCrossed,
@@ -38,6 +39,9 @@ export function CustomerReviewsScreen() {
   }, [token, t]);
 
   useEffect(load, [load]);
+  useEffect(() => {
+    setReviewsLastSeen(new Date().toISOString());
+  }, []);
 
   const visibleReviews = useMemo(() => {
     const list = reviews.filter((r) => r.moderationStatus !== 'HIDDEN');
