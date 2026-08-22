@@ -296,6 +296,7 @@ model Restaurant {
   notifications     NotificationRecipient[]
   promotions        Promotion[]
   featuredPlacements FeaturedPlacement[]
+  pushTokens        RestaurantPushToken[]
 
   @@index([status])
   @@index([provinceId])
@@ -698,4 +699,21 @@ model NotificationRecipient {
   @@unique([notificationId, restaurantId])
   @@index([restaurantId])
   @@map("notification_recipients")
+}
+
+// One row per device that has registered for push notifications — a restaurant
+// with a manager on their phone and staff on a tablet can have several. Tokens
+// are Expo push tokens (opaque strings from expo-notifications), unique per
+// device/app-install, not per restaurant.
+model RestaurantPushToken {
+  id           String   @id @default(uuid())
+  restaurantId String
+  token        String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@map("restaurant_push_tokens")
 }

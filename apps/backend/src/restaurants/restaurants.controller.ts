@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { RestaurantsService } from './restaurants.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
 import { ListRestaurantsQuery, RejectRestaurantDto } from './dto/update-restaurant-status.dto';
 import { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
+import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
 import { UpdateStatsVisibilityDto } from './dto/update-stats-visibility.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
@@ -50,6 +51,20 @@ export class RestaurantsController {
   @Patch('me/hours')
   updateHours(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateOpeningHoursDto) {
     return this.restaurants.updateOpeningHours(req.user.sub, dto.days);
+  }
+
+  // Any logged-in device (manager or staff, any role) can register/unregister
+  // itself for push — this is per-device, not a profile-editing action.
+  @UseGuards(PartnerAuthGuard)
+  @Post('me/push-token')
+  registerPushToken(@Req() req: { user: PartnerJwtPayload }, @Body() dto: RegisterPushTokenDto) {
+    return this.restaurants.registerPushToken(req.user.sub, dto.token);
+  }
+
+  @UseGuards(PartnerAuthGuard)
+  @Delete('me/push-token')
+  unregisterPushToken(@Body() dto: RegisterPushTokenDto) {
+    return this.restaurants.unregisterPushToken(dto.token);
   }
 
   @UseGuards(AdminAuthGuard)

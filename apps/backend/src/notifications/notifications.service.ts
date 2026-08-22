@@ -11,7 +11,7 @@ export class NotificationsService {
     if (targetRestaurantIds.length === 0) {
       throw new BadRequestException('No restaurants match the selected target');
     }
-    return this.prisma.db.adminNotification.create({
+    const notification = await this.prisma.db.adminNotification.create({
       data: {
         titleEn: dto.titleEn,
         titleAr: dto.titleAr,
@@ -22,6 +22,32 @@ export class NotificationsService {
         recipients: { create: targetRestaurantIds.map((restaurantId) => ({ restaurantId })) },
       },
     });
+    // Fire-and-forget — a push delivery failure shouldn't fail the admin's
+    // request, and there's nothing useful to surface to them if it does.
+    this.sendPushNotifications(targetRestaurantIds, dto.titleEn, dto.bodyEn).catch(() => {});
+    return notification;
+  }
+
+  // Push text is always sent in English regardless of each device's app
+  // language — the backend has no record of which language a given device
+  // has selected (that preference lives only in the app's local storage).
+  private async sendPushNotifications(restaurantIds: string[], title: string, body: string) {
+    const tokens = await this.prisma.db.restaurantPushToken.findMany({
+      where: { restaurantId: { in: restaurantIds } },
+      select: { token: true },
+    });
+    if (tokens.length === 0) return;
+
+    const messages = tokens.map((t) => ({ to: t.token, title, body, sound: 'default' }));
+    const chunkSize = 100;
+    for (let i = 0; i < messages.length; i += chunkSize) {
+      const chunk = messages.slice(i, i + chunkSize);
+      await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(chunk),
+      }).catch(() => {});
+    }
   }
 
   private async resolveTargets(dto: CreateNotificationDto): Promise<string[]> {

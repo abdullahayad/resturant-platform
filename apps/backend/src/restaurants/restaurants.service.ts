@@ -284,6 +284,23 @@ export class RestaurantsService {
     });
   }
 
+  // Upsert on the token itself (not restaurantId) so a device that logs into
+  // a different restaurant account gets its token reassigned instead of
+  // creating a stale duplicate row.
+  async registerPushToken(restaurantId: string, token: string) {
+    await this.prisma.db.restaurantPushToken.upsert({
+      where: { token },
+      update: { restaurantId },
+      create: { restaurantId, token },
+    });
+    return { success: true };
+  }
+
+  async unregisterPushToken(token: string) {
+    await this.prisma.db.restaurantPushToken.deleteMany({ where: { token } });
+    return { success: true };
+  }
+
   async updateOpeningHours(id: string, days: DayHoursDto[]) {
     await this.ensureExists(id);
     await this.prisma.db.openingHours.deleteMany({ where: { restaurantId: id } });
