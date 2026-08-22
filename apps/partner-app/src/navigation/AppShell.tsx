@@ -4,6 +4,7 @@ import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useNavBadges } from '../hooks/useNavBadges';
+import { usePushRegistration } from '../hooks/usePushRegistration';
 import { Sidebar } from '../components/Sidebar';
 import { NavRail } from '../components/NavRail';
 import { BottomTabBar } from '../components/BottomTabBar';
@@ -57,6 +58,7 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
 
   const visibleItems = useMemo(() => getVisibleNavItems(staff?.role), [staff?.role]);
   const badges = useNavBadges(active);
+  usePushRegistration();
 
   return (
     <View style={[styles.container, tier === 'phone' && styles.containerPhone]}>

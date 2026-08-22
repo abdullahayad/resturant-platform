@@ -473,6 +473,10 @@ export const api = {
     }),
   updateNotificationPrefs: (token: string, payload: { notifyNewReview?: boolean; notifyNewBooking?: boolean }) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me/notifications', token, payload),
+  registerPushToken: (token: string, pushToken: string) =>
+    send<{ success: boolean }>('POST', '/restaurants/me/push-token', token, { token: pushToken }),
+  unregisterPushToken: (token: string, pushToken: string) =>
+    send<{ success: boolean }>('DELETE', '/restaurants/me/push-token', token, { token: pushToken }),
 
   eventTypes: () => get<EventTypeItem[]>('/master-data/event-types'),
   myEvents: (token: string) => get<RestaurantEventItem[]>('/restaurants/me/events', token),
