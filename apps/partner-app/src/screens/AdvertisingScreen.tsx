@@ -6,8 +6,10 @@ import type { TFunction } from 'i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type FeaturedPlacementItem } from '../lib/api';
+import { radii, cardShadow } from '../theme/tokens';
 
 function formatDateRange(p: FeaturedPlacementItem, t: TFunction): string {
   if (!p.startDate && !p.endDate) return t('openEnded');
@@ -70,11 +72,7 @@ export function AdvertisingScreen() {
   };
 
   if (placements === null) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -175,7 +173,6 @@ export function AdvertisingScreen() {
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { gap: 16, paddingBottom: 40, maxWidth: 620 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   subtitle: { fontSize: 13, color: colors.mutedForeground },
@@ -185,12 +182,13 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
 
   list: { gap: 12 },
   card: {
-    borderRadius: 14,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 14,
     gap: 6,
+    ...cardShadow,
   },
   activeCard: { borderColor: colors.success, backgroundColor: colors.successTint08 },
   activeTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -211,11 +209,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
 
   formCard: {
     gap: 12,
-    borderRadius: 16,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 16,
+    ...cardShadow,
   },
   formTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   button: { borderRadius: 10, paddingVertical: 12, alignItems: 'center' },

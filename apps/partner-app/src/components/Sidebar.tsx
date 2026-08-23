@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { UtensilsCrossed } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useLanguage } from '../i18n/LanguageContext';
 import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
 import { useAuth } from '../lib/AuthContext';
+import { BrandMark } from './BrandMark';
 
 interface SidebarProps {
   active: ScreenKey;
@@ -25,9 +25,7 @@ export function Sidebar({ active, badges, onSelect }: SidebarProps) {
   return (
     <View style={styles.sidebar}>
       <View style={styles.brand}>
-        <View style={styles.brandBadge}>
-          <UtensilsCrossed size={18} color={colors.primaryForeground} />
-        </View>
+        <BrandMark size={34} />
         <View>
           <Text style={styles.brandTitle}>{t('brand')}</Text>
           <Text style={styles.brandSubtitle}>#IRQ-00000</Text>
@@ -82,20 +80,9 @@ const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create(
     shadowOffset: { width: isRTL ? -4 : 4, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
+    elevation: 8,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8, marginBottom: 24 },
-  brandBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-  },
   brandTitle: { color: colors.primary, fontSize: 17, fontWeight: '700' },
   brandSubtitle: { color: colors.mutedForeground, fontSize: 12, marginTop: 1 },
   nav: { flex: 1 },

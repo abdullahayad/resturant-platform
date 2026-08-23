@@ -7,6 +7,7 @@ import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
 import { api, type ChefProfile, type ChefRoleSlug } from '../lib/api';
+import { radii, cardShadow } from '../theme/tokens';
 
 interface ChefFormState {
   name: string;
@@ -302,14 +303,15 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   card: {
     width: 340,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 16,
     gap: 12,
+    ...cardShadow,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   photoPicker: {
     height: 140,
     borderRadius: 10,

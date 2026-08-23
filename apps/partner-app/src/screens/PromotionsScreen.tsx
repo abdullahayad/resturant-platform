@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { Percent } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
+import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Dish, type PromotionItem } from '../lib/api';
+import { radii, cardShadow } from '../theme/tokens';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
@@ -192,7 +195,7 @@ export function PromotionsScreen() {
             </View>
           </View>
         ))}
-        {promotions.length === 0 && !loadError && <Text style={styles.hint}>{t('noPromotionsYet')}</Text>}
+        {promotions.length === 0 && !loadError && <EmptyState icon={Percent} message={t('noPromotionsYet')} />}
       </View>
 
       <View style={styles.formCard}>
@@ -328,11 +331,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
 
   formCard: {
     gap: 12,
-    borderRadius: 16,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 16,
+    ...cardShadow,
   },
   formTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   fieldLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },

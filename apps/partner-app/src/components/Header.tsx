@@ -64,6 +64,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
+    elevation: 4,
     zIndex: 1,
   },
   logo: {
@@ -77,6 +78,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+    elevation: 6,
   },
   logoText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 18 },
   info: { flex: 1 },

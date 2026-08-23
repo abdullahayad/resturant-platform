@@ -6,9 +6,11 @@ import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { StarRating } from '../components/StarRating';
+import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Review, type ReviewSummary } from '../lib/api';
 import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
+import { radii, cardShadow } from '../theme/tokens';
 
 const categoryIcons: Record<string, LucideIcon> = {
   food: UtensilsCrossed,
@@ -197,7 +199,7 @@ export function CustomerReviewsScreen() {
             )}
           </View>
         ))}
-        {visibleReviews.length === 0 && !loadError && <Text style={styles.hint}>{t('noReviewsMatchFilter')}</Text>}
+        {visibleReviews.length === 0 && !loadError && <EmptyState icon={Star} message={t('noReviewsMatchFilter')} />}
       </View>
     </ScrollView>
   );
@@ -207,12 +209,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 24, maxWidth: 900 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
-  hint: { fontSize: 12, color: colors.mutedForeground },
 
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   overallCard: {
     width: 150,
-    borderRadius: 16,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.primary,
     backgroundColor: colors.card,
@@ -220,6 +221,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
+    ...cardShadow,
   },
   overallLabel: { fontSize: 11, color: colors.primary, fontWeight: '700', letterSpacing: 1 },
   overallScore: { fontSize: 28, fontWeight: '800', color: colors.foreground },
@@ -228,13 +230,14 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   headlineCard: {
     flex: 1,
     minWidth: 220,
-    borderRadius: 16,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 14,
     gap: 6,
     justifyContent: 'center',
+    ...cardShadow,
   },
   headlineTop: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   headlineTitle: { fontSize: 15, fontWeight: '700', color: colors.foreground },
@@ -245,13 +248,14 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   distributionCard: {
     minWidth: 220,
     flex: 1,
-    borderRadius: 16,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 14,
     gap: 6,
     justifyContent: 'center',
+    ...cardShadow,
   },
   distRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   distLabel: { width: 24, fontSize: 12, color: colors.mutedForeground },
@@ -266,12 +270,13 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   categoryCard: {
     width: 190,
-    borderRadius: 14,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 12,
     gap: 4,
+    ...cardShadow,
   },
   categoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   categoryScore: { fontSize: 16, fontWeight: '700', color: colors.primary },
@@ -298,12 +303,13 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
 
   list: { gap: 12 },
   reviewCard: {
-    borderRadius: 14,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 14,
     gap: 6,
+    ...cardShadow,
   },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   reviewerName: { color: colors.foreground, fontWeight: '600', fontSize: 14 },

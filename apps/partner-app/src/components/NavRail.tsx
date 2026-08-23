@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { UtensilsCrossed } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useLanguage } from '../i18n/LanguageContext';
 import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
 import { useAuth } from '../lib/AuthContext';
+import { BrandMark } from './BrandMark';
 
 interface NavRailProps {
   active: ScreenKey;
@@ -23,9 +23,7 @@ export function NavRail({ active, badges, onSelect }: NavRailProps) {
 
   return (
     <View style={styles.rail}>
-      <View style={styles.brandBadge}>
-        <UtensilsCrossed size={18} color={colors.primaryForeground} />
-      </View>
+      <BrandMark size={34} />
       <ScrollView style={styles.nav} contentContainerStyle={styles.navContent} showsVerticalScrollIndicator={false}>
         {visibleItems.map((item) => {
           const isActive = item.key === active;
@@ -65,18 +63,7 @@ const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create(
     shadowOffset: { width: isRTL ? -4 : 4, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
-  },
-  brandBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    elevation: 8,
   },
   nav: { flex: 1, alignSelf: 'stretch' },
   navContent: { alignItems: 'center', gap: 4 },

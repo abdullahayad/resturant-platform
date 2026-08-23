@@ -6,6 +6,9 @@ import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
+import { EmptyState } from '../components/EmptyState';
+import { UtensilsCrossed } from 'lucide-react-native';
+import { radii, cardShadow } from '../theme/tokens';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Dish, type MasterDataItem } from '../lib/api';
 
@@ -233,7 +236,7 @@ export function MenuManagementScreen() {
             </View>
           </View>
         ))}
-        {dishes.length === 0 && !loadError && <Text style={styles.hint}>{t('noDishesYet')}</Text>}
+        {dishes.length === 0 && !loadError && <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} />}
       </View>
     </ScrollView>
   );
@@ -244,12 +247,13 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
   formCard: {
-    borderRadius: 16,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 16,
     gap: 12,
+    ...cardShadow,
   },
   formTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   row: { flexDirection: 'row', gap: 12 },

@@ -13,6 +13,7 @@ import { SignInScreen } from './src/screens/auth/SignInScreen';
 import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
 import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
+import { BrandMark } from './src/components/BrandMark';
 
 type View = 'landing' | 'register' | 'signIn';
 type Session = StoredSession;
@@ -56,7 +57,8 @@ function AppContent() {
   if (!bootstrapped) {
     return (
       <SafeAreaView style={[styles.root, styles.centered]}>
-        <ActivityIndicator color={colors.primary} />
+        <BrandMark size={56} />
+        <ActivityIndicator color={colors.primary} style={styles.bootSpinner} />
       </SafeAreaView>
     );
   }
@@ -105,4 +107,5 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
     centered: { alignItems: 'center', justifyContent: 'center' },
+    bootSpinner: { marginTop: 20 },
   });

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Inbox } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Announcement } from '../lib/api';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
+import { radii, cardShadow } from '../theme/tokens';
 
 export function AnnouncementsScreen() {
   const { token } = useAuth();
@@ -50,11 +54,7 @@ export function AnnouncementsScreen() {
   };
 
   if (announcements === null) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -95,24 +95,23 @@ export function AnnouncementsScreen() {
         </View>
       ))}
 
-      {announcements.length === 0 && <Text style={styles.hint}>{t('noAnnouncementsYet')}</Text>}
+      {announcements.length === 0 && <EmptyState icon={Inbox} message={t('noAnnouncementsYet')} />}
     </ScrollView>
   );
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { gap: 12, paddingBottom: 24 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   subtitle: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  hint: { fontSize: 12, color: colors.mutedForeground },
   card: {
-    borderRadius: 14,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 16,
     gap: 4,
+    ...cardShadow,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   cardTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground, flex: 1 },

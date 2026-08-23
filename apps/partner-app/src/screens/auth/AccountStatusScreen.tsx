@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Clock, XCircle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
@@ -21,10 +22,17 @@ export function AccountStatusScreen({ restaurant, onSignOut }: AccountStatusScre
   const { t } = useTranslation('auth');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const keys = copyKeys[restaurant.status] ?? copyKeys.PENDING_REVIEW;
+  const isPending = restaurant.status === 'PENDING_REVIEW';
+  const StatusIcon = isPending ? Clock : XCircle;
+  const statusColor = isPending ? colors.primary : colors.destructive;
+  const statusTint = isPending ? colors.primaryTint15 : colors.destructiveTint15;
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
+        <View style={[styles.statusBadge, { backgroundColor: statusTint }]}>
+          <StatusIcon size={26} color={statusColor} />
+        </View>
         <Text style={styles.title}>{t(keys.title)}</Text>
         <Text style={styles.name}>{restaurant.nameEn} · {restaurant.nameAr}</Text>
         <Text style={styles.body}>{t(keys.body)}</Text>
@@ -53,6 +61,20 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.border,
     padding: 28,
     gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
+    elevation: 12,
+  },
+  statusBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 4,
   },
   title: { fontSize: 20, fontWeight: '700', color: colors.primary, textAlign: 'center' },
   name: { fontSize: 14, color: colors.foreground, textAlign: 'center' },

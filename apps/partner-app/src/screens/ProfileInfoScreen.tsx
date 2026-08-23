@@ -8,6 +8,7 @@ import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { MapPinPicker } from '../components/MapPinPicker';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type MasterDataItem, type OpeningHoursDay, type Province, type RestaurantDetail, type Story } from '../lib/api';
 
@@ -172,11 +173,7 @@ export function ProfileInfoScreen() {
   };
 
   if (!detail && !loadError) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -349,7 +346,6 @@ export function ProfileInfoScreen() {
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { padding: 4, gap: 20, maxWidth: 640 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
   section: {

@@ -8,6 +8,7 @@ import { useLanguage } from '../../i18n/LanguageContext';
 import { FormField } from '../../components/FormField';
 import { ChipSelect } from '../../components/ChipSelect';
 import { LegalDocumentModal } from '../../components/LegalDocumentModal';
+import { BrandMark } from '../../components/BrandMark';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../lib/legalContent';
 import { api, type MasterDataItem, type Province } from '../../lib/api';
 
@@ -92,6 +93,9 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
     return (
       <View style={styles.centered}>
         <View style={styles.card}>
+          <View style={styles.badgeWrap}>
+            <BrandMark size={44} />
+          </View>
           <Text style={styles.successTitle}>{t('register.successTitle')}</Text>
           <Text style={styles.successBody}>{t('register.successBody')}</Text>
           <Pressable style={[styles.button, styles.primaryButton]} onPress={onRegistered}>
@@ -108,6 +112,9 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
         <BackIcon size={14} color={colors.mutedForeground} />
         <Text style={styles.back}>{t('common:actions.back')}</Text>
       </Pressable>
+      <View style={styles.badgeWrap}>
+        <BrandMark size={44} />
+      </View>
       <Text style={styles.title}>{t('register.title')}</Text>
       <Text style={styles.subtitle}>{t('register.subtitle')}</Text>
 
@@ -202,8 +209,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { padding: 24, gap: 16, maxWidth: 560, width: '100%', alignSelf: 'center' },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
   back: { color: colors.mutedForeground, fontSize: 14 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.primary },
-  subtitle: { fontSize: 13, color: colors.mutedForeground, marginBottom: 8 },
+  badgeWrap: { alignSelf: 'center', marginBottom: 4 },
+  title: { fontSize: 20, fontWeight: '700', color: colors.primary, textAlign: 'center' },
+  subtitle: { fontSize: 13, color: colors.mutedForeground, marginBottom: 8, textAlign: 'center' },
   section: { gap: 8 },
   sectionLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 4 },
@@ -222,7 +230,14 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   termsLink: { color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.5 },
-  primaryButton: { backgroundColor: colors.primary },
+  primaryButton: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
@@ -235,6 +250,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.border,
     padding: 28,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
+    elevation: 12,
   },
   successTitle: { fontSize: 20, fontWeight: '700', color: colors.primary, textAlign: 'center' },
   successBody: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },

@@ -6,6 +6,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { FormField } from '../../components/FormField';
+import { BrandMark } from '../../components/BrandMark';
 import { api, type AuthenticatedRestaurant, type StaffSession } from '../../lib/api';
 
 interface SignInScreenProps {
@@ -44,6 +45,9 @@ export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
           <BackIcon size={14} color={colors.mutedForeground} />
           <Text style={styles.back}>{t('common:actions.back')}</Text>
         </Pressable>
+        <View style={styles.badgeWrap}>
+          <BrandMark size={44} />
+        </View>
         <Text style={styles.title}>{t('signIn.title')}</Text>
 
         <FormField
@@ -104,10 +108,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.35,
     shadowRadius: 32,
+    elevation: 12,
   },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
   back: { color: colors.mutedForeground, fontSize: 14 },
-  title: { fontSize: 20, fontWeight: '700', color: colors.primary, marginBottom: 8 },
+  badgeWrap: { alignSelf: 'center', marginBottom: 4 },
+  title: { fontSize: 20, fontWeight: '700', color: colors.primary, marginBottom: 8, textAlign: 'center' },
   button: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   primaryButton: {
     backgroundColor: colors.primary,
@@ -115,6 +121,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 10,
+    elevation: 4,
   },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },

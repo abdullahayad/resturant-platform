@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Users } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
+import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type RestaurantDetail, type StaffMember, type StaffRole } from '../lib/api';
+import { cardShadow } from '../theme/tokens';
 
 export function SettingsStaffScreen() {
   const { token, setToken, staff: authStaff } = useAuth();
@@ -231,7 +234,7 @@ export function SettingsStaffScreen() {
               </View>
             </View>
           ))}
-          {staffList.length === 0 && <Text style={styles.hint}>{t('noStaffInvitedYet')}</Text>}
+          {staffList.length === 0 && <EmptyState icon={Users} message={t('noStaffInvitedYet')} />}
 
           <View style={styles.inviteForm}>
             <Text style={styles.inviteTitle}>{t('inviteStaff')}</Text>
@@ -287,6 +290,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
     padding: 16,
+    ...cardShadow,
   },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   sectionHint: { fontSize: 12, color: colors.mutedForeground, marginTop: -6 },
@@ -295,7 +299,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
   error: { color: colors.destructive, fontSize: 13 },
   success: { color: colors.success, fontSize: 13 },
-  hint: { color: colors.mutedForeground, fontSize: 13 },
 
   prefRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   prefLabelBlock: { flex: 1 },

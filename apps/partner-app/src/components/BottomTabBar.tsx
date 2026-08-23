@@ -63,6 +63,7 @@ const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create(
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
+    elevation: 8,
   },
   content: { paddingHorizontal: 8, gap: 4 },
   tab: { width: 84, alignItems: 'center', gap: 3, paddingVertical: 4 },

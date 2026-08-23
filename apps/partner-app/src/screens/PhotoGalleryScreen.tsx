@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
+import { ImageOff } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
+import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import {
   api,
@@ -126,7 +128,7 @@ export function PhotoGalleryScreen() {
           </Pressable>
         </View>
       ))}
-      {list.length === 0 && <Text style={styles.hint}>{t('noPhotosYet')}</Text>}
+      {list.length === 0 && <EmptyState icon={ImageOff} message={t('noPhotosYet')} />}
     </View>
   );
 
@@ -194,7 +196,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 16, paddingBottom: 24 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
-  hint: { fontSize: 12, color: colors.mutedForeground },
   fieldLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
   albumTabs: { flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 12 },
   albumTab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10 },
