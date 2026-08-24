@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import type { ThemeColors } from './src/theme/colors';
@@ -13,9 +13,9 @@ import { SignInScreen } from './src/screens/auth/SignInScreen';
 import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
 import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
-import { BrandMark } from './src/components/BrandMark';
+import { IntroOverlay } from './src/components/IntroOverlay';
 
-type View = 'landing' | 'register' | 'signIn';
+type AuthView = 'landing' | 'register' | 'signIn';
 type Session = StoredSession;
 
 export default function App() {
@@ -33,9 +33,10 @@ export default function App() {
 function AppContent() {
   const { colors, theme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [view, setView] = useState<View>('landing');
+  const [view, setView] = useState<AuthView>('landing');
   const [session, setSession] = useState<Session | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
+  const [introVisible, setIntroVisible] = useState(true);
 
   useEffect(() => {
     getStoredSession().then((stored) => {
@@ -54,18 +55,13 @@ function AppContent() {
     setView('landing');
   };
 
-  if (!bootstrapped) {
-    return (
-      <SafeAreaView style={[styles.root, styles.centered]}>
-        <BrandMark size={56} />
-        <ActivityIndicator color={colors.primary} style={styles.bootSpinner} />
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.root}>
-      {session ? (
+      {!bootstrapped ? (
+        <View style={[styles.root, styles.centered]}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : session ? (
         session.restaurant.status === 'APPROVED' ? (
           <AuthContext.Provider
             value={{
@@ -98,6 +94,7 @@ function AppContent() {
           )}
         </>
       )}
+      {introVisible && <IntroOverlay onDone={() => setIntroVisible(false)} />}
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
     </SafeAreaView>
   );
@@ -107,5 +104,4 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
     centered: { alignItems: 'center', justifyContent: 'center' },
-    bootSpinner: { marginTop: 20 },
   });
