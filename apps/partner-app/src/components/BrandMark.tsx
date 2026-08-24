@@ -1,37 +1,28 @@
-import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { UtensilsCrossed } from 'lucide-react-native';
-import { useTheme } from '../theme/ThemeContext';
-import type { ThemeColors } from '../theme/colors';
+import { Image, StyleSheet } from 'react-native';
 
 interface BrandMarkProps {
   size?: number;
 }
 
 /** The app's brand mark, used everywhere branding appears in the UI chrome (nav, auth screens,
- * boot screen). Centralized so swapping in a real logo image later is a one-file change instead
- * of editing every place it's rendered. */
+ * boot screen). Renders just the pin symbol from the LiQETA logo — a compact square badge can't
+ * fit the full wordmark legibly, unlike the native app icon which uses the full logo. */
 export function BrandMark({ size = 40 }: BrandMarkProps) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const iconSize = Math.round(size * 0.46);
-  const radius = Math.round(size * 0.28);
   return (
-    <View style={[styles.badge, { width: size, height: size, borderRadius: radius }]}>
-      <UtensilsCrossed size={iconSize} color={colors.primaryForeground} />
-    </View>
+    <Image
+      source={require('../../assets/logo-pin-mark.png')}
+      style={[styles.mark, { width: size, height: size }]}
+      resizeMode="contain"
+    />
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  badge: {
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 6,
+const styles = StyleSheet.create({
+  mark: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });

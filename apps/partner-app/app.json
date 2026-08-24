@@ -12,9 +12,8 @@
     "android": {
       "package": "iq.restaurantplatform.partnerapp",
       "adaptiveIcon": {
-        "backgroundColor": "#212328",
+        "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -52,9 +51,18 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/android-icon-monochrome.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#d99a4e",
           "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 260,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
         }
       ]
     ],
