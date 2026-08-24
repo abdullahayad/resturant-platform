@@ -20,6 +20,7 @@ const DISPLAY_HEIGHT = SOURCE_HEIGHT * SCALE;
 
 const DROP_START_Y = -160;
 const STAGGER_MS = 180;
+const LEAD_IN_MS = 2000;
 
 /** Drop from above, bounce twice (a big bounce then a smaller one), then settle at rest. */
 function dropWithBounce(value: Animated.Value, delay: number, onComplete?: () => void) {
@@ -33,11 +34,12 @@ function dropWithBounce(value: Animated.Value, delay: number, onComplete?: () =>
   ]).start(onComplete);
 }
 
-/** Full-screen brand intro shown right after the native splash hands off to JS: white page,
- * then "Li", "Q", and "ETA" drop in one after another (each bouncing twice before settling),
- * then the assembled wordmark holds before fading into the app. The native splash itself has to
- * stay brief (Android 12+ won't reliably hold it open on request), so this is what actually
- * delivers the full intro sequence, under our own control. */
+/** Full-screen brand intro shown right after the native splash hands off to JS: plain white for
+ * LEAD_IN_MS, then "Li", "Q", and "ETA" drop in one after another (each bouncing twice before
+ * settling), then the assembled wordmark holds before fading into the app. The native splash
+ * itself is configured with no image at all (just white) — Android 12+ won't reliably hold it
+ * open on request and its splash-icon rendering center-crops wide art, so all the actual logo
+ * presentation happens here instead, under our own control. */
 export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverlayProps) {
   const opacity = useRef(new Animated.Value(1)).current;
   const dropY = useRef(SEGMENTS.map(() => new Animated.Value(DROP_START_Y))).current;
@@ -45,7 +47,7 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
   useEffect(() => {
     SEGMENTS.forEach((_, i) => {
       const isLast = i === SEGMENTS.length - 1;
-      dropWithBounce(dropY[i], i * STAGGER_MS, isLast ? finishIntro : undefined);
+      dropWithBounce(dropY[i], LEAD_IN_MS + i * STAGGER_MS, isLast ? finishIntro : undefined);
     });
 
     function finishIntro() {
