@@ -90,5 +90,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 999,
   },
-  row: { flexDirection: 'row', alignItems: 'center' },
+  // Brand wordmark stays fixed left-to-right regardless of app language — without this,
+  // flexDirection:'row' auto-mirrors under RTL and reorders the pieces to ETA/Q/Li.
+  row: { flexDirection: 'row', alignItems: 'center', direction: 'ltr' },
 });
