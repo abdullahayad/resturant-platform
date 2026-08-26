@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PushService } from '../push/push.service';
 import type { CreateEventDto, UpdateEventDto } from './dto/event.dto';
 import type { CreateReservationDto, UpdateReservationStatusDto } from './dto/reservation.dto';
 
@@ -40,7 +41,10 @@ const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED'] as const;
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
   list(restaurantId: string) {
     return this.prisma.db.restaurantEvent.findMany({
@@ -160,7 +164,7 @@ export class EventsService {
   private async findBookableEvent(restaurantId: string, eventId: string) {
     const event = await this.prisma.db.restaurantEvent.findUnique({
       where: { id: eventId },
-      include: { restaurant: { select: { status: true } } },
+      include: { restaurant: { select: { status: true, notifyNewBooking: true } } },
     });
     if (
       !event ||
@@ -208,7 +212,7 @@ export class EventsService {
     const event = await this.findBookableEvent(restaurantId, eventId);
     this.assertValidOccurrence(event, dto.reservationDate);
 
-    return this.prisma.db.$transaction(
+    const reservation = await this.prisma.db.$transaction(
       async (tx) => {
         if (event.capacity != null) {
           const { start, end } = this.dayBounds(dto.reservationDate);
@@ -237,6 +241,17 @@ export class EventsService {
       },
       { isolationLevel: 'Serializable' },
     );
+
+    if (event.restaurant.notifyNewBooking) {
+      this.push
+        .sendToRestaurants(
+          [restaurantId],
+          'New reservation request',
+          `${dto.guestName} · ${dto.partySize} guests · ${event.titleEn}`,
+        )
+        .catch(() => {});
+    }
+    return reservation;
   }
 
   listReservations(restaurantId: string) {

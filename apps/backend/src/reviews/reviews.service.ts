@@ -1,22 +1,26 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PushService } from '../push/push.service';
 import type { CreateReviewDto, ModerateReviewDto } from './dto/review.dto';
 
 const withReply = { reply: true } as const;
 
 @Injectable()
 export class ReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
   async createForRestaurant(restaurantId: string, dto: CreateReviewDto) {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { id: restaurantId },
-      select: { status: true },
+      select: { status: true, notifyNewReview: true },
     });
     if (!restaurant || restaurant.status !== 'APPROVED') {
       throw new BadRequestException('Restaurant is not open for reviews');
     }
-    return this.prisma.db.review.create({
+    const review = await this.prisma.db.review.create({
       data: {
         restaurantId,
         reviewerName: dto.reviewerName,
@@ -29,6 +33,12 @@ export class ReviewsService {
       },
       include: withReply,
     });
+    if (restaurant.notifyNewReview) {
+      this.push
+        .sendToRestaurants([restaurantId], 'New review', `${dto.reviewerName} left a ${dto.rating}★ review`)
+        .catch(() => {});
+    }
+    return review;
   }
 
   listForRestaurant(restaurantId: string) {
