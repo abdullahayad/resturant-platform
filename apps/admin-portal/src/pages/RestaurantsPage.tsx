@@ -10,6 +10,7 @@ import {
   type RestaurantStatus,
 } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { downloadCsv } from '@/lib/csv'
 import { Switch } from '@/components/Switch'
 
 const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
@@ -85,6 +86,42 @@ export function RestaurantsPage() {
 
   const selectedProvince = provinces.find((p) => p.id === provinceId)
 
+  // Exports exactly what's currently on screen — respects whatever
+  // status/city/category/search filters are applied at the time.
+  const exportCsv = () => {
+    downloadCsv(
+      `restaurants-${new Date().toISOString().slice(0, 10)}.csv`,
+      restaurants.map((r) => ({
+        codeNumber: r.codeNumber,
+        nameEn: r.nameEn,
+        nameAr: r.nameAr,
+        status: r.status,
+        phone: r.phone,
+        ownerEmail: r.ownerEmail,
+        province: r.province?.nameEn ?? '',
+        district: r.district?.nameEn ?? '',
+        statsVisible: r.statsVisible ? 'Yes' : 'No',
+        createdAt: r.createdAt,
+        reviewedAt: r.reviewedAt ?? '',
+        rejectionReason: r.rejectionReason ?? '',
+      })),
+      [
+        { key: 'codeNumber', label: 'Code' },
+        { key: 'nameEn', label: 'Name (EN)' },
+        { key: 'nameAr', label: 'Name (AR)' },
+        { key: 'status', label: 'Status' },
+        { key: 'phone', label: 'Phone' },
+        { key: 'ownerEmail', label: 'Owner Email' },
+        { key: 'province', label: 'Province' },
+        { key: 'district', label: 'District' },
+        { key: 'statsVisible', label: 'Stats Visible to Partner' },
+        { key: 'createdAt', label: 'Registered At' },
+        { key: 'reviewedAt', label: 'Reviewed At' },
+        { key: 'rejectionReason', label: 'Rejection Reason' },
+      ],
+    )
+  }
+
   const toggleExpand = async (id: string) => {
     if (expandedId === id) {
       setExpandedId(null)
@@ -131,11 +168,20 @@ export function RestaurantsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Restaurants</h1>
-        <p className="text-sm text-muted-foreground">
-          View any restaurant's full profile, and switch a live listing active or inactive.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Restaurants</h1>
+          <p className="text-sm text-muted-foreground">
+            View any restaurant's full profile, and switch a live listing active or inactive.
+          </p>
+        </div>
+        <button
+          onClick={exportCsv}
+          disabled={restaurants.length === 0}
+          className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground hover:bg-secondary disabled:opacity-50"
+        >
+          Export CSV ({restaurants.length})
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-2 border-b border-border pb-3">
