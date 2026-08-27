@@ -25,7 +25,7 @@
   },
   "signOut": "Sign Out",
   "loading": "Loading…",
-  "networkError": "Could not reach the server. Is the backend running on localhost:3000?",
+  "networkError": "Could not reach the server. Check your connection and try again.",
   "soon": "Soon",
   "lastUpdated": "Last updated {{date}}",
   "announcementBanner": {
