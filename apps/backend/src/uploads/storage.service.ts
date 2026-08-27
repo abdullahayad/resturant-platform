@@ -37,6 +37,11 @@ function requireStorageCredential(name: string): string {
 export class StorageService implements OnModuleInit {
   private readonly bucket = process.env.STORAGE_BUCKET ?? 'restaurant-platform';
   private readonly endpoint = process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000';
+  // Providers like Cloudflare R2 serve public reads from a different host
+  // than the S3 API endpoint used to write objects (a dedicated public
+  // bucket URL, not the account's S3 API domain) — MinIO doesn't have that
+  // split, so this just falls back to `endpoint` when unset.
+  private readonly publicUrl = process.env.STORAGE_PUBLIC_URL ?? this.endpoint;
 
   private readonly client = new S3Client({
     endpoint: this.endpoint,
@@ -94,6 +99,12 @@ export class StorageService implements OnModuleInit {
         ContentType: contentType,
       }),
     );
-    return { url: `${this.endpoint}/${this.bucket}/${key}`, key };
+    // A dedicated public URL (R2's pub-*.r2.dev, a custom domain, etc.) is
+    // already scoped to this one bucket — no bucket segment in the path.
+    // The path-style S3 endpoint fallback (MinIO) needs it included.
+    const url = process.env.STORAGE_PUBLIC_URL
+      ? `${this.publicUrl}/${key}`
+      : `${this.publicUrl}/${this.bucket}/${key}`;
+    return { url, key };
   }
 }

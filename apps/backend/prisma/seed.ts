@@ -11,6 +11,9 @@ const db = new PrismaClient({
 
 const storageBucket = process.env.STORAGE_BUCKET ?? 'restaurant-platform';
 const storageEndpoint = process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000';
+// See storage.service.ts — providers like R2 serve public reads from a
+// different host than the S3 API endpoint used to write objects.
+const storagePublicUrl = process.env.STORAGE_PUBLIC_URL ?? storageEndpoint;
 const s3 = new S3Client({
   endpoint: storageEndpoint,
   region: process.env.STORAGE_REGION ?? 'us-east-1',
@@ -32,7 +35,7 @@ async function uploadPlaceholder(key: string): Promise<string> {
   await s3.send(
     new PutObjectCommand({ Bucket: storageBucket, Key: key, Body: buffer, ContentType: 'image/jpeg' }),
   );
-  return `${storageEndpoint}/${storageBucket}/${key}`;
+  return process.env.STORAGE_PUBLIC_URL ? `${storagePublicUrl}/${key}` : `${storagePublicUrl}/${storageBucket}/${key}`;
 }
 
 const businessTypes = [
