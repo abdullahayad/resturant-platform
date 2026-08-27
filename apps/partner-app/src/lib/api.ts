@@ -1,11 +1,12 @@
 import { Platform } from 'react-native';
 
-// Web (incl. this app's Playwright-based dev testing) reaches the backend via
-// localhost same as always. A native build (the APK) runs on a separate
-// device, so it needs the dev machine's LAN IP instead — update this if that
-// IP changes, or point it at a real deployed backend for anything beyond a
-// same-network test build.
-export const API_BASE_URL = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.68.59:3000';
+// Web (incl. this app's Playwright-based dev testing) keeps talking to the
+// local dev backend on localhost, for fast local iteration. Native builds
+// (the APK, installed on real phones for public testing) point at the real
+// hosted backend instead of the dev machine's LAN IP — that address moved
+// four times in one session from DHCP renewals; a real deployed URL doesn't.
+export const API_BASE_URL =
+  Platform.OS === 'web' ? 'http://localhost:3000' : 'https://restuarant-portal-liqeta-app.onrender.com';
 
 export interface MasterDataItem {
   id: string;
