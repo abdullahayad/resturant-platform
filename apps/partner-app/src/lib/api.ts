@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 // device, so it needs the dev machine's LAN IP instead — update this if that
 // IP changes, or point it at a real deployed backend for anything beyond a
 // same-network test build.
-export const API_BASE_URL = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.68.74:3000';
+export const API_BASE_URL = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.68.59:3000';
 
 export interface MasterDataItem {
   id: string;
