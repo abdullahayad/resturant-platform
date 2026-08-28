@@ -254,6 +254,12 @@ model Restaurant {
   tokenVersion      Int       @default(0) // bumped on password change to invalidate previously issued JWTs
   termsAcceptedAt   DateTime? // set at registration when the owner checks the terms/privacy agreement
 
+  // Forgot-password: a hash of the emailed 6-digit code, never the code
+  // itself, same reasoning as ownerPasswordHash — cleared on successful
+  // reset or once expired.
+  passwordResetCodeHash  String?
+  passwordResetExpiresAt DateTime?
+
   // Notification preferences (Settings & Staff)
   notifyNewReview  Boolean @default(true)
   notifyNewBooking Boolean @default(true)

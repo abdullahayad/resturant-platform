@@ -7,6 +7,9 @@ import type { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import type { DayHoursDto } from './dto/opening-hours.dto';
+import type { ForgotPasswordDto } from './dto/forgot-password.dto';
+import type { ResetPasswordDto } from './dto/reset-password.dto';
+import { EmailService } from '../email/email.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const restaurantListSelect = {
@@ -44,6 +47,7 @@ export class RestaurantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly email: EmailService,
   ) {}
 
   private async generateUniqueCode(): Promise<string> {
@@ -273,6 +277,55 @@ export class RestaurantsService {
       staffRole: updated.role,
     });
     return { success: true, accessToken };
+  }
+
+  // Always returns the same generic response whether or not the email
+  // matches an account — an email-enumeration endpoint would let anyone
+  // probe which restaurant owner emails are registered.
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { ownerEmail: dto.email },
+      select: { id: true },
+    });
+    if (restaurant) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const passwordResetCodeHash = await bcrypt.hash(code, 10);
+      const passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      await this.prisma.db.restaurant.update({
+        where: { id: restaurant.id },
+        data: { passwordResetCodeHash, passwordResetExpiresAt },
+      });
+      await this.email.send(
+        dto.email,
+        'Reset your Restaurant Partner Portal password',
+        `<p>Your password reset code is:</p><h1 style="letter-spacing:4px">${code}</h1><p>This code expires in 15 minutes. If you didn't request this, you can safely ignore this email.</p>`,
+      );
+    }
+    return { success: true };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({ where: { ownerEmail: dto.email } });
+    const codeValid =
+      restaurant?.passwordResetCodeHash &&
+      restaurant.passwordResetExpiresAt &&
+      restaurant.passwordResetExpiresAt > new Date() &&
+      (await bcrypt.compare(dto.code, restaurant.passwordResetCodeHash));
+    if (!restaurant || !codeValid) {
+      throw new BadRequestException('Invalid or expired code');
+    }
+
+    const ownerPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.db.restaurant.update({
+      where: { id: restaurant.id },
+      data: {
+        ownerPasswordHash,
+        tokenVersion: { increment: 1 },
+        passwordResetCodeHash: null,
+        passwordResetExpiresAt: null,
+      },
+    });
+    return { success: true };
   }
 
   async updateNotificationPrefs(id: string, dto: UpdateNotificationPrefsDto) {

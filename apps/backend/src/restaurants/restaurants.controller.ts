@@ -1,9 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { RestaurantsService } from './restaurants.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
 import { ListRestaurantsQuery, RejectRestaurantDto } from './dto/update-restaurant-status.dto';
 import { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
@@ -21,6 +24,21 @@ export class RestaurantsController {
   @Post()
   register(@Body() dto: RegisterRestaurantDto) {
     return this.restaurants.register(dto);
+  }
+
+  // Public, unauthenticated — tightly throttled since both let an anonymous
+  // caller trigger side effects (an email send, a password change) keyed
+  // only on an email address they don't have to prove they own up front.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.restaurants.forgotPassword(dto);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.restaurants.resetPassword(dto);
   }
 
   @UseGuards(PartnerAuthGuard)
