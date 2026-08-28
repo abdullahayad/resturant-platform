@@ -41,6 +41,7 @@ export function PhotoGalleryScreen() {
   const [ambienceTab, setAmbienceTab] = useState<AmbienceSubCategory>('OUTDOOR');
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadAll = useCallback(() => {
@@ -91,6 +92,11 @@ export function PhotoGalleryScreen() {
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
+    // Show the picked photo immediately from the device's own copy — the
+    // upload round-trip (device -> backend -> R2) can take several seconds,
+    // and waiting for that before showing anything reads as "nothing
+    // happened" rather than "uploading".
+    setLocalPreview(asset.uri);
     setUploading(true);
     try {
       const { url } = await api.uploadFile(token, {
@@ -109,6 +115,7 @@ export function PhotoGalleryScreen() {
       setError(err instanceof Error ? err.message : t('uploadFailed'));
     } finally {
       setUploading(false);
+      setLocalPreview(null);
     }
   };
 
@@ -119,6 +126,14 @@ export function PhotoGalleryScreen() {
 
   const renderGrid = (list: GalleryPhoto[]) => (
     <View style={styles.grid}>
+      {localPreview && (
+        <View style={styles.photoCard}>
+          <Image source={{ uri: localPreview }} style={styles.photoImage} />
+          <View style={styles.photoUploadingOverlay}>
+            <ActivityIndicator color="#fff" />
+          </View>
+        </View>
+      )}
       {list.map((photo) => (
         <View key={photo.id} style={styles.photoCard}>
           <Image source={{ uri: photo.url }} style={styles.photoImage} />
@@ -128,7 +143,7 @@ export function PhotoGalleryScreen() {
           </Pressable>
         </View>
       ))}
-      {list.length === 0 && <EmptyState icon={ImageOff} message={t('noPhotosYet')} />}
+      {list.length === 0 && !localPreview && <EmptyState icon={ImageOff} message={t('noPhotosYet')} />}
     </View>
   );
 
@@ -208,6 +223,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   photoCard: {
+    position: 'relative',
     width: 160,
     borderRadius: 12,
     borderWidth: 1,
@@ -218,6 +234,16 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 4,
   },
   photoImage: { width: '100%', height: 120, borderRadius: 8, backgroundColor: colors.secondary },
+  photoUploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   photoCaption: { fontSize: 12, color: colors.foreground },
   removeLink: { fontSize: 12, color: colors.destructive },
 });

@@ -12,9 +12,10 @@ import { api, type AuthenticatedRestaurant, type StaffSession } from '../../lib/
 interface SignInScreenProps {
   onBack: () => void;
   onSignedIn: (token: string, restaurant: AuthenticatedRestaurant, staff?: StaffSession) => void;
+  onForgotPassword: () => void;
 }
 
-export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
+export function SignInScreen({ onBack, onSignedIn, onForgotPassword }: SignInScreenProps) {
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
   const { t } = useTranslation('auth');
@@ -65,6 +66,10 @@ export function SignInScreen({ onBack, onSignedIn }: SignInScreenProps) {
           secureTextEntry
           placeholder={t('signIn.passwordPlaceholder')}
         />
+
+        <Pressable onPress={onForgotPassword} style={styles.forgotLink}>
+          <Text style={styles.forgotLinkText}>{t('signIn.forgotPassword')}</Text>
+        </Pressable>
 
         {error && <Text style={styles.error}>{error}</Text>}
 
@@ -125,6 +130,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },
+  forgotLink: { alignSelf: 'flex-end' },
+  forgotLinkText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   devLink: { marginTop: 8, alignItems: 'center' },
   devLinkText: { color: colors.mutedForeground, fontSize: 12, textDecorationLine: 'underline' },
 });

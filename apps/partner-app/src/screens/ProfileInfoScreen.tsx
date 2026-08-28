@@ -47,6 +47,7 @@ export function ProfileInfoScreen() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [uploadingStory, setUploadingStory] = useState(false);
+  const [localStoryPreview, setLocalStoryPreview] = useState<string | null>(null);
   const [savingHours, setSavingHours] = useState(false);
   const [hoursMessage, setHoursMessage] = useState<string | null>(null);
 
@@ -154,6 +155,11 @@ export function ProfileInfoScreen() {
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
+    // Show the picked photo immediately from the device's own copy — the
+    // upload round-trip (device -> backend -> R2) can take several seconds,
+    // and waiting for that before showing anything reads as "nothing
+    // happened" rather than "uploading".
+    setLocalStoryPreview(asset.uri);
     setUploadingStory(true);
     try {
       const { url } = await api.uploadFile(token, {
@@ -169,6 +175,7 @@ export function ProfileInfoScreen() {
       setSaveMessage(err instanceof Error ? err.message : t('storyUploadFailed'));
     } finally {
       setUploadingStory(false);
+      setLocalStoryPreview(null);
     }
   };
 
@@ -311,10 +318,18 @@ export function ProfileInfoScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('sections.story')}</Text>
-        {stories.length === 0 ? (
+        {stories.length === 0 && !localStoryPreview ? (
           <Text style={styles.hint}>{t('noActiveStory')}</Text>
         ) : (
           <View style={styles.storyRow}>
+            {localStoryPreview && (
+              <View style={styles.storyCard}>
+                <Image source={{ uri: localStoryPreview }} style={styles.storyImage} />
+                <View style={styles.storyUploadingOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              </View>
+            )}
             {stories.map((s) => (
               <View key={s.id} style={styles.storyCard}>
                 <Image source={{ uri: s.mediaUrl }} style={styles.storyImage} />
@@ -369,6 +384,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   saveMessage: { fontSize: 13, color: colors.success },
   storyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   storyCard: {
+    position: 'relative',
     width: 140,
     borderRadius: 12,
     borderWidth: 1,
@@ -377,6 +393,16 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.card,
   },
   storyImage: { width: '100%', height: 140, backgroundColor: colors.secondary },
+  storyUploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   storyCaption: { fontSize: 12, color: colors.foreground, padding: 8, paddingBottom: 0 },
   storyExpiry: { fontSize: 11, color: colors.mutedForeground, padding: 8, paddingTop: 4 },
   hoursRow: {

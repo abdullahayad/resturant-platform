@@ -10,12 +10,13 @@ import { getStoredSession, setStoredSession, type StoredSession } from './src/li
 import { AuthLandingScreen } from './src/screens/auth/AuthLandingScreen';
 import { RegisterRestaurantScreen } from './src/screens/auth/RegisterRestaurantScreen';
 import { SignInScreen } from './src/screens/auth/SignInScreen';
+import { ForgotPasswordScreen } from './src/screens/auth/ForgotPasswordScreen';
 import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
 import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
 import { IntroOverlay } from './src/components/IntroOverlay';
 
-type AuthView = 'landing' | 'register' | 'signIn';
+type AuthView = 'landing' | 'register' | 'signIn' | 'forgotPassword';
 type Session = StoredSession;
 
 export default function App() {
@@ -87,7 +88,11 @@ function AppContent() {
             <SignInScreen
               onBack={() => setView('landing')}
               onSignedIn={(token, restaurant, staff) => setSession({ token, restaurant, staff })}
+              onForgotPassword={() => setView('forgotPassword')}
             />
+          )}
+          {view === 'forgotPassword' && (
+            <ForgotPasswordScreen onBack={() => setView('signIn')} onDone={() => setView('signIn')} />
           )}
           {view === 'register' && (
             <RegisterRestaurantScreen onBack={() => setView('landing')} onRegistered={() => setView('landing')} />

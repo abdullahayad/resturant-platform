@@ -27,6 +27,7 @@ export function MenuManagementScreen() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [localPhotoPreview, setLocalPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -46,9 +47,11 @@ export function MenuManagementScreen() {
     setForm(emptyForm);
     setEditingId(null);
     setFormError(null);
+    setLocalPhotoPreview(null);
   };
 
   const startEdit = (dish: Dish) => {
+    setLocalPhotoPreview(null);
     setEditingId(dish.id);
     setForm({
       nameEn: dish.nameEn,
@@ -67,6 +70,11 @@ export function MenuManagementScreen() {
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
+    // Show the picked photo immediately from the device's own copy — the
+    // upload round-trip (device -> backend -> R2) can take several seconds,
+    // and waiting for that before showing anything reads as "nothing
+    // happened" rather than "uploading".
+    setLocalPhotoPreview(asset.uri);
     setUploadingPhoto(true);
     try {
       const { url } = await api.uploadFile(token, {
@@ -77,6 +85,7 @@ export function MenuManagementScreen() {
       setForm((f) => ({ ...f, photoUrl: url }));
     } catch (err) {
       setFormError(err instanceof Error ? err.message : t('photoUploadFailed'));
+      setLocalPhotoPreview(null);
     } finally {
       setUploadingPhoto(false);
     }
@@ -161,8 +170,8 @@ export function MenuManagementScreen() {
         />
 
         <View style={styles.photoRow}>
-          {form.photoUrl ? (
-            <Image source={{ uri: form.photoUrl }} style={styles.photoPreview} />
+          {localPhotoPreview || form.photoUrl ? (
+            <Image source={{ uri: localPhotoPreview ?? form.photoUrl }} style={styles.photoPreview} />
           ) : (
             <View style={[styles.photoPreview, styles.photoPlaceholder]}>
               <Text style={styles.hint}>{t('noPhoto')}</Text>

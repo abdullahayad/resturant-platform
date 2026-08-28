@@ -405,6 +405,28 @@ export const api = {
     return data;
   },
 
+  async forgotPassword(email: string): Promise<{ success: boolean }> {
+    const res = await fetch(`${API_BASE_URL}/restaurants/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Could not send reset code');
+    return data;
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ success: boolean }> {
+    const res = await fetch(`${API_BASE_URL}/restaurants/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Invalid or expired code');
+    return data;
+  },
+
   me: (token: string) => get<RestaurantDetail>('/restaurants/me', token),
   updateMe: (token: string, payload: UpdateRestaurantProfilePayload) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me', token, payload),

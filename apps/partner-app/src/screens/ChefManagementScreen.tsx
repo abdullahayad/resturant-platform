@@ -32,12 +32,17 @@ function formFromProfile(profile: ChefProfile | null): ChefFormState {
   };
 }
 
-async function pickAndUploadPhoto(token: string): Promise<string | null> {
+// onLocalUri fires as soon as a photo is picked, before the upload starts —
+// callers use it to show the device's own copy immediately rather than
+// waiting on the full upload round-trip (device -> backend -> R2) to show
+// anything at all.
+async function pickAndUploadPhoto(token: string, onLocalUri?: (uri: string) => void): Promise<string | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) return null;
   const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
+  onLocalUri?.(asset.uri);
   const { url } = await api.uploadFile(token, {
     uri: asset.uri,
     name: asset.fileName ?? 'photo.jpg',
@@ -70,14 +75,16 @@ function ChefCard({
   const { t } = useTranslation('chefManagement');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [uploading, setUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
 
   const pickPhoto = async () => {
     setUploading(true);
     try {
-      const url = await pickAndUploadPhoto(token);
+      const url = await pickAndUploadPhoto(token, setLocalPreview);
       if (url) setForm((f) => ({ ...f, photoUrl: url }));
     } finally {
       setUploading(false);
+      setLocalPreview(null);
     }
   };
 
@@ -96,12 +103,17 @@ function ChefCard({
       <Text style={styles.cardTitle}>{title}</Text>
 
       <Pressable onPress={pickPhoto} style={styles.photoPicker}>
-        {form.photoUrl ? (
-          <Image source={{ uri: form.photoUrl }} style={styles.photoPreview} />
+        {localPreview || form.photoUrl ? (
+          <Image source={{ uri: localPreview ?? form.photoUrl }} style={styles.photoPreview} />
         ) : uploading ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
           <Text style={styles.photoPickerText}>{t('tapToAddPhoto')}</Text>
+        )}
+        {uploading && localPreview && (
+          <View style={styles.photoUploadingOverlay}>
+            <ActivityIndicator color="#fff" />
+          </View>
         )}
       </Pressable>
 
@@ -173,6 +185,7 @@ export function ChefManagementScreen() {
   const [savingSous, setSavingSous] = useState(false);
   const [savingCrew, setSavingCrew] = useState(false);
   const [uploadingCrew, setUploadingCrew] = useState(false);
+  const [localCrewPreview, setLocalCrewPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -222,10 +235,11 @@ export function ChefManagementScreen() {
   const pickCrewPhoto = async () => {
     setUploadingCrew(true);
     try {
-      const url = await pickAndUploadPhoto(token);
+      const url = await pickAndUploadPhoto(token, setLocalCrewPreview);
       if (url) setCrewPhotoUrl(url);
     } finally {
       setUploadingCrew(false);
+      setLocalCrewPreview(null);
     }
   };
 
@@ -277,12 +291,17 @@ export function ChefManagementScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{t('kitchenCrew')}</Text>
         <Pressable onPress={pickCrewPhoto} style={styles.photoPicker}>
-          {crewPhotoUrl ? (
-            <Image source={{ uri: crewPhotoUrl }} style={styles.photoPreview} />
+          {localCrewPreview || crewPhotoUrl ? (
+            <Image source={{ uri: localCrewPreview ?? crewPhotoUrl }} style={styles.photoPreview} />
           ) : uploadingCrew ? (
             <ActivityIndicator color={colors.primary} />
           ) : (
             <Text style={styles.photoPickerText}>{t('tapToAddCrewPhoto')}</Text>
+          )}
+          {uploadingCrew && localCrewPreview && (
+            <View style={styles.photoUploadingOverlay}>
+              <ActivityIndicator color="#fff" />
+            </View>
           )}
         </Pressable>
         <FormField label={t('crewCountLabel')} value={crewCount} onChangeText={setCrewCount} placeholder={t('crewCountPlaceholder')} keyboardType="numeric" />
@@ -313,6 +332,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   cardTitle: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   photoPicker: {
+    position: 'relative',
     height: 140,
     borderRadius: 10,
     borderWidth: 1,
@@ -323,6 +343,16 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     overflow: 'hidden',
   },
   photoPreview: { width: '100%', height: '100%' },
+  photoUploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   photoPickerText: { color: colors.mutedForeground, fontSize: 13 },
   awardsSection: { gap: 6 },
   awardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
