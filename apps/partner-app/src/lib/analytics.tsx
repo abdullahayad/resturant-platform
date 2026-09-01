@@ -10,7 +10,7 @@ const apiKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
 export function AnalyticsProvider({ children }: { children: ReactNode }) {
   if (!apiKey) return <>{children}</>;
   return (
-    <PostHogProvider apiKey={apiKey} options={{ host: 'https://eu.i.posthog.com' }} autocapture>
+    <PostHogProvider apiKey={apiKey} options={{ host: 'https://us.i.posthog.com' }} autocapture>
       {children}
     </PostHogProvider>
   );
