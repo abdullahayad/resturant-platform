@@ -24,7 +24,13 @@ type EventProperties = Record<string, string | number | boolean | null>;
 export function useAnalytics() {
   const posthog = usePostHog();
   return {
-    track: (event: string, properties?: EventProperties) => posthog?.capture(event, properties),
+    // Flushes immediately rather than waiting for the default batching
+    // timer/threshold — these are low-frequency, meaningful events (sign-in,
+    // registration), not high-volume traffic where batching matters.
+    track: (event: string, properties?: EventProperties) => {
+      posthog?.capture(event, properties);
+      posthog?.flush().catch(() => {});
+    },
     identify: (restaurantId: string, properties?: EventProperties) => posthog?.identify(restaurantId, properties),
   };
 }
