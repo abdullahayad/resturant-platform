@@ -251,6 +251,7 @@ export class EventsService {
           [restaurantId],
           'New reservation request',
           `${dto.guestName} · ${dto.partySize} guests · ${event.titleEn}`,
+          { screen: 'reservations' },
         )
         .catch(() => {});
     }

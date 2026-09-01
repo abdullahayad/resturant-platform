@@ -6,7 +6,8 @@ import { PushService } from '../push/push.service';
 
 describe('EventsService', () => {
   let service: EventsService;
-  let prisma: { db: Record<string, Record<string, jest.Mock>> };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed-shape mock (nested model mocks plus a bare $transaction mock)
+  let prisma: any;
 
   const restaurantId = 'r1';
   const eventId = 'e1';

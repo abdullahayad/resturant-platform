@@ -1,12 +1,9 @@
-import { Platform } from 'react-native';
-
-// Web (incl. this app's Playwright-based dev testing) keeps talking to the
-// local dev backend on localhost, for fast local iteration. Native builds
-// (the APK, installed on real phones for public testing) point at the real
-// hosted backend instead of the dev machine's LAN IP — that address moved
-// four times in one session from DHCP renewals; a real deployed URL doesn't.
-export const API_BASE_URL =
-  Platform.OS === 'web' ? 'http://localhost:3000' : 'https://restuarant-portal-liqeta-app.onrender.com';
+// Both web and native point at the real hosted backend by default, so
+// browser testing sees real production data (e.g. an already-registered
+// restaurant) instead of an empty local database. Swap the web branch back
+// to 'http://localhost:3000' when doing fast local-iteration dev work
+// against a local backend instead.
+export const API_BASE_URL = 'https://restuarant-portal-liqeta-app.onrender.com';
 
 export interface MasterDataItem {
   id: string;

@@ -11,7 +11,7 @@ export class PushService {
   // Fire-and-forget by convention at call sites — a push delivery failure
   // should never fail the request that triggered it, and there's nothing
   // useful to surface back to the caller if delivery fails.
-  async sendToRestaurants(restaurantIds: string[], title: string, body: string) {
+  async sendToRestaurants(restaurantIds: string[], title: string, body: string, data?: Record<string, string>) {
     if (restaurantIds.length === 0) return;
     const tokens = await this.prisma.db.restaurantPushToken.findMany({
       where: { restaurantId: { in: restaurantIds } },
@@ -19,7 +19,7 @@ export class PushService {
     });
     if (tokens.length === 0) return;
 
-    const messages = tokens.map((t) => ({ to: t.token, title, body, sound: 'default' }));
+    const messages = tokens.map((t) => ({ to: t.token, title, body, sound: 'default', data }));
     const chunkSize = 100;
     for (let i = 0; i < messages.length; i += chunkSize) {
       const chunk = messages.slice(i, i + chunkSize);

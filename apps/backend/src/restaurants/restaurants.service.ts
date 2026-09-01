@@ -482,7 +482,12 @@ export class RestaurantsService {
     // their notification preferences, same as admin announcements.
     if (dto.status === 'APPROVED') {
       this.push
-        .sendToRestaurants([id], 'Your listing is live!', 'Your publish review was approved — your listing is now live.')
+        .sendToRestaurants(
+          [id],
+          'Your listing is live!',
+          'Your publish review was approved — your listing is now live.',
+          { screen: 'announcements' },
+        )
         .catch(() => {});
     } else {
       const reasonText = dto.rejectionReason ? `Reason: ${dto.rejectionReason} ` : '';
@@ -491,6 +496,7 @@ export class RestaurantsService {
           [id],
           'Publish review declined',
           `${reasonText}Update your profile and submit again from Settings.`,
+          { screen: 'announcements' },
         )
         .catch(() => {});
     }

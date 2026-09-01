@@ -55,7 +55,9 @@ export class ReviewsService {
 
     if (restaurant.notifyNewReview) {
       this.push
-        .sendToRestaurants([restaurantId], 'New review', `${dto.reviewerName} left a ${dto.rating}★ review`)
+        .sendToRestaurants([restaurantId], 'New review', `${dto.reviewerName} left a ${dto.rating}★ review`, {
+          screen: 'reviews',
+        })
         .catch(() => {});
     }
     return this.prisma.db.review.findUnique({ where: { id: review.id }, include: withReplyAndPhotos });
