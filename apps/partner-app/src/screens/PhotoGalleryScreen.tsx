@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
@@ -160,7 +160,7 @@ export function PhotoGalleryScreen() {
           <Text style={styles.title}>{t('title')}</Text>
           {loadError && <Text style={styles.error}>{loadError}</Text>}
 
-          <View style={styles.albumTabs}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.albumTabs}>
             {albumTabs.map((tab) => (
               <Pressable
                 key={tab.key}
@@ -170,7 +170,7 @@ export function PhotoGalleryScreen() {
                 <Text style={[styles.albumTabText, album === tab.key && styles.albumTabTextActive]}>{tab.label}</Text>
               </Pressable>
             ))}
-          </View>
+          </ScrollView>
 
           {album === 'FOOD' && (
             <>
