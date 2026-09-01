@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type ModerationStatus } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { FilterTabs } from '@/components/FilterTabs'
+import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 
 type ContentType = 'dish' | 'photo' | 'event'
 
@@ -30,10 +32,10 @@ const typeFilters: { key: ContentType | 'ALL'; label: string }[] = [
   { key: 'event', label: 'Events' },
 ]
 
-const statusStyles: Record<ModerationStatus, string> = {
-  VISIBLE: 'bg-success/15 text-success',
-  FLAGGED: 'bg-primary/15 text-primary',
-  HIDDEN: 'bg-destructive/15 text-destructive',
+const statusTones: Record<ModerationStatus, StatusPillTone> = {
+  VISIBLE: 'success',
+  FLAGGED: 'primary',
+  HIDDEN: 'destructive',
 }
 
 export function ContentModerationPage() {
@@ -116,20 +118,7 @@ export function ContentModerationPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
-        {statusFilters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setStatusFilter(f.key)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
-              statusFilter === f.key && 'bg-primary/10 text-primary',
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs options={statusFilters} active={statusFilter} onChange={setStatusFilter} />
 
       <div className="flex flex-wrap gap-2">
         {typeFilters.map((f) => (
@@ -166,9 +155,7 @@ export function ContentModerationPage() {
               </div>
               <div className="text-xs text-muted-foreground">{item.subtitle}</div>
             </div>
-            <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-xs', statusStyles[item.moderationStatus])}>
-              {item.moderationStatus}
-            </span>
+            <StatusPill className="shrink-0" label={item.moderationStatus} tone={statusTones[item.moderationStatus]} />
             <div className="flex shrink-0 gap-2">
               {item.moderationStatus !== 'HIDDEN' && (
                 <button

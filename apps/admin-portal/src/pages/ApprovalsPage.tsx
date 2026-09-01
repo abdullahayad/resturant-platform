@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type RestaurantListItem } from '@/lib/api'
+import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 
 function RequestRow({
   r,
   sentAt,
   statusLabel,
-  statusClassName,
+  statusTone,
   children,
 }: {
   r: RestaurantListItem
   sentAt: string | null
   statusLabel: string
-  statusClassName: string
+  statusTone: StatusPillTone
   children: React.ReactNode
 }) {
   return (
@@ -31,7 +32,7 @@ function RequestRow({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <span className={`rounded-full px-2.5 py-1 text-xs ${statusClassName}`}>{statusLabel}</span>
+          <StatusPill label={statusLabel} tone={statusTone} />
           {children}
         </div>
       </div>
@@ -98,7 +99,7 @@ function SignupApprovalSection() {
             r={r}
             sentAt={r.createdAt}
             statusLabel="Pending Signup"
-            statusClassName="bg-secondary text-muted-foreground"
+            statusTone="muted"
           >
             <button
               disabled={busyId === r.id}
@@ -166,7 +167,7 @@ function ReviewApprovalSection() {
             r={r}
             sentAt={r.publishSubmittedAt}
             statusLabel="Pending Review"
-            statusClassName="bg-primary/15 text-primary"
+            statusTone="primary"
           >
             <button
               onClick={() => navigate(`/restaurants/${r.id}/publish-review`)}

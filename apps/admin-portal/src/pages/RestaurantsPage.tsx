@@ -9,9 +9,10 @@ import {
   type RestaurantListItem,
   type RestaurantStatus,
 } from '@/lib/api'
-import { cn } from '@/lib/utils'
 import { downloadCsv } from '@/lib/csv'
 import { Switch } from '@/components/Switch'
+import { FilterTabs } from '@/components/FilterTabs'
+import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 
 const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -21,11 +22,11 @@ const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
   { key: 'SUSPENDED', label: 'Suspended' },
 ]
 
-const statusStyles: Record<RestaurantStatus, string> = {
-  PENDING_REVIEW: 'bg-secondary text-muted-foreground',
-  APPROVED: 'bg-success/15 text-success',
-  REJECTED: 'bg-destructive/15 text-destructive',
-  SUSPENDED: 'bg-destructive/15 text-destructive',
+const statusTones: Record<RestaurantStatus, StatusPillTone> = {
+  PENDING_REVIEW: 'muted',
+  APPROVED: 'success',
+  REJECTED: 'destructive',
+  SUSPENDED: 'destructive',
 }
 
 const ALL = '__all__'
@@ -184,20 +185,7 @@ export function RestaurantsPage() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
-        {statusFilters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
-              filter === f.key && 'bg-primary/10 text-primary',
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs options={statusFilters} active={filter} onChange={setFilter} />
 
       <div className="flex flex-wrap gap-3">
         <input
@@ -290,9 +278,7 @@ export function RestaurantsPage() {
                 </div>
               </button>
               <div className="flex items-center gap-3">
-                <span className={cn('rounded-full px-2.5 py-1 text-xs', statusStyles[r.status])}>
-                  {r.status.replace('_', ' ')}
-                </span>
+                <StatusPill label={r.status.replace('_', ' ')} tone={statusTones[r.status]} />
                 {(r.status === 'APPROVED' || r.status === 'SUSPENDED') && (
                   <Switch
                     checked={r.status === 'APPROVED'}

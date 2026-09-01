@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, UnauthorizedError, type ModerationStatus, type PublishReviewDetail, type PublishStatus } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 
-const publishStatusStyles: Record<PublishStatus, string> = {
-  NOT_SUBMITTED: 'bg-secondary text-muted-foreground',
-  PENDING: 'bg-primary/15 text-primary',
-  APPROVED: 'bg-success/15 text-success',
-  REJECTED: 'bg-destructive/15 text-destructive',
+const publishStatusTones: Record<PublishStatus, StatusPillTone> = {
+  NOT_SUBMITTED: 'muted',
+  PENDING: 'primary',
+  APPROVED: 'success',
+  REJECTED: 'destructive',
 }
 
-const moderationStyles: Record<ModerationStatus, string> = {
-  VISIBLE: 'bg-success/15 text-success',
-  FLAGGED: 'bg-primary/15 text-primary',
-  HIDDEN: 'bg-destructive/15 text-destructive',
+const moderationTones: Record<ModerationStatus, StatusPillTone> = {
+  VISIBLE: 'success',
+  FLAGGED: 'primary',
+  HIDDEN: 'destructive',
 }
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -25,7 +25,7 @@ const staffRoleLabels: Record<'MANAGER' | 'MENU_EDITOR', string> = {
 
 function ModerationPill({ status }: { status: ModerationStatus }) {
   if (status === 'VISIBLE') return null
-  return <span className={cn('rounded-full px-2 py-0.5 text-[10px]', moderationStyles[status])}>{status}</span>
+  return <StatusPill className="px-2 py-0.5 text-[10px]" label={status} tone={moderationTones[status]} />
 }
 
 export function PublishReviewPage() {
@@ -101,9 +101,7 @@ export function PublishReviewPage() {
             <div className="mt-0.5 text-xs text-muted-foreground">{detail.codeNumber} · {detail.phone}</div>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <span className={cn('rounded-full px-2.5 py-1 text-xs', publishStatusStyles[detail.publishStatus])}>
-              {detail.publishStatus.replace('_', ' ')}
-            </span>
+            <StatusPill label={detail.publishStatus.replace('_', ' ')} tone={publishStatusTones[detail.publishStatus]} />
             {detail.publishSubmittedAt && (
               <span className="text-xs text-muted-foreground">
                 Submitted {new Date(detail.publishSubmittedAt).toLocaleString()}

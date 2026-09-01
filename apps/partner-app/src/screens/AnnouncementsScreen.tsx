@@ -9,6 +9,7 @@ import { api, type Announcement, type RestaurantDetail } from '../lib/api';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { radii } from '../theme/tokens';
+import { useAnalytics } from '../lib/analytics';
 
 export function AnnouncementsScreen() {
   const { colors } = useTheme();
@@ -170,6 +171,7 @@ function PublishReviewSection() {
   const { token } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('announcements');
+  const { track } = useAnalytics();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [profile, setProfile] = useState<RestaurantDetail | null>(null);
@@ -189,6 +191,7 @@ function PublishReviewSection() {
     setSubmitting(true);
     try {
       const updated = await api.submitForPublish(token);
+      track('publish_submitted');
       setProfile(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('settings:publishReview.submitFailed'));

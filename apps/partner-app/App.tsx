@@ -15,6 +15,7 @@ import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
 import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
 import { IntroOverlay } from './src/components/IntroOverlay';
+import { AnalyticsProvider, useAnalytics } from './src/lib/analytics';
 
 type AuthView = 'landing' | 'register' | 'signIn' | 'forgotPassword';
 type Session = StoredSession;
@@ -22,11 +23,13 @@ type Session = StoredSession;
 export default function App() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AppContent />
-        </LanguageProvider>
-      </ThemeProvider>
+      <AnalyticsProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AppContent />
+          </LanguageProvider>
+        </ThemeProvider>
+      </AnalyticsProvider>
     </SafeAreaProvider>
   );
 }
@@ -34,6 +37,7 @@ export default function App() {
 function AppContent() {
   const { colors, theme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { track, identify } = useAnalytics();
   const [view, setView] = useState<AuthView>('landing');
   const [session, setSession] = useState<Session | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
@@ -87,7 +91,11 @@ function AppContent() {
           {view === 'signIn' && (
             <SignInScreen
               onBack={() => setView('landing')}
-              onSignedIn={(token, restaurant, staff) => setSession({ token, restaurant, staff })}
+              onSignedIn={(token, restaurant, staff) => {
+                identify(restaurant.id, { name: restaurant.nameEn, status: restaurant.status });
+                track('signed_in');
+                setSession({ token, restaurant, staff });
+              }}
               onForgotPassword={() => setView('forgotPassword')}
             />
           )}
@@ -95,7 +103,13 @@ function AppContent() {
             <ForgotPasswordScreen onBack={() => setView('signIn')} onDone={() => setView('signIn')} />
           )}
           {view === 'register' && (
-            <RegisterRestaurantScreen onBack={() => setView('landing')} onRegistered={() => setView('landing')} />
+            <RegisterRestaurantScreen
+              onBack={() => setView('landing')}
+              onRegistered={() => {
+                track('restaurant_registered');
+                setView('landing');
+              }}
+            />
           )}
         </>
       )}

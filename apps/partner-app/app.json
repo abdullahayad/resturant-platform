@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Restaurant Partner Portal",
+    "name": "LiQETA RP",
     "slug": "restaurant-partner-portal",
     "version": "1.0.0",
     "orientation": "default",
@@ -67,7 +67,9 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-image"
+      "expo-image",
+      "@sentry/react-native",
+      "expo-localization"
     ],
     "extra": {
       "eas": {
