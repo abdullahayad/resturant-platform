@@ -142,6 +142,16 @@ export function SettingsStaffScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('title')}</Text>
 
+      {/* TEMPORARY — verifying Sentry crash reporting end to end, remove after confirming. */}
+      <Pressable
+        style={[styles.button, styles.primaryButton]}
+        onPress={() => {
+          throw new Error('Test crash — verifying Sentry is working');
+        }}
+      >
+        <Text style={styles.primaryButtonText}>TEST CRASH (temporary, tap to test Sentry)</Text>
+      </Pressable>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('changePassword')}</Text>
         <FormField
