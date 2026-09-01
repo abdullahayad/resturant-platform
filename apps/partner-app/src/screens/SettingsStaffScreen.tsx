@@ -148,9 +148,13 @@ export function SettingsStaffScreen() {
       <Pressable
         style={[styles.button, styles.primaryButton]}
         onPress={async () => {
-          const hasKey = !!process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
+          const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
+          const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
           if (!posthogDebug) {
-            Alert.alert('PostHog Debug', `Client is undefined (Provider not connected). API key present in build: ${hasKey}`);
+            Alert.alert(
+              'PostHog Debug',
+              `Client is undefined (Provider not connected).\nPostHog key: ${posthogKey ? `present, starts with "${posthogKey.slice(0, 8)}"` : 'MISSING'}\nSentry DSN: ${sentryDsn ? `present, starts with "${sentryDsn.slice(0, 12)}"` : 'MISSING'}`,
+            );
             return;
           }
           try {
