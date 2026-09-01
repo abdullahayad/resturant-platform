@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { usePostHog } from 'posthog-react-native';
 import { Users } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
@@ -15,6 +16,7 @@ export function SettingsStaffScreen() {
   const { token, setToken, staff: authStaff } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('settings');
+  const posthogDebug = usePostHog();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const roleLabels: Record<StaffRole, string> = {
     MANAGER: t('common:roles.manager'),
@@ -141,6 +143,27 @@ export function SettingsStaffScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('title')}</Text>
+
+      {/* TEMPORARY — diagnosing why PostHog events never arrive, remove after confirming. */}
+      <Pressable
+        style={[styles.button, styles.primaryButton]}
+        onPress={async () => {
+          const hasKey = !!process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
+          if (!posthogDebug) {
+            Alert.alert('PostHog Debug', `Client is undefined (Provider not connected). API key present in build: ${hasKey}`);
+            return;
+          }
+          try {
+            posthogDebug.capture('debug_diagnostic_event');
+            await posthogDebug.flush();
+            Alert.alert('PostHog Debug', 'Client exists. capture() + flush() both ran with no error.');
+          } catch (e) {
+            Alert.alert('PostHog Debug', `Client exists but flush() threw: ${String(e)}`);
+          }
+        }}
+      >
+        <Text style={styles.primaryButtonText}>DEBUG: Test PostHog (temporary)</Text>
+      </Pressable>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('changePassword')}</Text>
