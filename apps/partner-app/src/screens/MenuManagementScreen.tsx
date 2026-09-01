@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
@@ -14,11 +15,16 @@ import { api, type Dish, type MasterDataItem } from '../lib/api';
 
 const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as string | null, photoUrl: '', isMostOrdered: false };
 
+const CARD_WIDTH = 220;
+const CARD_GAP = 12;
+
 export function MenuManagementScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('menu');
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const numColumns = Math.max(1, Math.floor(width / (CARD_WIDTH + CARD_GAP)));
 
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [categories, setCategories] = useState<MasterDataItem[]>([]);
@@ -137,122 +143,132 @@ export function MenuManagementScreen() {
     if (editingId === id) resetForm();
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{t('title')}</Text>
-      {loadError && <Text style={styles.error}>{loadError}</Text>}
-
-      <View style={styles.formCard}>
-        <Text style={styles.formTitle}>{editingId ? t('editDish') : t('addDish')}</Text>
-
-        <View style={styles.row}>
-          <View style={styles.flex1}>
-            <FormField label={t('nameEnLabel')} value={form.nameEn} onChangeText={(v) => setForm((f) => ({ ...f, nameEn: v }))} />
-          </View>
-          <View style={styles.flex1}>
-            <FormField label={t('nameArLabel')} value={form.nameAr} onChangeText={(v) => setForm((f) => ({ ...f, nameAr: v }))} />
-          </View>
-        </View>
-
-        <FormField
-          label={t('priceLabel')}
-          value={form.price}
-          onChangeText={(v) => setForm((f) => ({ ...f, price: v }))}
-          keyboardType="numeric"
-          placeholder="10000"
-        />
-
-        <Text style={styles.fieldLabel}>{t('category')}</Text>
-        <ChipSelect
-          options={categories.map((c) => ({ id: c.id, label: c.nameEn }))}
-          selectedIds={form.categoryId ? [form.categoryId] : []}
-          onToggle={(id) => setForm((f) => ({ ...f, categoryId: id === f.categoryId ? null : id }))}
-        />
-
-        <View style={styles.photoRow}>
-          {localPhotoPreview || form.photoUrl ? (
-            <Image source={{ uri: localPhotoPreview ?? form.photoUrl }} style={styles.photoPreview} />
-          ) : (
-            <View style={[styles.photoPreview, styles.photoPlaceholder]}>
-              <Text style={styles.hint}>{t('noPhoto')}</Text>
+  const renderDish = ({ item: dish }: { item: Dish }) => (
+    <View style={styles.dishCard}>
+      {dish.photoUrl ? (
+        <Image source={{ uri: dish.photoUrl }} style={styles.dishImage} />
+      ) : (
+        <View style={[styles.dishImage, styles.photoPlaceholder]} />
+      )}
+      <View style={styles.dishBody}>
+        <Text style={styles.dishName}>{dish.nameEn} · {dish.nameAr}</Text>
+        <Text style={styles.dishMeta}>
+          {dish.menuCategory?.nameEn ?? t('uncategorized')} · {Number(dish.price).toLocaleString()} IQD
+        </Text>
+        {dish.isMostOrdered && <Text style={styles.badge}>{t('mostOrdered')}</Text>}
+        <View style={styles.dishActions}>
+          <Pressable onPress={() => startEdit(dish)}>
+            <Text style={styles.link}>{t('edit')}</Text>
+          </Pressable>
+          {confirmDeleteId === dish.id ? (
+            <View style={styles.row}>
+              <Pressable onPress={() => remove(dish.id)}>
+                <Text style={[styles.link, styles.destructiveLink]}>{t('confirm')}</Text>
+              </Pressable>
+              <Pressable onPress={() => setConfirmDeleteId(null)}>
+                <Text style={styles.link}>{t('cancel')}</Text>
+              </Pressable>
             </View>
-          )}
-          <Pressable style={[styles.button, styles.secondaryButton]} onPress={pickPhoto} disabled={uploadingPhoto}>
-            {uploadingPhoto ? <ActivityIndicator color={colors.foreground} /> : <Text style={styles.secondaryButtonText}>{t('choosePhoto')}</Text>}
-          </Pressable>
-        </View>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.fieldLabel}>{t('mostOrdered')}</Text>
-          <Switch
-            value={form.isMostOrdered}
-            onValueChange={(v) => setForm((f) => ({ ...f, isMostOrdered: v }))}
-            trackColor={{ true: colors.primary, false: colors.secondary }}
-          />
-        </View>
-
-        {formError && <Text style={styles.error}>{formError}</Text>}
-
-        <View style={styles.row}>
-          <Pressable style={[styles.button, styles.primaryButton, styles.flex1]} onPress={submit} disabled={submitting}>
-            {submitting ? (
-              <ActivityIndicator color={colors.primaryForeground} />
-            ) : (
-              <Text style={styles.primaryButtonText}>{editingId ? t('saveChanges') : t('addDish')}</Text>
-            )}
-          </Pressable>
-          {editingId && (
-            <Pressable style={[styles.button, styles.secondaryButton]} onPress={resetForm}>
-              <Text style={styles.secondaryButtonText}>{t('cancel')}</Text>
+          ) : (
+            <Pressable onPress={() => setConfirmDeleteId(dish.id)}>
+              <Text style={[styles.link, styles.destructiveLink]}>{t('delete')}</Text>
             </Pressable>
           )}
         </View>
       </View>
+    </View>
+  );
 
-      <View style={styles.grid}>
-        {dishes.map((dish) => (
-          <View key={dish.id} style={styles.dishCard}>
-            {dish.photoUrl ? (
-              <Image source={{ uri: dish.photoUrl }} style={styles.dishImage} />
-            ) : (
-              <View style={[styles.dishImage, styles.photoPlaceholder]} />
-            )}
-            <View style={styles.dishBody}>
-              <Text style={styles.dishName}>{dish.nameEn} · {dish.nameAr}</Text>
-              <Text style={styles.dishMeta}>
-                {dish.menuCategory?.nameEn ?? t('uncategorized')} · {Number(dish.price).toLocaleString()} IQD
-              </Text>
-              {dish.isMostOrdered && <Text style={styles.badge}>{t('mostOrdered')}</Text>}
-              <View style={styles.dishActions}>
-                <Pressable onPress={() => startEdit(dish)}>
-                  <Text style={styles.link}>{t('edit')}</Text>
-                </Pressable>
-                {confirmDeleteId === dish.id ? (
-                  <View style={styles.row}>
-                    <Pressable onPress={() => remove(dish.id)}>
-                      <Text style={[styles.link, styles.destructiveLink]}>{t('confirm')}</Text>
-                    </Pressable>
-                    <Pressable onPress={() => setConfirmDeleteId(null)}>
-                      <Text style={styles.link}>{t('cancel')}</Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <Pressable onPress={() => setConfirmDeleteId(dish.id)}>
-                    <Text style={[styles.link, styles.destructiveLink]}>{t('delete')}</Text>
-                  </Pressable>
-                )}
+  return (
+    <FlatList
+      key={numColumns}
+      data={dishes}
+      keyExtractor={(dish) => dish.id}
+      renderItem={renderDish}
+      numColumns={numColumns}
+      columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
+      contentContainerStyle={styles.container}
+      ListHeaderComponent={
+        <View style={styles.headerGroup}>
+          <Text style={styles.title}>{t('title')}</Text>
+          {loadError && <Text style={styles.error}>{loadError}</Text>}
+
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>{editingId ? t('editDish') : t('addDish')}</Text>
+
+            <View style={styles.row}>
+              <View style={styles.flex1}>
+                <FormField label={t('nameEnLabel')} value={form.nameEn} onChangeText={(v) => setForm((f) => ({ ...f, nameEn: v }))} />
+              </View>
+              <View style={styles.flex1}>
+                <FormField label={t('nameArLabel')} value={form.nameAr} onChangeText={(v) => setForm((f) => ({ ...f, nameAr: v }))} />
               </View>
             </View>
+
+            <FormField
+              label={t('priceLabel')}
+              value={form.price}
+              onChangeText={(v) => setForm((f) => ({ ...f, price: v }))}
+              keyboardType="numeric"
+              placeholder="10000"
+            />
+
+            <Text style={styles.fieldLabel}>{t('category')}</Text>
+            <ChipSelect
+              options={categories.map((c) => ({ id: c.id, label: c.nameEn }))}
+              selectedIds={form.categoryId ? [form.categoryId] : []}
+              onToggle={(id) => setForm((f) => ({ ...f, categoryId: id === f.categoryId ? null : id }))}
+            />
+
+            <View style={styles.photoRow}>
+              {localPhotoPreview || form.photoUrl ? (
+                <Image source={{ uri: localPhotoPreview ?? form.photoUrl }} style={styles.photoPreview} />
+              ) : (
+                <View style={[styles.photoPreview, styles.photoPlaceholder]}>
+                  <Text style={styles.hint}>{t('noPhoto')}</Text>
+                </View>
+              )}
+              <Pressable style={[styles.button, styles.secondaryButton]} onPress={pickPhoto} disabled={uploadingPhoto}>
+                {uploadingPhoto ? <ActivityIndicator color={colors.foreground} /> : <Text style={styles.secondaryButtonText}>{t('choosePhoto')}</Text>}
+              </Pressable>
+            </View>
+
+            <View style={styles.switchRow}>
+              <Text style={styles.fieldLabel}>{t('mostOrdered')}</Text>
+              <Switch
+                value={form.isMostOrdered}
+                onValueChange={(v) => setForm((f) => ({ ...f, isMostOrdered: v }))}
+                trackColor={{ true: colors.primary, false: colors.secondary }}
+              />
+            </View>
+
+            {formError && <Text style={styles.error}>{formError}</Text>}
+
+            <View style={styles.row}>
+              <Pressable style={[styles.button, styles.primaryButton, styles.flex1]} onPress={submit} disabled={submitting}>
+                {submitting ? (
+                  <ActivityIndicator color={colors.primaryForeground} />
+                ) : (
+                  <Text style={styles.primaryButtonText}>{editingId ? t('saveChanges') : t('addDish')}</Text>
+                )}
+              </Pressable>
+              {editingId && (
+                <Pressable style={[styles.button, styles.secondaryButton]} onPress={resetForm}>
+                  <Text style={styles.secondaryButtonText}>{t('cancel')}</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-        ))}
-        {dishes.length === 0 && !loadError && <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} />}
-      </View>
-    </ScrollView>
+        </View>
+      }
+      ListEmptyComponent={!loadError ? <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} /> : null}
+    />
   );
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 24 },
+  headerGroup: { gap: 20 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
   formCard: {
@@ -278,9 +294,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
   secondaryButton: { borderWidth: 1, borderColor: colors.border },
   secondaryButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 13 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  gridRow: { gap: CARD_GAP, marginBottom: CARD_GAP },
   dishCard: {
-    width: 220,
+    width: CARD_WIDTH,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,

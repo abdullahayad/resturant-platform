@@ -1,8 +1,13 @@
 {
-  "title": "الإشعارات",
+  "title": "صندوق الوارد",
   "subtitle": "رسائل ومهام من فريق المنصة.",
+  "announcementsSectionTitle": "الإشعارات",
+  "publishReviewSectionTitle": "مراجعة النشر",
   "completed": "مكتمل",
   "actionRequired": "يتطلب إجراءً",
   "markAsDone": "وضع علامة كمكتمل",
-  "noAnnouncementsYet": "لا توجد إشعارات بعد."
+  "noAnnouncementsYet": "لا توجد إشعارات بعد.",
+  "columnSubject": "الموضوع",
+  "columnDate": "التاريخ",
+  "columnStatus": "الحالة"
 }

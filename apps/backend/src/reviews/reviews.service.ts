@@ -2,8 +2,12 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import type { CreateReviewDto, ModerateReviewDto } from './dto/review.dto';
+import type { ModerationStatusValue } from '../common/moderation';
 
-const withReply = { reply: true } as const;
+const withReplyAndPhotos = {
+  reply: true,
+  photos: { select: { id: true, url: true, moderationStatus: true } },
+} as const;
 
 @Injectable()
 export class ReviewsService {
@@ -31,20 +35,36 @@ export class ReviewsService {
         ambienceRating: dto.ambienceRating,
         text: dto.text,
       },
-      include: withReply,
     });
+
+    if (dto.photoUrls?.length) {
+      // Stored as regular gallery photos (album: REVIEW) rather than a
+      // review-specific field — this way they show up in the restaurant's
+      // own gallery and go through the exact same moderation flow as any
+      // other photo, instead of a parallel one-off system.
+      await this.prisma.db.galleryPhoto.createMany({
+        data: dto.photoUrls.map((url) => ({
+          restaurantId,
+          album: 'REVIEW' as const,
+          url,
+          caption: dto.reviewerName,
+          reviewId: review.id,
+        })),
+      });
+    }
+
     if (restaurant.notifyNewReview) {
       this.push
         .sendToRestaurants([restaurantId], 'New review', `${dto.reviewerName} left a ${dto.rating}★ review`)
         .catch(() => {});
     }
-    return review;
+    return this.prisma.db.review.findUnique({ where: { id: review.id }, include: withReplyAndPhotos });
   }
 
   listForRestaurant(restaurantId: string) {
     return this.prisma.db.review.findMany({
       where: { restaurantId },
-      include: withReply,
+      include: withReplyAndPhotos,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -122,13 +142,16 @@ export class ReviewsService {
       create: { reviewId, text },
       update: { text },
     });
-    return this.prisma.db.review.findUnique({ where: { id: reviewId }, include: withReply });
+    return this.prisma.db.review.findUnique({ where: { id: reviewId }, include: withReplyAndPhotos });
   }
 
-  listAll(status?: 'VISIBLE' | 'FLAGGED' | 'HIDDEN') {
+  listAll(status?: ModerationStatusValue) {
     return this.prisma.db.review.findMany({
       where: status ? { moderationStatus: status } : undefined,
-      include: { ...withReply, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
+      include: {
+        ...withReplyAndPhotos,
+        restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

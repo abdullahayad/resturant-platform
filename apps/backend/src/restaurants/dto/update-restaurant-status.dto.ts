@@ -7,10 +7,24 @@ export class RejectRestaurantDto {
   reason?: string;
 }
 
+export class ModeratePublishDto {
+  @IsIn(['APPROVED', 'REJECTED'])
+  status: 'APPROVED' | 'REJECTED';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  rejectionReason?: string;
+}
+
 export class ListRestaurantsQuery {
   @IsOptional()
   @IsIn(['PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED'])
   status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+
+  @IsOptional()
+  @IsIn(['NOT_SUBMITTED', 'PENDING', 'APPROVED', 'REJECTED'])
+  publishStatus?: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
   @IsOptional()
   @IsUUID()

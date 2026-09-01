@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsDateString,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -13,6 +14,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const MAX_PRICE = 100_000_000;
@@ -140,4 +142,15 @@ export class UpdateEventDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+export class ModerateEventDto {
+  @IsIn(MODERATION_STATUSES)
+  status: ModerationStatusValue;
+}
+
+export class ListEventsQuery {
+  @IsOptional()
+  @IsIn(MODERATION_STATUSES)
+  status?: ModerationStatusValue;
 }

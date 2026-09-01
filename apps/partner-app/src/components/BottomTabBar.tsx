@@ -33,7 +33,14 @@ export function BottomTabBar({ items, active, badges, onSelect }: BottomTabBarPr
           const isActive = item.key === active;
           const badgeCount = badges[item.key] ?? 0;
           return (
-            <Pressable key={item.key} onPress={() => onSelect(item.key)} style={styles.tab}>
+            <Pressable
+              key={item.key}
+              onPress={() => onSelect(item.key)}
+              style={styles.tab}
+              accessibilityRole="tab"
+              accessibilityLabel={badgeCount > 0 ? `${t(`items.${item.key}`)}, ${badgeCount} pending` : t(`items.${item.key}`)}
+              accessibilityState={{ selected: isActive }}
+            >
               <View style={styles.iconWrap}>
                 <item.icon size={22} color={isActive ? colors.primary : colors.mutedForeground} />
                 {badgeCount > 0 && (

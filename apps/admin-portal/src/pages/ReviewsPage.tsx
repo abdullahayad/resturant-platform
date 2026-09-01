@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type ModerationStatus, type ReviewItem } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { FilterTabs } from '@/components/FilterTabs'
+import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 
 const filters: { key: ModerationStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -10,10 +12,10 @@ const filters: { key: ModerationStatus | 'ALL'; label: string }[] = [
   { key: 'HIDDEN', label: 'Hidden' },
 ]
 
-const statusStyles: Record<ModerationStatus, string> = {
-  VISIBLE: 'bg-success/15 text-success',
-  FLAGGED: 'bg-primary/15 text-primary',
-  HIDDEN: 'bg-destructive/15 text-destructive',
+const statusTones: Record<ModerationStatus, StatusPillTone> = {
+  VISIBLE: 'success',
+  FLAGGED: 'primary',
+  HIDDEN: 'destructive',
 }
 
 export function ReviewsPage() {
@@ -55,20 +57,7 @@ export function ReviewsPage() {
         <p className="text-sm text-muted-foreground">Hide or restore reported customer reviews.</p>
       </div>
 
-      <div className="flex gap-2 border-b border-border pb-3">
-        {filters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
-              filter === f.key && 'bg-primary/10 text-primary',
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs options={filters} active={filter} onChange={setFilter} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
@@ -86,12 +75,25 @@ export function ReviewsPage() {
                   {r.restaurant.nameEn} · {r.restaurant.codeNumber} · {new Date(r.createdAt).toLocaleDateString()}
                 </div>
               </div>
-              <span className={cn('rounded-full px-2.5 py-1 text-xs', statusStyles[r.moderationStatus])}>
-                {r.moderationStatus}
-              </span>
+              <StatusPill label={r.moderationStatus} tone={statusTones[r.moderationStatus]} />
             </div>
 
             {r.text && <p className="mt-2 text-sm">{r.text}</p>}
+            {r.photos.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {r.photos.map((photo) => (
+                  <img
+                    key={photo.id}
+                    src={photo.url}
+                    alt=""
+                    className={cn(
+                      'h-16 w-16 rounded-lg object-cover',
+                      photo.moderationStatus === 'HIDDEN' && 'opacity-40',
+                    )}
+                  />
+                ))}
+              </div>
+            )}
             {r.reply && (
               <div className="mt-2 rounded-lg bg-secondary/50 p-2 text-sm">
                 <span className="text-xs text-muted-foreground">Restaurant reply: </span>

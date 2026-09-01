@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, type LucideIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
@@ -63,150 +64,166 @@ export function CustomerReviewsScreen() {
     }
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{t('title')}</Text>
-      {loadError && <Text style={styles.error}>{loadError}</Text>}
-
-      {summary && (
-        <>
-          <View style={styles.summaryRow}>
-            <View style={styles.overallCard}>
-              <Text style={styles.overallLabel}>{t('overall')}</Text>
-              <Text style={styles.overallScore}>{summary.overallAverage.toFixed(1)}★</Text>
-              <StarRating value={summary.overallAverage} size={15} />
-              <Text style={styles.overallCount}>{t('reviews', { count: summary.totalCount })}</Text>
-            </View>
-
-            <View style={styles.headlineCard}>
-              <View style={styles.headlineTop}>
-                <Text style={styles.headlineTitle}>{t('reputationTitle')}</Text>
-                <View style={styles.sentimentBadge}>
-                  <Text style={styles.sentimentText}>{t('positiveSentiment', { pct: summary.positiveSentimentPct })}</Text>
-                </View>
-              </View>
-              <Text style={styles.headlineBody}>{t('reputationBody')}</Text>
-            </View>
-
-            <View style={styles.distributionCard}>
-              {summary.distribution.map((row) => (
-                <Pressable
-                  key={row.star}
-                  onPress={() => setStarFilter(starFilter === row.star ? null : row.star)}
-                  style={styles.distRow}
-                >
-                  <Text style={[styles.distLabel, starFilter === row.star && styles.distLabelActive]}>
-                    {row.star}★
-                  </Text>
-                  <View style={styles.distTrack}>
-                    <View style={[styles.distFill, { width: `${row.pct}%` }]} />
-                  </View>
-                  <Text style={styles.distPct}>{row.pct}%</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <View>
-            <View style={styles.sectionHeadingRow}>
-              <Sparkles size={15} color={colors.primary} />
-              <Text style={styles.sectionHeading}>{t('categoryScoresHeading')}</Text>
-            </View>
-            <Text style={styles.sectionSubheading}>{t('categoryScoresSubheading')}</Text>
-            <View style={styles.categoryRow}>
-              {summary.categoryScores.map((cat) => {
-                const trendUp = cat.trend != null && cat.trend > 0;
-                const trendDown = cat.trend != null && cat.trend < 0;
-                const CategoryIcon = categoryIcons[cat.key] ?? Star;
-                return (
-                  <View key={cat.key} style={styles.categoryCard}>
-                    <View style={styles.categoryHeader}>
-                      <CategoryIcon size={18} color={colors.primary} />
-                      <Text style={styles.categoryScore}>{cat.average != null ? `${cat.average}★` : '—'}</Text>
-                    </View>
-                    <Text style={styles.categoryLabel}>
-                      {cat.labelEn} <Text style={styles.categoryLabelAr}>({cat.labelAr})</Text>
-                    </Text>
-                    <View style={styles.categoryTrendRow}>
-                      <Text style={styles.categoryTrendHint}>{t('last30Days')}</Text>
-                      {cat.trend != null && (
-                        <Text style={[styles.categoryTrend, trendUp && styles.trendUp, trendDown && styles.trendDown]}>
-                          {trendUp ? '↑' : trendDown ? '↓' : '—'} {trendUp ? '+' : ''}{cat.trend}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        </>
+  const renderReview = ({ item: review }: { item: Review }) => (
+    <View style={styles.reviewCard}>
+      <View style={styles.reviewHeader}>
+        <Text style={styles.reviewerName}>{review.reviewerName}</Text>
+        <StarRating value={review.rating} size={13} />
+      </View>
+      <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
+      {review.moderationStatus !== 'VISIBLE' && (
+        <Text style={styles.moderationBadge}>{review.moderationStatus === 'HIDDEN' ? t('hiddenByAdmin') : t('flagged')}</Text>
+      )}
+      {review.text && <Text style={styles.reviewText}>{review.text}</Text>}
+      {review.photos.length > 0 && (
+        <View style={styles.reviewPhotoRow}>
+          {review.photos.map((photo) => (
+            <Image key={photo.id} source={{ uri: photo.url }} style={styles.reviewPhoto} />
+          ))}
+        </View>
       )}
 
-      <View style={styles.filterRow}>
-        <Pressable onPress={() => setStarFilter(null)} style={[styles.filterChip, starFilter === null && styles.filterChipActive]}>
-          <Text style={[styles.filterChipText, starFilter === null && styles.filterChipTextActive]}>{t('all')}</Text>
-        </Pressable>
-        {[5, 4, 3, 2, 1].map((star) => (
+      {review.reply ? (
+        <View style={styles.replyBox}>
+          <Text style={styles.replyLabel}>{t('yourReply')}</Text>
+          <Text style={styles.replyText}>{review.reply.text}</Text>
+        </View>
+      ) : (
+        <View style={styles.replyForm}>
+          <FormField
+            label={t('replyLabel')}
+            value={replyDrafts[review.id] ?? ''}
+            onChangeText={(v) => setReplyDrafts((prev) => ({ ...prev, [review.id]: v }))}
+            placeholder={t('replyPlaceholder')}
+          />
           <Pressable
-            key={star}
-            onPress={() => setStarFilter(starFilter === star ? null : star)}
-            style={[styles.filterChip, starFilter === star && styles.filterChipActive]}
+            style={[styles.button, styles.primaryButton]}
+            onPress={() => submitReply(review.id)}
+            disabled={submittingId === review.id}
           >
-            <Text style={[styles.filterChipText, starFilter === star && styles.filterChipTextActive]}>{star}★</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.list}>
-        {visibleReviews.map((review) => (
-          <View key={review.id} style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.reviewerName}>{review.reviewerName}</Text>
-              <StarRating value={review.rating} size={13} />
-            </View>
-            <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
-            {review.moderationStatus !== 'VISIBLE' && (
-              <Text style={styles.moderationBadge}>{review.moderationStatus === 'HIDDEN' ? t('hiddenByAdmin') : t('flagged')}</Text>
-            )}
-            {review.text && <Text style={styles.reviewText}>{review.text}</Text>}
-
-            {review.reply ? (
-              <View style={styles.replyBox}>
-                <Text style={styles.replyLabel}>{t('yourReply')}</Text>
-                <Text style={styles.replyText}>{review.reply.text}</Text>
-              </View>
+            {submittingId === review.id ? (
+              <ActivityIndicator color={colors.primaryForeground} />
             ) : (
-              <View style={styles.replyForm}>
-                <FormField
-                  label={t('replyLabel')}
-                  value={replyDrafts[review.id] ?? ''}
-                  onChangeText={(v) => setReplyDrafts((prev) => ({ ...prev, [review.id]: v }))}
-                  placeholder={t('replyPlaceholder')}
-                />
-                <Pressable
-                  style={[styles.button, styles.primaryButton]}
-                  onPress={() => submitReply(review.id)}
-                  disabled={submittingId === review.id}
-                >
-                  {submittingId === review.id ? (
-                    <ActivityIndicator color={colors.primaryForeground} />
-                  ) : (
-                    <Text style={styles.primaryButtonText}>{t('postReply')}</Text>
-                  )}
-                </Pressable>
-              </View>
+              <Text style={styles.primaryButtonText}>{t('postReply')}</Text>
             )}
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+
+  return (
+    <FlatList
+      data={visibleReviews}
+      keyExtractor={(review) => review.id}
+      renderItem={renderReview}
+      ItemSeparatorComponent={() => <View style={styles.reviewSeparator} />}
+      contentContainerStyle={styles.container}
+      ListHeaderComponent={
+        <View style={styles.headerGroup}>
+          <Text style={styles.title}>{t('title')}</Text>
+          {loadError && <Text style={styles.error}>{loadError}</Text>}
+
+          {summary && (
+            <>
+              <View style={styles.summaryRow}>
+                <View style={styles.overallCard}>
+                  <Text style={styles.overallLabel}>{t('overall')}</Text>
+                  <Text style={styles.overallScore}>{summary.overallAverage.toFixed(1)}★</Text>
+                  <StarRating value={summary.overallAverage} size={15} />
+                  <Text style={styles.overallCount}>{t('reviews', { count: summary.totalCount })}</Text>
+                </View>
+
+                <View style={styles.headlineCard}>
+                  <View style={styles.headlineTop}>
+                    <Text style={styles.headlineTitle}>{t('reputationTitle')}</Text>
+                    <View style={styles.sentimentBadge}>
+                      <Text style={styles.sentimentText}>{t('positiveSentiment', { pct: summary.positiveSentimentPct })}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.headlineBody}>{t('reputationBody')}</Text>
+                </View>
+
+                <View style={styles.distributionCard}>
+                  {summary.distribution.map((row) => (
+                    <Pressable
+                      key={row.star}
+                      onPress={() => setStarFilter(starFilter === row.star ? null : row.star)}
+                      style={styles.distRow}
+                    >
+                      <Text style={[styles.distLabel, starFilter === row.star && styles.distLabelActive]}>
+                        {row.star}★
+                      </Text>
+                      <View style={styles.distTrack}>
+                        <View style={[styles.distFill, { width: `${row.pct}%` }]} />
+                      </View>
+                      <Text style={styles.distPct}>{row.pct}%</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View>
+                <View style={styles.sectionHeadingRow}>
+                  <Sparkles size={15} color={colors.primary} />
+                  <Text style={styles.sectionHeading}>{t('categoryScoresHeading')}</Text>
+                </View>
+                <Text style={styles.sectionSubheading}>{t('categoryScoresSubheading')}</Text>
+                <View style={styles.categoryRow}>
+                  {summary.categoryScores.map((cat) => {
+                    const trendUp = cat.trend != null && cat.trend > 0;
+                    const trendDown = cat.trend != null && cat.trend < 0;
+                    const CategoryIcon = categoryIcons[cat.key] ?? Star;
+                    return (
+                      <View key={cat.key} style={styles.categoryCard}>
+                        <View style={styles.categoryHeader}>
+                          <CategoryIcon size={18} color={colors.primary} />
+                          <Text style={styles.categoryScore}>{cat.average != null ? `${cat.average}★` : '—'}</Text>
+                        </View>
+                        <Text style={styles.categoryLabel}>
+                          {cat.labelEn} <Text style={styles.categoryLabelAr}>({cat.labelAr})</Text>
+                        </Text>
+                        <View style={styles.categoryTrendRow}>
+                          <Text style={styles.categoryTrendHint}>{t('last30Days')}</Text>
+                          {cat.trend != null && (
+                            <Text style={[styles.categoryTrend, trendUp && styles.trendUp, trendDown && styles.trendDown]}>
+                              {trendUp ? '↑' : trendDown ? '↓' : '—'} {trendUp ? '+' : ''}{cat.trend}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </>
+          )}
+
+          <View style={styles.filterRow}>
+            <Pressable onPress={() => setStarFilter(null)} style={[styles.filterChip, starFilter === null && styles.filterChipActive]}>
+              <Text style={[styles.filterChipText, starFilter === null && styles.filterChipTextActive]}>{t('all')}</Text>
+            </Pressable>
+            {[5, 4, 3, 2, 1].map((star) => (
+              <Pressable
+                key={star}
+                onPress={() => setStarFilter(starFilter === star ? null : star)}
+                style={[styles.filterChip, starFilter === star && styles.filterChipActive]}
+              >
+                <Text style={[styles.filterChipText, starFilter === star && styles.filterChipTextActive]}>{star}★</Text>
+              </Pressable>
+            ))}
           </View>
-        ))}
-        {visibleReviews.length === 0 && !loadError && <EmptyState icon={Star} message={t('noReviewsMatchFilter')} />}
-      </View>
-    </ScrollView>
+        </View>
+      }
+      ListEmptyComponent={!loadError ? <EmptyState icon={Star} message={t('noReviewsMatchFilter')} /> : null}
+    />
   );
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 24, maxWidth: 900 },
+  headerGroup: { gap: 20 },
+  reviewSeparator: { height: 12 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
 
@@ -301,7 +318,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   filterChipText: { color: colors.mutedForeground, fontSize: 13 },
   filterChipTextActive: { color: colors.primaryForeground, fontWeight: '700' },
 
-  list: { gap: 12 },
   reviewCard: {
     borderRadius: radii.md,
     borderWidth: 1,
@@ -315,6 +331,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   reviewerName: { color: colors.foreground, fontWeight: '600', fontSize: 14 },
   reviewDate: { color: colors.mutedForeground, fontSize: 11 },
   reviewText: { color: colors.foreground, fontSize: 13, marginTop: 4 },
+  reviewPhotoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  reviewPhoto: { width: 56, height: 56, borderRadius: 8, backgroundColor: colors.secondary },
   moderationBadge: { color: colors.destructive, fontSize: 11, fontWeight: '600' },
   replyBox: { marginTop: 8, borderRadius: 10, backgroundColor: colors.secondary, padding: 10 },
   replyLabel: { fontSize: 11, color: colors.mutedForeground, fontWeight: '600' },

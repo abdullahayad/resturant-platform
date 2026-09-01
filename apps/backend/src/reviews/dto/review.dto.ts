@@ -1,4 +1,39 @@
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, registerDecorator, type ValidationOptions } from 'class-validator';
+import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
+
+// Bounds a public, unauthenticated write — same reasoning as every other
+// gated field on this endpoint (see security review).
+const MAX_REVIEW_PHOTOS = 5;
+
+// Unlike the partner-authenticated gallery-photo endpoint, review creation
+// is public and unauthenticated — accepting arbitrary external URLs here
+// would let anonymous callers plant attacker-controlled links that load in
+// staff browsers the moment a review is opened. Restrict to this
+// deployment's own storage host instead (see security review).
+function IsOwnStoragePhotoUrl(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isOwnStoragePhotoUrl',
+      target: object.constructor,
+      propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: unknown) {
+          if (typeof value !== 'string') return false;
+          const allowedBase = process.env.STORAGE_PUBLIC_URL ?? process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000';
+          try {
+            return new URL(value).host === new URL(allowedBase).host;
+          } catch {
+            return false;
+          }
+        },
+        defaultMessage() {
+          return 'photoUrls must point to this platform\'s own storage';
+        },
+      },
+    });
+  };
+}
 
 export class CreateReviewDto {
   @IsString()
@@ -38,6 +73,13 @@ export class CreateReviewDto {
   @IsString()
   @MaxLength(2000)
   text?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_REVIEW_PHOTOS)
+  @IsOwnStoragePhotoUrl({ each: true })
+  @MaxLength(2000, { each: true })
+  photoUrls?: string[];
 }
 
 export class ReplyToReviewDto {
@@ -46,15 +88,13 @@ export class ReplyToReviewDto {
   text: string;
 }
 
-const MODERATION_STATUSES = ['VISIBLE', 'FLAGGED', 'HIDDEN'] as const;
-
 export class ModerateReviewDto {
   @IsIn(MODERATION_STATUSES)
-  status: (typeof MODERATION_STATUSES)[number];
+  status: ModerationStatusValue;
 }
 
 export class ListReviewsQuery {
   @IsOptional()
   @IsIn(MODERATION_STATUSES)
-  status?: (typeof MODERATION_STATUSES)[number];
+  status?: ModerationStatusValue;
 }

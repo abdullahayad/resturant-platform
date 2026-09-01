@@ -1,4 +1,5 @@
-import { Image, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 
 interface BrandMarkProps {
   size?: number;
@@ -12,7 +13,7 @@ export function BrandMark({ size = 40 }: BrandMarkProps) {
     <Image
       source={require('../../assets/logo-pin-mark.png')}
       style={[styles.mark, { width: size, height: size }]}
-      resizeMode="contain"
+      contentFit="contain"
     />
   );
 }

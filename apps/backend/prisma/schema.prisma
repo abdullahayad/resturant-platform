@@ -40,6 +40,7 @@ enum GalleryAlbum {
   FOOD
   MENU
   AMBIENCE
+  REVIEW
 }
 
 enum ChefRole {
@@ -93,6 +94,17 @@ enum ModerationStatus {
   VISIBLE
   FLAGGED
   HIDDEN
+}
+
+// One-time go-live gate, separate from RestaurantStatus (registration
+// approval). NOT_SUBMITTED is the initial state since Restaurant rows exist
+// before submission, unlike Promotion/Featured which are only created
+// already PENDING.
+enum PublishStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -221,11 +233,12 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  reviewedRestaurants Restaurant[]         @relation("RestaurantReviewedBy")
-  reviewReplyActions  ReviewReply[]        @relation("ReviewReplyModeratedBy")
-  sentNotifications   AdminNotification[]
-  reviewedPromotions  Promotion[]
-  reviewedFeatured    FeaturedPlacement[]
+  reviewedRestaurants        Restaurant[]         @relation("RestaurantReviewedBy")
+  publishReviewedRestaurants Restaurant[]         @relation("RestaurantPublishReviewedBy")
+  reviewReplyActions         ReviewReply[]        @relation("ReviewReplyModeratedBy")
+  sentNotifications          AdminNotification[]
+  reviewedPromotions         Promotion[]
+  reviewedFeatured           FeaturedPlacement[]
 
   @@map("admin_users")
 }
@@ -239,7 +252,7 @@ model Restaurant {
   codeNumber String           @unique // formatted as #IRQ-XXXXX at the API layer
   nameEn     String
   nameAr     String
-  phone      String
+  phone      String           @unique
   logoUrl    String?
   status     RestaurantStatus @default(PENDING_REVIEW)
 
@@ -280,12 +293,28 @@ model Restaurant {
   reviewedAt      DateTime?
   rejectionReason String?
 
+  // Publish/go-live gate — separate one-time stage from registration
+  // approval above. Does not affect ApprovedPartnerGuard/partner-app access;
+  // it only records a "confirmed profile-complete" checkpoint. If declined,
+  // the restaurant cannot resubmit on their own — an admin must reopen it
+  // (see RestaurantsService.reopenPublish) before they can submit again.
+  publishStatus          PublishStatus @default(NOT_SUBMITTED)
+  publishSubmittedAt     DateTime?
+  publishRejectionReason String?
+  publishReviewedById    String?
+  publishReviewedAt      DateTime?
+  // Set only once the restaurant explicitly dismisses a decline notice
+  // (Mark as Done) — reset to null on every fresh decline and on
+  // resubmission, so a repeat decline shows as unacknowledged again.
+  publishDeclineAcknowledgedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  province   Province?  @relation(fields: [provinceId], references: [id])
-  district   District?  @relation(fields: [districtId], references: [id])
-  reviewedBy AdminUser? @relation("RestaurantReviewedBy", fields: [reviewedById], references: [id])
+  province          Province?  @relation(fields: [provinceId], references: [id])
+  district          District?  @relation(fields: [districtId], references: [id])
+  reviewedBy        AdminUser? @relation("RestaurantReviewedBy", fields: [reviewedById], references: [id])
+  publishReviewedBy AdminUser? @relation("RestaurantPublishReviewedBy", fields: [publishReviewedById], references: [id])
 
   businessTypes     RestaurantBusinessType[]
   foodCategories    RestaurantFoodCategory[]
@@ -305,6 +334,7 @@ model Restaurant {
   pushTokens        RestaurantPushToken[]
 
   @@index([status])
+  @@index([publishStatus])
   @@index([provinceId])
   @@index([districtId])
   @@map("restaurants")
@@ -357,6 +387,7 @@ model Dish {
   photoUrl       String?
   isMostOrdered  Boolean  @default(false)
   isActive       Boolean  @default(true)
+  moderationStatus ModerationStatus @default(VISIBLE)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -367,6 +398,7 @@ model Dish {
 
   @@index([restaurantId])
   @@index([menuCategoryId])
+  @@index([moderationStatus])
   @@map("dishes")
 }
 
@@ -384,14 +416,20 @@ model GalleryPhoto {
   dishId              String?
   // Ambience album only
   ambienceSubCategory AmbienceSubCategory?
+  // Review album only: links back to the review a customer attached this
+  // photo to when posting it.
+  reviewId            String?
   url                 String
   caption             String?
+  moderationStatus    ModerationStatus     @default(VISIBLE)
   createdAt           DateTime             @default(now())
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   dish       Dish?      @relation(fields: [dishId], references: [id])
+  review     Review?    @relation(fields: [reviewId], references: [id])
 
   @@index([restaurantId, album])
+  @@index([moderationStatus])
   @@map("gallery_photos")
 }
 
@@ -456,6 +494,10 @@ model Review {
 
   restaurant Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   reply      ReviewReply?
+  // Photos the customer attached when posting this review — stored as
+  // GalleryPhoto rows tagged album: REVIEW, so they also show up in the
+  // restaurant's own gallery and go through the same moderation flow.
+  photos     GalleryPhoto[]
 
   @@index([restaurantId])
   @@index([moderationStatus])
@@ -526,6 +568,7 @@ model RestaurantEvent {
   recurringTime      String? // recurring events: "HH:mm"
 
   isActive  Boolean  @default(true)
+  moderationStatus ModerationStatus @default(VISIBLE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -534,6 +577,7 @@ model RestaurantEvent {
   reservations ChefTableBooking[]
 
   @@index([restaurantId, isActive])
+  @@index([moderationStatus])
   @@map("restaurant_events")
 }
 

@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { CreateGalleryPhotoDto } from './dto/gallery-photo.dto';
+import type { CreateGalleryPhotoDto, ModerateGalleryPhotoDto } from './dto/gallery-photo.dto';
+import type { GalleryAlbumValue } from '../common/gallery';
+import type { ModerationStatusValue } from '../common/moderation';
 
 const photoInclude = {
   dish: { select: { id: true, nameEn: true, isMostOrdered: true, menuCategory: true } },
@@ -10,9 +12,9 @@ const photoInclude = {
 export class GalleryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(restaurantId: string, album?: 'FOOD' | 'MENU' | 'AMBIENCE') {
+  list(restaurantId: string, album?: GalleryAlbumValue) {
     return this.prisma.db.galleryPhoto.findMany({
-      where: { restaurantId, album },
+      where: { restaurantId, album, moderationStatus: { not: 'HIDDEN' } },
       include: photoInclude,
       orderBy: { createdAt: 'desc' },
     });
@@ -48,5 +50,25 @@ export class GalleryService {
     if (!photo || photo.restaurantId !== restaurantId) throw new NotFoundException('Photo not found');
     await this.prisma.db.galleryPhoto.delete({ where: { id } });
     return { id };
+  }
+
+  // ── Admin moderation ─────────────────────────────────────────────────
+
+  adminList(status?: ModerationStatusValue) {
+    return this.prisma.db.galleryPhoto.findMany({
+      where: { moderationStatus: status },
+      include: { ...photoInclude, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async moderate(id: string, dto: ModerateGalleryPhotoDto) {
+    const photo = await this.prisma.db.galleryPhoto.findUnique({ where: { id }, select: { id: true } });
+    if (!photo) throw new NotFoundException('Photo not found');
+    return this.prisma.db.galleryPhoto.update({
+      where: { id },
+      data: { moderationStatus: dto.status },
+      include: photoInclude,
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { ImageOff } from 'lucide-react-native';
@@ -16,15 +17,21 @@ import {
   type GalleryPhoto,
 } from '../lib/api';
 
+const CARD_WIDTH = 160;
+const CARD_GAP = 12;
+
 export function PhotoGalleryScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('gallery');
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const numColumns = Math.max(1, Math.floor(width / (CARD_WIDTH + CARD_GAP)));
   const albumTabs: { key: GalleryAlbum; label: string }[] = [
     { key: 'FOOD', label: t('tabs.food') },
     { key: 'MENU', label: t('tabs.menu') },
     { key: 'AMBIENCE', label: t('tabs.ambience') },
+    { key: 'REVIEW', label: t('tabs.review') },
   ];
   const ambienceTabs: { key: AmbienceSubCategory; label: string }[] = [
     { key: 'OUTDOOR', label: t('ambienceTabs.outdoor') },
@@ -79,6 +86,7 @@ export function PhotoGalleryScreen() {
     () => photos.filter((p) => p.album === 'AMBIENCE' && p.ambienceSubCategory === ambienceTab),
     [photos, ambienceTab],
   );
+  const reviewPhotos = useMemo(() => photos.filter((p) => p.album === 'REVIEW'), [photos]);
 
   const addPhoto = async () => {
     setError(null);
@@ -124,91 +132,110 @@ export function PhotoGalleryScreen() {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const renderGrid = (list: GalleryPhoto[]) => (
-    <View style={styles.grid}>
-      {localPreview && (
-        <View style={styles.photoCard}>
-          <Image source={{ uri: localPreview }} style={styles.photoImage} />
-          <View style={styles.photoUploadingOverlay}>
-            <ActivityIndicator color="#fff" />
-          </View>
-        </View>
-      )}
-      {list.map((photo) => (
-        <View key={photo.id} style={styles.photoCard}>
-          <Image source={{ uri: photo.url }} style={styles.photoImage} />
-          {photo.dish && <Text style={styles.photoCaption}>{photo.dish.nameEn}</Text>}
-          <Pressable onPress={() => removePhoto(photo.id)}>
-            <Text style={styles.removeLink}>{t('remove')}</Text>
-          </Pressable>
-        </View>
-      ))}
-      {list.length === 0 && !localPreview && <EmptyState icon={ImageOff} message={t('noPhotosYet')} />}
+  const activeList =
+    album === 'FOOD' ? foodPhotos : album === 'MENU' ? menuPhotos : album === 'AMBIENCE' ? ambiencePhotos : reviewPhotos;
+
+  const renderPhoto = ({ item: photo }: { item: GalleryPhoto }) => (
+    <View style={styles.photoCard}>
+      <Image source={{ uri: photo.url }} style={styles.photoImage} />
+      {photo.dish && <Text style={styles.photoCaption}>{photo.dish.nameEn}</Text>}
+      {photo.album === 'REVIEW' && photo.caption && <Text style={styles.photoCaption}>{photo.caption}</Text>}
+      <Pressable onPress={() => removePhoto(photo.id)}>
+        <Text style={styles.removeLink}>{t('remove')}</Text>
+      </Pressable>
     </View>
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{t('title')}</Text>
-      {loadError && <Text style={styles.error}>{loadError}</Text>}
+    <FlatList
+      key={numColumns}
+      data={activeList}
+      keyExtractor={(photo) => photo.id}
+      renderItem={renderPhoto}
+      numColumns={numColumns}
+      columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
+      contentContainerStyle={styles.container}
+      ListHeaderComponent={
+        <View style={styles.headerGroup}>
+          <Text style={styles.title}>{t('title')}</Text>
+          {loadError && <Text style={styles.error}>{loadError}</Text>}
 
-      <View style={styles.albumTabs}>
-        {albumTabs.map((tab) => (
-          <Pressable
-            key={tab.key}
-            onPress={() => setAlbum(tab.key)}
-            style={[styles.albumTab, album === tab.key && styles.albumTabActive]}
-          >
-            <Text style={[styles.albumTabText, album === tab.key && styles.albumTabTextActive]}>{tab.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {album === 'FOOD' && (
-        <>
-          <ChipSelect
-            options={[
-              { id: 'ALL', label: t('foodFilters.all') },
-              { id: 'MOST_ORDERED', label: t('foodFilters.mostOrdered') },
-              ...foodCategoryTabs,
-            ]}
-            selectedIds={[foodTab]}
-            onToggle={(id) => setFoodTab(id)}
-          />
-          <View style={styles.addRow}>
-            <Text style={styles.fieldLabel}>{t('addToDish')}</Text>
-            <ChipSelect
-              options={dishes.map((d) => ({ id: d.id, label: d.nameEn }))}
-              selectedIds={selectedDishId ? [selectedDishId] : []}
-              onToggle={(id) => setSelectedDishId(id === selectedDishId ? null : id)}
-            />
+          <View style={styles.albumTabs}>
+            {albumTabs.map((tab) => (
+              <Pressable
+                key={tab.key}
+                onPress={() => setAlbum(tab.key)}
+                style={[styles.albumTab, album === tab.key && styles.albumTabActive]}
+              >
+                <Text style={[styles.albumTabText, album === tab.key && styles.albumTabTextActive]}>{tab.label}</Text>
+              </Pressable>
+            ))}
           </View>
-        </>
-      )}
 
-      {album === 'AMBIENCE' && (
-        <ChipSelect
-          options={ambienceTabs.map((tab) => ({ id: tab.key, label: tab.label }))}
-          selectedIds={[ambienceTab]}
-          onToggle={(id) => setAmbienceTab(id as AmbienceSubCategory)}
-        />
-      )}
+          {album === 'FOOD' && (
+            <>
+              <ChipSelect
+                options={[
+                  { id: 'ALL', label: t('foodFilters.all') },
+                  { id: 'MOST_ORDERED', label: t('foodFilters.mostOrdered') },
+                  ...foodCategoryTabs,
+                ]}
+                selectedIds={[foodTab]}
+                onToggle={(id) => setFoodTab(id)}
+              />
+              <View style={styles.addRow}>
+                <Text style={styles.fieldLabel}>{t('addToDish')}</Text>
+                <ChipSelect
+                  options={dishes.map((d) => ({ id: d.id, label: d.nameEn }))}
+                  selectedIds={selectedDishId ? [selectedDishId] : []}
+                  onToggle={(id) => setSelectedDishId(id === selectedDishId ? null : id)}
+                />
+              </View>
+            </>
+          )}
 
-      {error && <Text style={styles.error}>{error}</Text>}
+          {album === 'AMBIENCE' && (
+            <ChipSelect
+              options={ambienceTabs.map((tab) => ({ id: tab.key, label: tab.label }))}
+              selectedIds={[ambienceTab]}
+              onToggle={(id) => setAmbienceTab(id as AmbienceSubCategory)}
+            />
+          )}
 
-      <Pressable style={[styles.button, styles.primaryButton]} onPress={addPhoto} disabled={uploading}>
-        {uploading ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('addPhoto')}</Text>}
-      </Pressable>
+          {/* REVIEW album has no upload flow — these photos only ever come
+              from a customer's review, the restaurant can just browse/remove. */}
+          {album === 'REVIEW' && <Text style={styles.fieldLabel}>{t('reviewPhotosHint')}</Text>}
 
-      {album === 'FOOD' && renderGrid(foodPhotos)}
-      {album === 'MENU' && renderGrid(menuPhotos)}
-      {album === 'AMBIENCE' && renderGrid(ambiencePhotos)}
-    </ScrollView>
+          {error && <Text style={styles.error}>{error}</Text>}
+
+          {album !== 'REVIEW' && (
+            <Pressable style={[styles.button, styles.primaryButton]} onPress={addPhoto} disabled={uploading}>
+              {uploading ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('addPhoto')}</Text>}
+            </Pressable>
+          )}
+
+          {localPreview && (
+            <View style={[styles.photoCard, styles.uploadingCard]}>
+              <Image source={{ uri: localPreview }} style={styles.photoImage} />
+              <View style={styles.photoUploadingOverlay}>
+                <ActivityIndicator color="#fff" />
+              </View>
+            </View>
+          )}
+        </View>
+      }
+      ListEmptyComponent={
+        !localPreview ? (
+          <EmptyState icon={ImageOff} message={album === 'REVIEW' ? t('noReviewPhotosYet') : t('noPhotosYet')} />
+        ) : null
+      }
+    />
   );
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 16, paddingBottom: 24 },
+  headerGroup: { gap: 16 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
   fieldLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
@@ -221,10 +248,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   button: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center', alignSelf: 'flex-start' },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  gridRow: { gap: CARD_GAP, marginBottom: CARD_GAP },
   photoCard: {
     position: 'relative',
-    width: 160,
+    width: CARD_WIDTH,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -233,6 +260,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: 8,
     gap: 4,
   },
+  uploadingCard: { marginBottom: CARD_GAP },
   photoImage: { width: '100%', height: 120, borderRadius: 8, backgroundColor: colors.secondary },
   photoUploadingOverlay: {
     position: 'absolute',

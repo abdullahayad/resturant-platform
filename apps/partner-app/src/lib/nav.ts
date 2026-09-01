@@ -12,7 +12,7 @@ import {
   Star,
   CalendarCheck,
   BarChart3,
-  Megaphone,
+  Inbox,
   Settings,
 } from 'lucide-react-native';
 
@@ -53,7 +53,7 @@ export const navItems: NavItem[] = [
   { key: 'reviews', labelEn: 'Customer Reviews', icon: Star },
   { key: 'reservations', labelEn: 'Reservations', icon: CalendarCheck, comingSoon: true, managerOrOwnerOnly: true },
   { key: 'analytics', labelEn: 'Deep Analytics', icon: BarChart3, comingSoon: true, managerOrOwnerOnly: true },
-  { key: 'announcements', labelEn: 'Announcements', icon: Megaphone },
+  { key: 'announcements', labelEn: 'Inbox', icon: Inbox },
   { key: 'settings', labelEn: 'Settings & Staff', icon: Settings },
 ];
 

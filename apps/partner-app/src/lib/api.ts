@@ -68,6 +68,8 @@ export interface OpeningHoursDay {
   closeTime: string | null;
 }
 
+export type PublishStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface RestaurantDetail extends AuthenticatedRestaurant {
   phone: string;
   logoUrl: string | null;
@@ -76,6 +78,10 @@ export interface RestaurantDetail extends AuthenticatedRestaurant {
   longitude: number | null;
   notifyNewReview: boolean;
   notifyNewBooking: boolean;
+  publishStatus: PublishStatus;
+  publishSubmittedAt: string | null;
+  publishRejectionReason: string | null;
+  publishDeclineAcknowledgedAt: string | null;
   province: MasterDataItem | null;
   district: MasterDataItem | null;
   businessTypes: { businessType: MasterDataItem }[];
@@ -125,7 +131,7 @@ export interface DishPayload {
   isMostOrdered?: boolean;
 }
 
-export type GalleryAlbum = 'FOOD' | 'MENU' | 'AMBIENCE';
+export type GalleryAlbum = 'FOOD' | 'MENU' | 'AMBIENCE' | 'REVIEW';
 export type AmbienceSubCategory = 'OUTDOOR' | 'INDOOR' | 'OTHER';
 
 export interface GalleryPhoto {
@@ -153,6 +159,7 @@ export interface Review {
   createdAt: string;
   moderationStatus: 'VISIBLE' | 'FLAGGED' | 'HIDDEN';
   reply: { id: string; text: string; createdAt: string } | null;
+  photos: { id: string; url: string; moderationStatus: 'VISIBLE' | 'FLAGGED' | 'HIDDEN' }[];
 }
 
 export interface ReviewCategoryScore {
@@ -432,6 +439,9 @@ export const api = {
     send<RestaurantDetail>('PATCH', '/restaurants/me', token, payload),
   updateOpeningHours: (token: string, days: OpeningHoursDay[]) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me/hours', token, { days }),
+  submitForPublish: (token: string) => send<RestaurantDetail>('POST', '/restaurants/me/publish-submit', token),
+  acknowledgePublishDecline: (token: string) =>
+    send<RestaurantDetail>('PATCH', '/restaurants/me/publish-acknowledge', token),
 
   async uploadFile(token: string, file: { uri: string; name: string; type: string }): Promise<{ url: string }> {
     const form = new FormData();

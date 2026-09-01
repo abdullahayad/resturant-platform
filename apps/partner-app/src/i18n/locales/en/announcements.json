@@ -1,8 +1,13 @@
 {
-  "title": "Announcements",
+  "title": "Inbox",
   "subtitle": "Messages and action items from the platform team.",
+  "announcementsSectionTitle": "Announcements",
+  "publishReviewSectionTitle": "Publish Review",
   "completed": "Completed",
   "actionRequired": "Action Required",
   "markAsDone": "Mark as Done",
-  "noAnnouncementsYet": "No announcements yet."
+  "noAnnouncementsYet": "No announcements yet.",
+  "columnSubject": "Subject",
+  "columnDate": "Date",
+  "columnStatus": "Status"
 }

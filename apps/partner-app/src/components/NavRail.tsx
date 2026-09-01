@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -18,6 +19,7 @@ export function NavRail({ active, badges, onSelect }: NavRailProps) {
   const { staff } = useAuth();
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
+  const { t } = useTranslation('nav');
   const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
   const visibleItems = getVisibleNavItems(staff?.role);
 
@@ -33,6 +35,9 @@ export function NavRail({ active, badges, onSelect }: NavRailProps) {
               key={item.key}
               onPress={() => onSelect(item.key)}
               style={[styles.navItem, isActive && styles.navItemActive]}
+              accessibilityRole="tab"
+              accessibilityLabel={badgeCount > 0 ? `${t(`items.${item.key}`)}, ${badgeCount} pending` : t(`items.${item.key}`)}
+              accessibilityState={{ selected: isActive }}
             >
               <item.icon size={20} color={isActive ? colors.primary : colors.mutedForeground} />
               {badgeCount > 0 && (

@@ -1,11 +1,12 @@
 import { IsIn, IsOptional, IsString, IsUrl, IsUUID, MaxLength } from 'class-validator';
+import { CREATABLE_GALLERY_ALBUMS, GALLERY_ALBUMS, type CreatableGalleryAlbumValue, type GalleryAlbumValue } from '../../common/gallery';
+import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
 
-const ALBUMS = ['FOOD', 'MENU', 'AMBIENCE'] as const;
 const AMBIENCE_SUB_CATEGORIES = ['OUTDOOR', 'INDOOR', 'OTHER'] as const;
 
 export class CreateGalleryPhotoDto {
-  @IsIn(ALBUMS)
-  album: (typeof ALBUMS)[number];
+  @IsIn(CREATABLE_GALLERY_ALBUMS)
+  album: CreatableGalleryAlbumValue;
 
   @IsUrl({ require_tld: false })
   @MaxLength(2000)
@@ -27,6 +28,17 @@ export class CreateGalleryPhotoDto {
 
 export class ListGalleryQuery {
   @IsOptional()
-  @IsIn(ALBUMS)
-  album?: (typeof ALBUMS)[number];
+  @IsIn(GALLERY_ALBUMS)
+  album?: GalleryAlbumValue;
+}
+
+export class ModerateGalleryPhotoDto {
+  @IsIn(MODERATION_STATUSES)
+  status: ModerationStatusValue;
+}
+
+export class ListGalleryPhotosQuery {
+  @IsOptional()
+  @IsIn(MODERATION_STATUSES)
+  status?: ModerationStatusValue;
 }

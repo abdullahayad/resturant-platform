@@ -18,6 +18,7 @@ export function FormField({ label, style, onFocus, onBlur, ...inputProps }: Form
       <TextInput
         placeholderTextColor={colors.mutedForeground}
         style={[styles.input, focused && styles.inputFocused, style]}
+        accessibilityLabel={label}
         onFocus={(e) => {
           setFocused(true);
           onFocus?.(e);

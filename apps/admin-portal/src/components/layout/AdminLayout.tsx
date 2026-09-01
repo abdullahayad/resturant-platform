@@ -1,15 +1,28 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, Moon, Sun, UtensilsCrossed } from 'lucide-react'
 import { navItems } from '@/lib/nav'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 import { useTheme } from '@/lib/theme'
+import { api } from '@/lib/api'
 
 export function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const admin = auth.getAdmin()
   const { theme, toggleTheme } = useTheme()
+  const [approvalsBadge, setApprovalsBadge] = useState(0)
+
+  // True pending count (signup + go-live review), refetched on every
+  // navigation so it stays reasonably fresh as the admin moves around and
+  // works through the queue.
+  useEffect(() => {
+    Promise.all([
+      api.restaurants({ status: 'PENDING_REVIEW' }).then((r) => r.length).catch(() => 0),
+      api.restaurants({ publishStatus: 'PENDING' }).then((r) => r.length).catch(() => 0),
+    ]).then(([signup, review]) => setApprovalsBadge(signup + review))
+  }, [location.pathname])
 
   const signOut = () => {
     auth.clear()
@@ -57,7 +70,12 @@ export function AdminLayout() {
                       isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
                     )}
                   />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.path === '/approvals' && approvalsBadge > 0 && (
+                    <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                      {approvalsBadge > 9 ? '9+' : approvalsBadge}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>

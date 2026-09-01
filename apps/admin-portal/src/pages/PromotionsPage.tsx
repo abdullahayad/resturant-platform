@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type PromotionItem, type PromotionStatus } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { FilterTabs } from '@/components/FilterTabs'
+import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 
 const filters: { key: PromotionStatus | 'ALL'; label: string }[] = [
   { key: 'PENDING', label: 'Pending' },
@@ -10,10 +11,10 @@ const filters: { key: PromotionStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
 ]
 
-const statusStyles: Record<PromotionStatus, string> = {
-  PENDING: 'bg-primary/15 text-primary',
-  APPROVED: 'bg-success/15 text-success',
-  REJECTED: 'bg-destructive/15 text-destructive',
+const statusTones: Record<PromotionStatus, StatusPillTone> = {
+  PENDING: 'primary',
+  APPROVED: 'success',
+  REJECTED: 'destructive',
 }
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -90,20 +91,7 @@ export function PromotionsPage() {
         <p className="text-sm text-muted-foreground">Approve or reject restaurant-submitted discounts before they go live.</p>
       </div>
 
-      <div className="flex gap-2 border-b border-border pb-3">
-        {filters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
-              filter === f.key && 'bg-primary/10 text-primary',
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs options={filters} active={filter} onChange={setFilter} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
@@ -121,7 +109,7 @@ export function PromotionsPage() {
                   {p.restaurant.nameEn} · {p.restaurant.codeNumber} · {new Date(p.createdAt).toLocaleDateString()}
                 </div>
               </div>
-              <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-xs', statusStyles[p.status])}>{p.status}</span>
+              <StatusPill label={p.status} tone={statusTones[p.status]} className="shrink-0" />
             </div>
 
             <div className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-3">

@@ -40,6 +40,9 @@ export function Sidebar({ active, badges, onSelect }: SidebarProps) {
               key={item.key}
               onPress={() => onSelect(item.key)}
               style={[styles.navItem, isActive && styles.navItemActive]}
+              accessibilityRole="tab"
+              accessibilityLabel={badgeCount > 0 ? `${t(`items.${item.key}`)}, ${badgeCount} pending` : t(`items.${item.key}`)}
+              accessibilityState={{ selected: isActive }}
             >
               {isActive && <View style={styles.activeBar} />}
               <View style={styles.navItemContent}>

@@ -9,7 +9,9 @@ import type { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import type { DayHoursDto } from './dto/opening-hours.dto';
 import type { ForgotPasswordDto } from './dto/forgot-password.dto';
 import type { ResetPasswordDto } from './dto/reset-password.dto';
+import type { ModeratePublishDto } from './dto/update-restaurant-status.dto';
 import { EmailService } from '../email/email.service';
+import { PushService } from '../push/push.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const restaurantListSelect = {
@@ -25,6 +27,11 @@ const restaurantListSelect = {
   createdAt: true,
   reviewedAt: true,
   rejectionReason: true,
+  publishStatus: true,
+  publishSubmittedAt: true,
+  publishRejectionReason: true,
+  publishReviewedAt: true,
+  publishDeclineAcknowledgedAt: true,
   province: { select: { id: true, nameEn: true, nameAr: true } },
   district: { select: { id: true, nameEn: true, nameAr: true } },
 } as const;
@@ -42,12 +49,42 @@ const restaurantDetailSelect = {
   openingHours: { orderBy: { dayOfWeek: 'asc' } },
 } as const;
 
+// Everything an admin needs to see exactly what the restaurant's page will
+// look like — deliberately includes HIDDEN/FLAGGED content, unlike the
+// partner-app-facing "my content" queries, so completeness can be judged.
+const publishReviewSelect = {
+  ...restaurantDetailSelect,
+  crewCount: true,
+  crewPhotoUrl: true,
+  publishReviewedBy: { select: { fullName: true } },
+  dishes: {
+    include: { menuCategory: true },
+    orderBy: { createdAt: 'desc' },
+  },
+  galleryPhotos: {
+    include: { dish: { select: { id: true, nameEn: true, isMostOrdered: true, menuCategory: true } } },
+    orderBy: { createdAt: 'desc' },
+  },
+  chefProfiles: true,
+  events: {
+    include: { eventType: { select: { id: true, nameEn: true, nameAr: true, icon: true } } },
+    orderBy: { createdAt: 'desc' },
+  },
+  // Read-only for the admin — staff themselves are still only ever
+  // managed by the restaurant owner/manager (restaurants/me/staff).
+  staffUsers: {
+    select: { id: true, email: true, fullName: true, role: true, isActive: true, createdAt: true },
+    orderBy: { createdAt: 'asc' },
+  },
+} as const;
+
 @Injectable()
 export class RestaurantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly email: EmailService,
+    private readonly push: PushService,
   ) {}
 
   private async generateUniqueCode(): Promise<string> {
@@ -63,12 +100,15 @@ export class RestaurantsService {
   }
 
   async register(dto: RegisterRestaurantDto) {
-    const existingOwner = await this.prisma.db.restaurant.findUnique({
-      where: { ownerEmail: dto.ownerEmail },
-      select: { id: true },
-    });
-    if (existingOwner) {
-      throw new ConflictException('An account with this email already exists');
+    // One shared message for both fields — a distinct message per field
+    // would let an anonymous caller enumerate which emails/phone numbers
+    // are already registered (see security review).
+    const [existingOwner, existingPhone] = await Promise.all([
+      this.prisma.db.restaurant.findUnique({ where: { ownerEmail: dto.ownerEmail }, select: { id: true } }),
+      this.prisma.db.restaurant.findUnique({ where: { phone: dto.phone }, select: { id: true } }),
+    ]);
+    if (existingOwner || existingPhone) {
+      throw new ConflictException('An account with this email or phone number already exists');
     }
 
     const codeNumber = await this.generateUniqueCode();
@@ -97,6 +137,7 @@ export class RestaurantsService {
 
   list(filters: {
     status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+    publishStatus?: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
     provinceId?: string;
     districtId?: string;
     businessTypeId?: string;
@@ -107,6 +148,7 @@ export class RestaurantsService {
     return this.prisma.db.restaurant.findMany({
       where: {
         status: filters.status,
+        publishStatus: filters.publishStatus,
         provinceId: filters.provinceId,
         districtId: filters.districtId,
         businessTypes: filters.businessTypeId
@@ -176,6 +218,16 @@ export class RestaurantsService {
 
   async updateProfile(id: string, dto: UpdateRestaurantProfileDto) {
     await this.ensureExists(id);
+
+    if (dto.phone !== undefined) {
+      const existingPhone = await this.prisma.db.restaurant.findUnique({
+        where: { phone: dto.phone },
+        select: { id: true },
+      });
+      if (existingPhone && existingPhone.id !== id) {
+        throw new ConflictException('An account with this phone number already exists');
+      }
+    }
 
     await this.prisma.db.restaurant.update({
       where: { id },
@@ -365,6 +417,102 @@ export class RestaurantsService {
         openTime: d.isClosed ? null : (d.openTime ?? null),
         closeTime: d.isClosed ? null : (d.closeTime ?? null),
       })),
+    });
+    return this.findOne(id);
+  }
+
+  // Go-live gate. Allowed from NOT_SUBMITTED (first submission) or REJECTED
+  // (the restaurant edited their profile after a decline and is submitting
+  // again) — resubmission after a decline no longer requires an admin to
+  // reopen it first.
+  async submitForPublish(id: string) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { id },
+      select: { publishStatus: true },
+    });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+    if (restaurant.publishStatus !== 'NOT_SUBMITTED' && restaurant.publishStatus !== 'REJECTED') {
+      throw new BadRequestException('This restaurant has already submitted for publish review');
+    }
+    await this.prisma.db.restaurant.update({
+      where: { id },
+      data: {
+        publishStatus: 'PENDING',
+        publishSubmittedAt: new Date(),
+        publishRejectionReason: null,
+        publishReviewedById: null,
+        publishReviewedAt: null,
+        publishDeclineAcknowledgedAt: null,
+      },
+    });
+    return this.findOne(id);
+  }
+
+  async getPublishReview(id: string) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({ where: { id }, select: publishReviewSelect });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+    return restaurant;
+  }
+
+  async moderatePublish(adminId: string, id: string, dto: ModeratePublishDto) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { id },
+      select: { publishStatus: true },
+    });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+    if (restaurant.publishStatus !== 'PENDING') {
+      throw new BadRequestException('This restaurant has no publish review pending');
+    }
+    const updated = await this.prisma.db.restaurant.update({
+      where: { id },
+      data: {
+        publishStatus: dto.status,
+        publishRejectionReason: dto.status === 'REJECTED' ? (dto.rejectionReason ?? null) : null,
+        publishReviewedById: adminId,
+        publishReviewedAt: new Date(),
+        // A fresh decline is always unacknowledged, even if a previous
+        // round was already marked done.
+        publishDeclineAcknowledgedAt: null,
+      },
+      select: restaurantListSelect,
+    });
+
+    // Always sent, unlike notifyNewReview/notifyNewBooking — this is a
+    // one-time account-status event the owner needs to see regardless of
+    // their notification preferences, same as admin announcements.
+    if (dto.status === 'APPROVED') {
+      this.push
+        .sendToRestaurants([id], 'Your listing is live!', 'Your publish review was approved — your listing is now live.')
+        .catch(() => {});
+    } else {
+      const reasonText = dto.rejectionReason ? `Reason: ${dto.rejectionReason} ` : '';
+      this.push
+        .sendToRestaurants(
+          [id],
+          'Publish review declined',
+          `${reasonText}Update your profile and submit again from Settings.`,
+        )
+        .catch(() => {});
+    }
+
+    return updated;
+  }
+
+  // Restaurant-side "Mark as Done" — the decline notice stays flagged as
+  // needing attention until the restaurant explicitly dismisses it, not
+  // just by viewing it.
+  async acknowledgePublishDecline(id: string) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { id },
+      select: { publishStatus: true },
+    });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+    if (restaurant.publishStatus !== 'REJECTED') {
+      throw new BadRequestException('There is no declined publish review to acknowledge');
+    }
+    await this.prisma.db.restaurant.update({
+      where: { id },
+      data: { publishDeclineAcknowledgedAt: new Date() },
     });
     return this.findOne(id);
   }

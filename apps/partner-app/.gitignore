@@ -33,6 +33,11 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Firebase service account key — a real secret (private key inside), unlike
+# google-services.json which is safe to commit. Used only to upload push
+# credentials to EAS; never bundled into the app itself.
+firebase-service-account.json
+
 # typescript
 *.tsbuildinfo
 

@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -24,6 +25,7 @@ import { FeaturedModule } from './featured/featured.module';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     // App-wide default; individual routes (e.g. the public reservation
     // endpoint) can tighten this further with @Throttle().
@@ -47,6 +49,11 @@ import { FeaturedModule } from './featured/featured.module';
     FeaturedModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    // Must come before any other exception filter (none currently exist).
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

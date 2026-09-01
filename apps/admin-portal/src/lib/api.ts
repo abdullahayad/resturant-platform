@@ -7,6 +7,7 @@ import { auth, type AdminProfile } from './auth'
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
 
 export type RestaurantStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
+export type PublishStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface RestaurantListItem {
   id: string
@@ -21,6 +22,10 @@ export interface RestaurantListItem {
   createdAt: string
   reviewedAt: string | null
   rejectionReason: string | null
+  publishStatus: PublishStatus
+  publishSubmittedAt: string | null
+  publishRejectionReason: string | null
+  publishReviewedAt: string | null
   province: { id: string; nameEn: string; nameAr: string } | null
   district: { id: string; nameEn: string; nameAr: string } | null
 }
@@ -62,6 +67,7 @@ export interface ReviewItem {
   moderationStatus: ModerationStatus
   restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
   reply: { id: string; text: string } | null
+  photos: { id: string; url: string; moderationStatus: ModerationStatus }[]
 }
 
 export interface RestaurantDetail extends RestaurantListItem {
@@ -70,6 +76,95 @@ export interface RestaurantDetail extends RestaurantListItem {
   businessTypes: { businessType: { id: string; nameEn: string; nameAr: string } }[]
   foodCategories: { foodCategory: { id: string; nameEn: string; nameAr: string } }[]
   facilities: { facility: { id: string; nameEn: string; nameAr: string } }[]
+  openingHours: {
+    dayOfWeek: number
+    isClosed: boolean
+    openTime: string | null
+    closeTime: string | null
+  }[]
+}
+
+export interface PublishReviewDetail extends RestaurantDetail {
+  crewCount: number | null
+  crewPhotoUrl: string | null
+  publishReviewedBy: { fullName: string } | null
+  dishes: {
+    id: string
+    nameEn: string
+    nameAr: string
+    price: string
+    photoUrl: string | null
+    isMostOrdered: boolean
+    moderationStatus: ModerationStatus
+    menuCategory: { id: string; nameEn: string; nameAr: string } | null
+  }[]
+  galleryPhotos: {
+    id: string
+    album: 'FOOD' | 'MENU' | 'AMBIENCE'
+    url: string
+    caption: string | null
+    moderationStatus: ModerationStatus
+    ambienceSubCategory: 'OUTDOOR' | 'INDOOR' | 'OTHER' | null
+    dish: { id: string; nameEn: string } | null
+  }[]
+  chefProfiles: {
+    id: string
+    role: 'HEAD_CHEF' | 'SOUS_CHEF'
+    name: string
+    photoUrl: string | null
+    speciality: string | null
+    yearsExperience: number | null
+    awards: string[]
+  }[]
+  events: {
+    id: string
+    titleEn: string
+    titleAr: string
+    descriptionEn: string | null
+    photoUrl: string | null
+    price: string | null
+    isActive: boolean
+    moderationStatus: ModerationStatus
+    eventType: { id: string; nameEn: string; nameAr: string; icon: string | null }
+  }[]
+  staffUsers: {
+    id: string
+    email: string
+    fullName: string
+    role: 'MANAGER' | 'MENU_EDITOR'
+    isActive: boolean
+    createdAt: string
+  }[]
+}
+
+export interface ModeratableDishItem {
+  id: string
+  nameEn: string
+  nameAr: string
+  photoUrl: string | null
+  moderationStatus: ModerationStatus
+  createdAt: string
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
+}
+
+export interface ModeratableGalleryPhotoItem {
+  id: string
+  url: string
+  caption: string | null
+  album: 'FOOD' | 'MENU' | 'AMBIENCE'
+  moderationStatus: ModerationStatus
+  createdAt: string
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
+}
+
+export interface ModeratableEventItem {
+  id: string
+  titleEn: string
+  titleAr: string
+  photoUrl: string | null
+  moderationStatus: ModerationStatus
+  createdAt: string
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
 }
 
 export type MasterDataKind = 'business-types' | 'food-categories' | 'menu-categories' | 'facilities' | 'event-types'
@@ -228,6 +323,7 @@ export const api = {
 
   restaurants: (filters?: {
     status?: RestaurantStatus
+    publishStatus?: PublishStatus
     provinceId?: string
     districtId?: string
     businessTypeId?: string
@@ -236,6 +332,7 @@ export const api = {
   }) => {
     const params = new URLSearchParams()
     if (filters?.status) params.set('status', filters.status)
+    if (filters?.publishStatus) params.set('publishStatus', filters.publishStatus)
     if (filters?.provinceId) params.set('provinceId', filters.provinceId)
     if (filters?.districtId) params.set('districtId', filters.districtId)
     if (filters?.businessTypeId) params.set('businessTypeId', filters.businessTypeId)
@@ -251,6 +348,25 @@ export const api = {
   suspend: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/suspend`),
   setStatsVisibility: (id: string, statsVisible: boolean) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/stats-visibility`, { statsVisible }),
+
+  publishReview: (id: string) => get<PublishReviewDetail>(`/restaurants/${id}/publish-review`),
+  moderatePublish: (id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>
+    send<RestaurantListItem>('PATCH', `/restaurants/${id}/publish-moderate`, { status, rejectionReason }),
+
+  moderatableDishes: (status?: ModerationStatus) =>
+    get<ModeratableDishItem[]>(`/admin/dishes${status ? `?status=${status}` : ''}`),
+  moderateDish: (id: string, status: ModerationStatus) =>
+    send<ModeratableDishItem>('PATCH', `/admin/dishes/${id}/moderate`, { status }),
+
+  moderatableGalleryPhotos: (status?: ModerationStatus) =>
+    get<ModeratableGalleryPhotoItem[]>(`/admin/gallery-photos${status ? `?status=${status}` : ''}`),
+  moderateGalleryPhoto: (id: string, status: ModerationStatus) =>
+    send<ModeratableGalleryPhotoItem>('PATCH', `/admin/gallery-photos/${id}/moderate`, { status }),
+
+  moderatableEvents: (status?: ModerationStatus) =>
+    get<ModeratableEventItem[]>(`/admin/events${status ? `?status=${status}` : ''}`),
+  moderateEvent: (id: string, status: ModerationStatus) =>
+    send<ModeratableEventItem>('PATCH', `/admin/events/${id}/moderate`, { status }),
 
   masterData: (kind: MasterDataKind) => get<MasterDataItemFull[]>(`/master-data/admin/${kind}`),
   createMasterDataItem: (kind: MasterDataKind, payload: MasterDataItemPayload) =>

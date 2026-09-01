@@ -3,8 +3,11 @@
   "tabs": {
     "food": "Food Album",
     "menu": "Menu Album",
-    "ambience": "Ambience Album"
+    "ambience": "Ambience Album",
+    "review": "Review Photos"
   },
+  "reviewPhotosHint": "Photos customers attached to their reviews. You can remove any that shouldn't be shown.",
+  "noReviewPhotosYet": "No review photos yet.",
   "foodFilters": {
     "all": "All Photos",
     "mostOrdered": "Most Ordered"

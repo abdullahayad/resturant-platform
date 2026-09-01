@@ -2,7 +2,44 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type RestaurantListItem } from '@/lib/api'
 
-export function ApprovalsPage() {
+function RequestRow({
+  r,
+  sentAt,
+  statusLabel,
+  statusClassName,
+  children,
+}: {
+  r: RestaurantListItem
+  sentAt: string | null
+  statusLabel: string
+  statusClassName: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">{r.nameEn} <span className="text-muted-foreground">· {r.nameAr}</span></span>
+            <span className="text-xs text-muted-foreground">{r.codeNumber}</span>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            From {r.province?.nameEn ?? 'Unknown city'}{r.district ? `, ${r.district.nameEn}` : ''} · {r.phone} · {r.ownerEmail}
+          </div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            Sent {sentAt ? new Date(sentAt).toLocaleString() : '—'}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className={`rounded-full px-2.5 py-1 text-xs ${statusClassName}`}>{statusLabel}</span>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SignupApprovalSection() {
   const navigate = useNavigate()
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -16,7 +53,7 @@ export function ApprovalsPage() {
       .then(setRestaurants)
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
-        else setError('Could not reach the server. Is the backend running on localhost:3000?')
+        else setError('Could not reach the server.')
       })
       .finally(() => setLoading(false))
   }
@@ -39,9 +76,9 @@ export function ApprovalsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Restaurant Approvals</h1>
+        <h2 className="text-base font-semibold">Signup Approval ({restaurants.length})</h2>
         <p className="text-sm text-muted-foreground">
-          Queue of pending restaurant sign-ups: approve or reject.
+          Requests from new restaurants registering on the platform.
         </p>
       </div>
 
@@ -54,53 +91,110 @@ export function ApprovalsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="space-y-3">
         {restaurants.map((r) => (
-          <div key={r.id} className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="font-semibold">
-                  {r.nameEn} <span className="text-muted-foreground">· {r.nameAr}</span>
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">{r.codeNumber}</div>
-              </div>
-              <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-                {r.status.replace('_', ' ')}
-              </span>
-            </div>
-
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-              <dt className="text-muted-foreground">Phone</dt>
-              <dd>{r.phone}</dd>
-              <dt className="text-muted-foreground">Owner email</dt>
-              <dd className="truncate">{r.ownerEmail}</dd>
-              <dt className="text-muted-foreground">Location</dt>
-              <dd>
-                {r.province?.nameEn ?? '—'}
-                {r.district ? `, ${r.district.nameEn}` : ''}
-              </dd>
-              <dt className="text-muted-foreground">Submitted</dt>
-              <dd>{new Date(r.createdAt).toLocaleString()}</dd>
-            </dl>
-
-            <div className="mt-4 flex gap-2">
-              <button
-                disabled={busyId === r.id}
-                onClick={() => act(r.id, 'approve')}
-                className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                Approve
-              </button>
-              <button
-                disabled={busyId === r.id}
-                onClick={() => act(r.id, 'reject')}
-                className="flex-1 rounded-lg border border-border py-2 text-sm font-semibold text-foreground disabled:opacity-50"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
+          <RequestRow
+            key={r.id}
+            r={r}
+            sentAt={r.createdAt}
+            statusLabel="Pending Signup"
+            statusClassName="bg-secondary text-muted-foreground"
+          >
+            <button
+              disabled={busyId === r.id}
+              onClick={() => act(r.id, 'approve')}
+              className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              disabled={busyId === r.id}
+              onClick={() => act(r.id, 'reject')}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground disabled:opacity-50"
+            >
+              Reject
+            </button>
+          </RequestRow>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function ReviewApprovalSection() {
+  const navigate = useNavigate()
+  const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = () => {
+    setLoading(true)
+    api
+      .restaurants({ publishStatus: 'PENDING' })
+      .then(setRestaurants)
+      .catch((err) => {
+        if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
+        else setError('Could not reach the server.')
+      })
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-base font-semibold">Review Approval ({restaurants.length})</h2>
+        <p className="text-sm text-muted-foreground">
+          Requests from restaurants that submitted their profile for the one-time go-live review.
+        </p>
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+
+      {!loading && restaurants.length === 0 && !error && (
+        <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+          No restaurants awaiting go-live review right now.
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {restaurants.map((r) => (
+          <RequestRow
+            key={r.id}
+            r={r}
+            sentAt={r.publishSubmittedAt}
+            statusLabel="Pending Review"
+            statusClassName="bg-primary/15 text-primary"
+          >
+            <button
+              onClick={() => navigate(`/restaurants/${r.id}/publish-review`)}
+              className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+            >
+              Review Submission
+            </button>
+          </RequestRow>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function ApprovalsPage() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-xl font-semibold">Restaurant Approvals</h1>
+        <p className="text-sm text-muted-foreground">
+          Two independent approval stages: signup approval (new registrations) and review approval (go-live).
+        </p>
+      </div>
+
+      <SignupApprovalSection />
+
+      <div className="border-t border-border pt-8">
+        <ReviewApprovalSection />
       </div>
     </div>
   )

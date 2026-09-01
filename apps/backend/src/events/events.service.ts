@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
-import type { CreateEventDto, UpdateEventDto } from './dto/event.dto';
+import type { CreateEventDto, ModerateEventDto, UpdateEventDto } from './dto/event.dto';
 import type { CreateReservationDto, UpdateReservationStatusDto } from './dto/reservation.dto';
+import type { ModerationStatusValue } from '../common/moderation';
 
 const eventSelect = {
   id: true,
@@ -19,6 +20,7 @@ const eventSelect = {
   recurringDayOfWeek: true,
   recurringTime: true,
   isActive: true,
+  moderationStatus: true,
   createdAt: true,
   eventType: { select: { id: true, nameEn: true, nameAr: true, icon: true } },
 } as const;
@@ -48,7 +50,7 @@ export class EventsService {
 
   list(restaurantId: string) {
     return this.prisma.db.restaurantEvent.findMany({
-      where: { restaurantId },
+      where: { restaurantId, moderationStatus: { not: 'HIDDEN' } },
       select: eventSelect,
       orderBy: { createdAt: 'desc' },
     });
@@ -61,6 +63,7 @@ export class EventsService {
       where: {
         restaurantId,
         isActive: true,
+        moderationStatus: { not: 'HIDDEN' },
         OR: [{ isRecurring: true }, { isRecurring: false, eventDate: { gte: new Date() } }],
       },
       select: eventSelect,
@@ -270,5 +273,21 @@ export class EventsService {
       data: { status: dto.status },
       select: reservationSelect,
     });
+  }
+
+  // ── Admin moderation ─────────────────────────────────────────────────
+
+  adminList(status?: ModerationStatusValue) {
+    return this.prisma.db.restaurantEvent.findMany({
+      where: { moderationStatus: status },
+      select: { ...eventSelect, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async moderate(id: string, dto: ModerateEventDto) {
+    const event = await this.prisma.db.restaurantEvent.findUnique({ where: { id }, select: { id: true } });
+    if (!event) throw new NotFoundException('Event not found');
+    return this.prisma.db.restaurantEvent.update({ where: { id }, data: { moderationStatus: dto.status }, select: eventSelect });
   }
 }

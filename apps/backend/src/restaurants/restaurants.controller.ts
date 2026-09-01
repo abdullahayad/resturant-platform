@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuard
 import { Throttle } from '@nestjs/throttler';
 import { RestaurantsService } from './restaurants.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
-import { ListRestaurantsQuery, RejectRestaurantDto } from './dto/update-restaurant-status.dto';
+import { ListRestaurantsQuery, ModeratePublishDto, RejectRestaurantDto } from './dto/update-restaurant-status.dto';
 import { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -15,7 +15,7 @@ import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
-import type { PartnerJwtPayload } from '../auth/jwt-payload';
+import type { AdminJwtPayload, PartnerJwtPayload } from '../auth/jwt-payload';
 
 @Controller('restaurants')
 export class RestaurantsController {
@@ -71,6 +71,18 @@ export class RestaurantsController {
     return this.restaurants.updateOpeningHours(req.user.sub, dto.days);
   }
 
+  @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
+  @Post('me/publish-submit')
+  submitForPublish(@Req() req: { user: PartnerJwtPayload }) {
+    return this.restaurants.submitForPublish(req.user.sub);
+  }
+
+  @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
+  @Patch('me/publish-acknowledge')
+  acknowledgePublishDecline(@Req() req: { user: PartnerJwtPayload }) {
+    return this.restaurants.acknowledgePublishDecline(req.user.sub);
+  }
+
   // Any logged-in device (manager or staff, any role) can register/unregister
   // itself for push — this is per-device, not a profile-editing action.
   @UseGuards(PartnerAuthGuard)
@@ -119,6 +131,22 @@ export class RestaurantsController {
   @Patch(':id/stats-visibility')
   setStatsVisibility(@Param('id') id: string, @Body() dto: UpdateStatsVisibilityDto) {
     return this.restaurants.setStatsVisibility(id, dto.statsVisible);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Get(':id/publish-review')
+  publishReview(@Param('id') id: string) {
+    return this.restaurants.getPublishReview(id);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Patch(':id/publish-moderate')
+  moderatePublish(
+    @Req() req: { user: AdminJwtPayload },
+    @Param('id') id: string,
+    @Body() dto: ModeratePublishDto,
+  ) {
+    return this.restaurants.moderatePublish(req.user.sub, id, dto);
   }
 
   @UseGuards(AdminAuthGuard)

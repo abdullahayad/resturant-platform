@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
@@ -10,22 +10,27 @@ import { NavRail } from '../components/NavRail';
 import { BottomTabBar } from '../components/BottomTabBar';
 import { Header } from '../components/Header';
 import { AnnouncementBanner } from '../components/AnnouncementBanner';
+import { LoadingState } from '../components/LoadingState';
 import { getVisibleNavItems, type ScreenKey } from '../lib/nav';
 import { useAuth } from '../lib/AuthContext';
+// Dashboard loads eagerly — it's the screen shown immediately on sign-in, so
+// lazy-loading it would only add a loading flash with no benefit. Every
+// other screen is loaded on first visit instead of bundled into app startup.
 import { OverviewDashboardScreen } from '../screens/OverviewDashboardScreen';
-import { ProfileInfoScreen } from '../screens/ProfileInfoScreen';
-import { MenuManagementScreen } from '../screens/MenuManagementScreen';
-import { PhotoGalleryScreen } from '../screens/PhotoGalleryScreen';
-import { ChefManagementScreen } from '../screens/ChefManagementScreen';
-import { ChefTableEventsScreen } from '../screens/ChefTableEventsScreen';
-import { CustomerReviewsScreen } from '../screens/CustomerReviewsScreen';
-import { ReservationsScreen } from '../screens/ReservationsScreen';
-import { DeepAnalyticsScreen } from '../screens/DeepAnalyticsScreen';
-import { PromotionsScreen } from '../screens/PromotionsScreen';
-import { AdvertisingScreen } from '../screens/AdvertisingScreen';
-import { AnnouncementsScreen } from '../screens/AnnouncementsScreen';
-import { SettingsStaffScreen } from '../screens/SettingsStaffScreen';
 import type { AuthenticatedRestaurant } from '../lib/api';
+
+const ProfileInfoScreen = lazy(() => import('../screens/ProfileInfoScreen').then((m) => ({ default: m.ProfileInfoScreen })));
+const MenuManagementScreen = lazy(() => import('../screens/MenuManagementScreen').then((m) => ({ default: m.MenuManagementScreen })));
+const PhotoGalleryScreen = lazy(() => import('../screens/PhotoGalleryScreen').then((m) => ({ default: m.PhotoGalleryScreen })));
+const ChefManagementScreen = lazy(() => import('../screens/ChefManagementScreen').then((m) => ({ default: m.ChefManagementScreen })));
+const ChefTableEventsScreen = lazy(() => import('../screens/ChefTableEventsScreen').then((m) => ({ default: m.ChefTableEventsScreen })));
+const CustomerReviewsScreen = lazy(() => import('../screens/CustomerReviewsScreen').then((m) => ({ default: m.CustomerReviewsScreen })));
+const ReservationsScreen = lazy(() => import('../screens/ReservationsScreen').then((m) => ({ default: m.ReservationsScreen })));
+const DeepAnalyticsScreen = lazy(() => import('../screens/DeepAnalyticsScreen').then((m) => ({ default: m.DeepAnalyticsScreen })));
+const PromotionsScreen = lazy(() => import('../screens/PromotionsScreen').then((m) => ({ default: m.PromotionsScreen })));
+const AdvertisingScreen = lazy(() => import('../screens/AdvertisingScreen').then((m) => ({ default: m.AdvertisingScreen })));
+const AnnouncementsScreen = lazy(() => import('../screens/AnnouncementsScreen').then((m) => ({ default: m.AnnouncementsScreen })));
+const SettingsStaffScreen = lazy(() => import('../screens/SettingsStaffScreen').then((m) => ({ default: m.SettingsStaffScreen })));
 
 const screens: Record<ScreenKey, React.ComponentType> = {
   dashboard: OverviewDashboardScreen,
@@ -73,7 +78,9 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
         />
         <AnnouncementBanner active={active} onView={() => setActive('announcements')} />
         <View style={[styles.body, tier === 'phone' && styles.bodyPhone]}>
-          <ActiveScreen />
+          <Suspense fallback={<LoadingState />}>
+            <ActiveScreen />
+          </Suspense>
         </View>
       </View>
       {tier === 'phone' && (
