@@ -20,10 +20,15 @@ function screenFromResponse(response: Notifications.NotificationResponse | null)
  * screen was already showing, regardless of what it's actually about. */
 export function useNotificationNavigation(onNavigate: (screen: ScreenKey) => void) {
   useEffect(() => {
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      const screen = screenFromResponse(response);
-      if (screen) onNavigate(screen);
-    });
+    // Not available on every native module build (throws "method or property
+    // ... is not available" in some cases) — this is a nice-to-have for the
+    // cold-start case, so a failure here should never break app startup.
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        const screen = screenFromResponse(response);
+        if (screen) onNavigate(screen);
+      })
+      .catch(() => {});
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const screen = screenFromResponse(response);
