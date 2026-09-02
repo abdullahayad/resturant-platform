@@ -11,6 +11,7 @@ import { ChipSelect } from '../components/ChipSelect';
 import { MapPinPicker } from '../components/MapPinPicker';
 import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
+import { resizeForUpload } from '../lib/resizeImage';
 import { api, type MasterDataItem, type OpeningHoursDay, type Province, type RestaurantDetail, type Story } from '../lib/api';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
@@ -163,10 +164,12 @@ export function ProfileInfoScreen() {
     setLocalStoryPreview(asset.uri);
     setUploadingStory(true);
     try {
+      const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+      const wasResized = resizedUri !== asset.uri;
       const { url } = await api.uploadFile(token, {
-        uri: asset.uri,
+        uri: resizedUri,
         name: asset.fileName ?? 'story.jpg',
-        type: asset.mimeType ?? 'image/jpeg',
+        type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
       });
       await api.createStory(token, url, 'photo', storyCaption || undefined);
       setStoryCaption('');

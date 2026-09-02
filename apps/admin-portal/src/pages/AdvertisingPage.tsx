@@ -7,7 +7,8 @@ import {
   type FeaturedStatus,
   type RestaurantListItem,
 } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { FilterTabs } from '@/components/FilterTabs'
+import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 
 const filters: { key: FeaturedStatus | 'ALL'; label: string }[] = [
   { key: 'PENDING', label: 'Pending Requests' },
@@ -16,10 +17,10 @@ const filters: { key: FeaturedStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
 ]
 
-const statusStyles: Record<FeaturedStatus, string> = {
-  PENDING: 'bg-primary/15 text-primary',
-  APPROVED: 'bg-success/15 text-success',
-  REJECTED: 'bg-destructive/15 text-destructive',
+const statusTones: Record<FeaturedStatus, StatusPillTone> = {
+  PENDING: 'primary',
+  APPROVED: 'success',
+  REJECTED: 'destructive',
 }
 
 function formatDateRange(p: FeaturedPlacementItem) {
@@ -143,20 +144,7 @@ export function AdvertisingPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-border pb-3">
-        {filters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
-              filter === f.key && 'bg-primary/10 text-primary',
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs options={filters} active={filter} onChange={setFilter} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
@@ -185,7 +173,7 @@ export function AdvertisingPage() {
                   <p className="mt-1 text-sm text-destructive">Rejected: {p.rejectionReason}</p>
                 )}
               </div>
-              <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-xs', statusStyles[p.status])}>{p.status}</span>
+              <StatusPill className="shrink-0" label={p.status} tone={statusTones[p.status]} />
             </div>
 
             <div className="mt-3 space-y-2">

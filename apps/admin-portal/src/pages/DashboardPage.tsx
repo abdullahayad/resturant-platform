@@ -12,6 +12,7 @@ import {
   Flag,
 } from 'lucide-react'
 import { StatCard } from '@/components/StatCard'
+import { StatusPill } from '@/components/StatusPill'
 import { api, UnauthorizedError, type PlatformStats } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -94,14 +95,11 @@ export function DashboardPage() {
                 <span className="text-sm font-medium">{item.label}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    'rounded-full px-2.5 py-1 text-xs font-semibold',
-                    item.count > 0 ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground',
-                  )}
-                >
-                  {loaded ? item.count : '—'}
-                </span>
+                <StatusPill
+                  className="font-semibold"
+                  label={loaded ? String(item.count) : '—'}
+                  tone={item.count > 0 ? 'primary' : 'muted'}
+                />
                 {item.count > 0 && <span className="text-xs text-muted-foreground">Review →</span>}
               </div>
             </button>

@@ -11,6 +11,7 @@ import { EmptyState } from '../components/EmptyState';
 import { UtensilsCrossed } from 'lucide-react-native';
 import { radii, cardShadow } from '../theme/tokens';
 import { useAuth } from '../lib/AuthContext';
+import { resizeForUpload } from '../lib/resizeImage';
 import { api, type Dish, type MasterDataItem } from '../lib/api';
 
 const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as string | null, photoUrl: '', isMostOrdered: false };
@@ -83,10 +84,12 @@ export function MenuManagementScreen() {
     setLocalPhotoPreview(asset.uri);
     setUploadingPhoto(true);
     try {
+      const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+      const wasResized = resizedUri !== asset.uri;
       const { url } = await api.uploadFile(token, {
-        uri: asset.uri,
+        uri: resizedUri,
         name: asset.fileName ?? 'dish.jpg',
-        type: asset.mimeType ?? 'image/jpeg',
+        type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
       });
       setForm((f) => ({ ...f, photoUrl: url }));
     } catch (err) {

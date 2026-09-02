@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
 import { MasterDataList } from '@/components/MasterDataList'
+import { FilterTabs } from '@/components/FilterTabs'
 import type { MasterDataKind } from '@/lib/api'
 
 const tabs: { key: MasterDataKind; label: string; showIcon?: boolean }[] = [
@@ -24,20 +24,7 @@ export function MasterDataPage() {
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-border pb-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActive(tab.key)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
-              active === tab.key && 'bg-primary/10 text-primary',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <FilterTabs options={tabs} active={active} onChange={setActive} />
 
       <MasterDataList key={activeTab.key} kind={activeTab.key} showIcon={activeTab.showIcon} />
     </div>

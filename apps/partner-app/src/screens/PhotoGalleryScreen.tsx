@@ -9,6 +9,7 @@ import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
+import { resizeForUpload } from '../lib/resizeImage';
 import {
   api,
   type AmbienceSubCategory,
@@ -107,10 +108,12 @@ export function PhotoGalleryScreen() {
     setLocalPreview(asset.uri);
     setUploading(true);
     try {
+      const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+      const wasResized = resizedUri !== asset.uri;
       const { url } = await api.uploadFile(token, {
-        uri: asset.uri,
+        uri: resizedUri,
         name: asset.fileName ?? 'photo.jpg',
-        type: asset.mimeType ?? 'image/jpeg',
+        type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
       });
       await api.addGalleryPhoto(token, {
         album,

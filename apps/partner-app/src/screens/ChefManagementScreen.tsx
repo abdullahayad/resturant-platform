@@ -7,6 +7,7 @@ import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
+import { resizeForUpload } from '../lib/resizeImage';
 import { api, type ChefProfile, type ChefRoleSlug } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
 
@@ -44,10 +45,12 @@ async function pickAndUploadPhoto(token: string, onLocalUri?: (uri: string) => v
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
   onLocalUri?.(asset.uri);
+  const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+  const wasResized = resizedUri !== asset.uri;
   const { url } = await api.uploadFile(token, {
-    uri: asset.uri,
+    uri: resizedUri,
     name: asset.fileName ?? 'photo.jpg',
-    type: asset.mimeType ?? 'image/jpeg',
+    type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
   });
   return url;
 }
