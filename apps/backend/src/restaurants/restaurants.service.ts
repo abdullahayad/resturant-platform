@@ -406,6 +406,20 @@ export class RestaurantsService {
     return { success: true };
   }
 
+  // Self-service account deletion (app store requirement for any app that
+  // supports in-app account creation). A staff login only removes that
+  // staff member's own access — the restaurant itself is untouched. The
+  // owner login (no staffId on the token) deletes the entire restaurant;
+  // every related table cascades from there (see schema.prisma).
+  async deleteAccount(user: PartnerJwtPayload) {
+    if (user.staffId) {
+      await this.prisma.db.partnerStaffUser.delete({ where: { id: user.staffId } });
+      return { deleted: 'staff' as const };
+    }
+    await this.prisma.db.restaurant.delete({ where: { id: user.sub } });
+    return { deleted: 'restaurant' as const };
+  }
+
   async updateOpeningHours(id: string, days: DayHoursDto[]) {
     await this.ensureExists(id);
     await this.prisma.db.openingHours.deleteMany({ where: { restaurantId: id } });

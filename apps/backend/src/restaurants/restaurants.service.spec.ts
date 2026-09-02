@@ -29,6 +29,10 @@ describe('RestaurantsService', () => {
           findUnique: jest.fn(),
           create: jest.fn(),
           update: jest.fn(),
+          delete: jest.fn(),
+        },
+        partnerStaffUser: {
+          delete: jest.fn(),
         },
       },
     };
@@ -182,6 +186,40 @@ describe('RestaurantsService', () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ publishStatus: 'PENDING' });
 
       await expect(service.acknowledgePublishDecline('r1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('deletes only the staff member when a staff login requests deletion', async () => {
+      prisma.db.partnerStaffUser.delete.mockResolvedValue({});
+
+      const result = await service.deleteAccount({
+        sub: 'r1',
+        type: 'partner',
+        restaurantStatus: 'APPROVED',
+        tokenVersion: 0,
+        staffId: 's1',
+        staffRole: 'MENU_EDITOR',
+      });
+
+      expect(prisma.db.partnerStaffUser.delete).toHaveBeenCalledWith({ where: { id: 's1' } });
+      expect(prisma.db.restaurant.delete).not.toHaveBeenCalled();
+      expect(result).toEqual({ deleted: 'staff' });
+    });
+
+    it('deletes the whole restaurant when the owner login requests deletion', async () => {
+      prisma.db.restaurant.delete.mockResolvedValue({});
+
+      const result = await service.deleteAccount({
+        sub: 'r1',
+        type: 'partner',
+        restaurantStatus: 'APPROVED',
+        tokenVersion: 0,
+      });
+
+      expect(prisma.db.restaurant.delete).toHaveBeenCalledWith({ where: { id: 'r1' } });
+      expect(prisma.db.partnerStaffUser.delete).not.toHaveBeenCalled();
+      expect(result).toEqual({ deleted: 'restaurant' });
     });
   });
 });

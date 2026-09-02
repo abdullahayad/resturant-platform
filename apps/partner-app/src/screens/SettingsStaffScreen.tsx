@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Users } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
@@ -12,7 +12,7 @@ import { api, type RestaurantDetail, type StaffMember, type StaffRole } from '..
 import { cardShadow } from '../theme/tokens';
 
 export function SettingsStaffScreen() {
-  const { token, setToken, staff: authStaff } = useAuth();
+  const { token, setToken, staff: authStaff, signOut } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('settings');
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -135,6 +135,34 @@ export function SettingsStaffScreen() {
       setStaffList((prev) => prev.filter((s) => s.id !== id));
     } finally {
       setBusyStaffId(null);
+    }
+  };
+
+  // Owner deletes the whole restaurant (menu, photos, staff, everything);
+  // a staff login only removes their own access — the backend decides
+  // which based on the token, see RestaurantsService.deleteAccount.
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  // The owner login has no staff record at all — isManagerOrOwner is also
+  // true for a Manager, who is still just a staff account for this purpose.
+  const isOwner = !authStaff;
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      isOwner ? t('deleteAccount.confirmTitle') : t('deleteAccount.confirmTitleStaff'),
+      isOwner ? t('deleteAccount.confirmBody') : t('deleteAccount.confirmBodyStaff'),
+      [
+        { text: t('common:actions.cancel'), style: 'cancel' },
+        { text: t('deleteAccount.confirmButton'), style: 'destructive', onPress: deleteAccount },
+      ],
+    );
+  };
+  const deleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await api.deleteAccount(token);
+      signOut();
+    } catch {
+      setDeletingAccount(false);
+      Alert.alert(t('deleteAccount.errorTitle'), t('deleteAccount.errorBody'));
     }
   };
 
@@ -276,6 +304,26 @@ export function SettingsStaffScreen() {
           </View>
         </View>
       )}
+
+      <View style={[styles.section, styles.dangerSection]}>
+        <Text style={styles.dangerSectionTitle}>{t('deleteAccount.title')}</Text>
+        <Text style={styles.sectionHint}>
+          {isOwner ? t('deleteAccount.hint') : t('deleteAccount.hintStaff')}
+        </Text>
+        <Pressable
+          style={[styles.button, styles.dangerButton]}
+          onPress={confirmDeleteAccount}
+          disabled={deletingAccount}
+        >
+          {deletingAccount ? (
+            <ActivityIndicator color={colors.destructive} />
+          ) : (
+            <Text style={styles.dangerButtonText}>
+              {isOwner ? t('deleteAccount.button') : t('deleteAccount.buttonStaff')}
+            </Text>
+          )}
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -294,6 +342,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   sectionHint: { fontSize: 12, color: colors.mutedForeground, marginTop: -6 },
+  dangerSection: { borderColor: colors.destructiveTint15 },
+  dangerSectionTitle: { fontSize: 15, fontWeight: '700', color: colors.destructive },
+  dangerButton: { backgroundColor: colors.destructiveTint15 },
+  dangerButtonText: { color: colors.destructive, fontWeight: '700', fontSize: 14 },
   button: { borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },

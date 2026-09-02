@@ -97,6 +97,15 @@ export class RestaurantsController {
     return this.restaurants.unregisterPushToken(dto.token);
   }
 
+  // Self-service deletion — any logged-in device, any role, any approval
+  // status can delete their own account (see RestaurantsService.deleteAccount
+  // for what "their own account" means for a staff login vs the owner).
+  @UseGuards(PartnerAuthGuard)
+  @Delete('me/account')
+  deleteAccount(@Req() req: { user: PartnerJwtPayload }) {
+    return this.restaurants.deleteAccount(req.user);
+  }
+
   @UseGuards(AdminAuthGuard)
   @Get()
   list(@Query() query: ListRestaurantsQuery) {

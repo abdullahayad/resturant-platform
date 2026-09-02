@@ -43,5 +43,19 @@
   "sendInvite": "Send Invite",
   "inviteValidation": "Fill in name, email, and an 8+ character password.",
   "inviteFailed": "Could not invite staff member",
-  "loadStaffFailed": "Could not load staff."
+  "loadStaffFailed": "Could not load staff.",
+  "deleteAccount": {
+    "title": "Delete Account",
+    "hint": "Permanently deletes this restaurant's entire profile — menu, photos, staff, reviews, everything. This can't be undone.",
+    "hintStaff": "Permanently removes your own staff login. The restaurant's account and data are not affected.",
+    "button": "Delete Account",
+    "buttonStaff": "Delete My Account",
+    "confirmTitle": "Delete this restaurant's account?",
+    "confirmBody": "This permanently deletes the entire restaurant profile — menu, photos, staff accounts, reviews, everything. This cannot be undone.",
+    "confirmTitleStaff": "Delete your account?",
+    "confirmBodyStaff": "This permanently removes your own staff login. You will be signed out and won't be able to sign back in unless invited again.",
+    "confirmButton": "Delete",
+    "errorTitle": "Couldn't delete account",
+    "errorBody": "Something went wrong. Please try again."
+  }
 }

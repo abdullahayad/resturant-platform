@@ -548,4 +548,7 @@ export const api = {
     send<StaffMember>('PATCH', `/restaurants/me/staff/${id}`, token, payload),
   removeStaff: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/staff/${id}`, token),
+
+  deleteAccount: (token: string) =>
+    send<{ deleted: 'staff' | 'restaurant' }>('DELETE', '/restaurants/me/account', token),
 };
