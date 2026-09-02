@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
+import { LegalController } from './legal/legal.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { MasterDataModule } from './master-data/master-data.module';
@@ -48,7 +49,7 @@ import { FeaturedModule } from './featured/featured.module';
     PromotionsModule,
     FeaturedModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, LegalController],
   providers: [
     // Must come before any other exception filter (none currently exist).
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
