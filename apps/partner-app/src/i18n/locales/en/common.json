@@ -26,6 +26,7 @@
   "signOut": "Sign Out",
   "loading": "Loading…",
   "networkError": "Could not reach the server. Check your connection and try again.",
+  "wakingUpServer": "Still loading — the server may be waking up, this can take up to a minute.",
   "soon": "Soon",
   "lastUpdated": "Last updated {{date}}",
   "announcementBanner": {

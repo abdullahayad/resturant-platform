@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,19 @@ export function SignInScreen({ onBack, onSignedIn, onForgotPassword }: SignInScr
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const BackIcon = isRTL ? ChevronRight : ChevronLeft;
+
+  // The backend's free hosting tier can take up to ~50s to wake up after
+  // sitting idle — sign-in is most people's very first request, so without
+  // this a slow wake-up just looks like a frozen button.
+  const [signInSlow, setSignInSlow] = useState(false);
+  useEffect(() => {
+    if (!submitting) {
+      setSignInSlow(false);
+      return;
+    }
+    const timer = setTimeout(() => setSignInSlow(true), 6000);
+    return () => clearTimeout(timer);
+  }, [submitting]);
 
   const submit = async (overrideEmail?: string, overridePassword?: string) => {
     setError(null);
@@ -80,6 +93,7 @@ export function SignInScreen({ onBack, onSignedIn, onForgotPassword }: SignInScr
             <Text style={styles.primaryButtonText}>{t('signIn.submit')}</Text>
           )}
         </Pressable>
+        {signInSlow && <Text style={styles.slowHint}>{t('common:wakingUpServer')}</Text>}
 
         {__DEV__ && (
           <Pressable
@@ -130,6 +144,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },
+  slowHint: { color: colors.mutedForeground, fontSize: 12.5, textAlign: 'center', marginTop: -4 },
   forgotLink: { alignSelf: 'flex-end' },
   forgotLinkText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   devLink: { marginTop: 8, alignItems: 'center' },
