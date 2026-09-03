@@ -5,6 +5,7 @@ import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, type LucideIco
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { FormField } from '../components/FormField';
 import { StarRating } from '../components/StarRating';
 import { EmptyState } from '../components/EmptyState';
@@ -24,6 +25,7 @@ export function CustomerReviewsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('reviews');
+  const tier = useBreakpoint();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
@@ -126,8 +128,8 @@ export function CustomerReviewsScreen() {
 
           {summary && (
             <>
-              <View style={styles.summaryRow}>
-                <View style={styles.overallCard}>
+              <View style={[styles.summaryRow, tier === 'phone' && styles.summaryColumn]}>
+                <View style={[styles.overallCard, tier === 'phone' && styles.overallCardWide]}>
                   <Text style={styles.overallLabel}>{t('overall')}</Text>
                   <Text style={styles.overallScore}>{summary.overallAverage.toFixed(1)}★</Text>
                   <StarRating value={summary.overallAverage} size={15} />
@@ -227,7 +229,15 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
 
+  // Row + wrap is fine on wider screens where all three cards fit on one
+  // line without wrapping — but React Native's flexbox can miscalculate a
+  // wrapped card's height when it lands alone on its own line (flex:1 +
+  // minWidth together), which showed up as the reputation card collapsing
+  // and its centered text spilling onto the section below it on narrow
+  // phones. Stacking instead of wrapping on phone width sidesteps that
+  // entirely rather than fighting the underlying layout bug.
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  summaryColumn: { flexDirection: 'column', flexWrap: 'nowrap' },
   overallCard: {
     width: 150,
     borderRadius: radii.lg,
@@ -240,6 +250,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 2,
     ...cardShadow,
   },
+  overallCardWide: { width: '100%' },
   overallLabel: { fontSize: 11, color: colors.primary, fontWeight: '700', letterSpacing: 1 },
   overallScore: { fontSize: 28, fontWeight: '800', color: colors.foreground },
   overallCount: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
