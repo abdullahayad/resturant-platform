@@ -332,6 +332,7 @@ export interface ReservationItem {
   notes: string | null;
   createdAt: string;
   event: { id: string; titleEn: string; titleAr: string; capacity: number | null };
+  guestTier: { labelEn: string; labelAr: string } | null;
 }
 
 export type StaffRole = 'MANAGER' | 'MENU_EDITOR';

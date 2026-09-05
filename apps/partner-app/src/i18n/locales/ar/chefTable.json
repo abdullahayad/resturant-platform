@@ -13,6 +13,7 @@
   "confirm": "تأكيد",
   "cancel": "إلغاء",
   "noReservationsYet": "لا توجد طلبات حجز بعد.",
+  "tierBadge": "⭐ ضيف {{labelEn}} · {{labelAr}}",
   "createEvent": "إنشاء فعالية",
   "titleEnLabel": "العنوان (بالإنجليزية)",
   "titleEnPlaceholder": "Friday Live Music",

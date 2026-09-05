@@ -267,6 +267,50 @@ export interface CreateNotificationPayload {
   businessTypeId?: string
 }
 
+export interface LoyaltyTierItem {
+  id: string
+  labelEn: string
+  labelAr: string
+  thresholdCount: number
+  rewardEn: string
+  rewardAr: string
+  sortOrder: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface LoyaltyTierPayload {
+  labelEn: string
+  labelAr: string
+  thresholdCount: number
+  rewardEn: string
+  rewardAr: string
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface LoyaltyRewardItem {
+  id: string
+  guestPhone: string
+  tierId: string
+  tierLabelEn: string
+  tierLabelAr: string
+  rewardEn: string
+  rewardAr: string
+  bookingCountAtIssuance: number
+  issuedAt: string
+  redeemedAt: string | null
+  issuedBy: { fullName: string } | null
+}
+
+export interface LoyaltyGuestLookupResult {
+  phone: string
+  qualifyingBookingCount: number
+  restaurantsVisited: { id: string; nameEn: string; nameAr: string; codeNumber: string }[]
+  currentTier: { id: string; labelEn: string; labelAr: string } | null
+  rewards: LoyaltyRewardItem[]
+}
+
 export interface District {
   id: string
   nameEn: string
@@ -414,6 +458,16 @@ export const api = {
     payload: { status: 'APPROVED' | 'REJECTED'; rejectionReason?: string; startDate?: string; endDate?: string },
   ) => send<FeaturedPlacementItem>('PATCH', `/admin/featured/${id}/moderate`, payload),
   revokeFeatured: (id: string) => send<FeaturedPlacementItem>('PATCH', `/admin/featured/${id}/revoke`),
+
+  loyaltyTiers: () => get<LoyaltyTierItem[]>('/admin/loyalty/tiers'),
+  createLoyaltyTier: (payload: LoyaltyTierPayload) => send<LoyaltyTierItem>('POST', '/admin/loyalty/tiers', payload),
+  updateLoyaltyTier: (id: string, payload: Partial<LoyaltyTierPayload>) =>
+    send<LoyaltyTierItem>('PATCH', `/admin/loyalty/tiers/${id}`, payload),
+  loyaltyGuestLookup: (phone: string) =>
+    get<LoyaltyGuestLookupResult>(`/admin/loyalty/guests/${encodeURIComponent(phone)}`),
+  grantLoyaltyReward: (payload: { guestPhone: string; tierId: string }) =>
+    send<LoyaltyRewardItem>('POST', '/admin/loyalty/rewards/grant', payload),
+  redeemLoyaltyReward: (id: string) => send<LoyaltyRewardItem>('PATCH', `/admin/loyalty/rewards/${id}/redeem`),
 
   notifications: () => get<NotificationItem[]>('/admin/notifications'),
   createNotification: (payload: CreateNotificationPayload) =>

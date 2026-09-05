@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { EventsService } from './events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 describe('EventsService', () => {
   let service: EventsService;
@@ -61,6 +62,13 @@ describe('EventsService', () => {
         EventsService,
         { provide: PrismaService, useValue: prisma },
         { provide: PushService, useValue: { sendToRestaurants: jest.fn().mockResolvedValue(undefined) } },
+        {
+          provide: LoyaltyService,
+          useValue: {
+            currentTiersForPhones: jest.fn().mockResolvedValue(new Map()),
+            maybeAutoIssue: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 

@@ -23,6 +23,7 @@ import { ChefsModule } from './chefs/chefs.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { FeaturedModule } from './featured/featured.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { FeaturedModule } from './featured/featured.module';
     NotificationsModule,
     PromotionsModule,
     FeaturedModule,
+    LoyaltyModule,
   ],
   controllers: [AppController, LegalController],
   providers: [

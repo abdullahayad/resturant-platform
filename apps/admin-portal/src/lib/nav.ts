@@ -11,6 +11,7 @@ import {
   Megaphone,
   Percent,
   Sparkles,
+  Award,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -30,6 +31,7 @@ export const navItems: NavItem[] = [
   { label: 'Content Moderation', path: '/content-moderation', icon: ShieldAlert },
   { label: 'Promotions', path: '/promotions', icon: Percent },
   { label: 'Advertising', path: '/advertising', icon: Sparkles },
+  { label: 'Loyalty & Rewards', path: '/loyalty', icon: Award },
   { label: 'Notifications', path: '/notifications', icon: Megaphone },
   { label: 'Admin Users', path: '/admins', icon: ShieldCheck, superAdminOnly: true },
 ]

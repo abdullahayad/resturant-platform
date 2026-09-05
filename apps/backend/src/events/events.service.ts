@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 import type { CreateEventDto, ModerateEventDto, UpdateEventDto } from './dto/event.dto';
 import type { CreateReservationDto, UpdateReservationStatusDto } from './dto/reservation.dto';
 import type { ModerationStatusValue } from '../common/moderation';
+import { normalizePhone } from '../common/phone';
 
 const eventSelect = {
   id: true,
@@ -46,6 +48,7 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushService,
+    private readonly loyalty: LoyaltyService,
   ) {}
 
   list(restaurantId: string) {
@@ -235,6 +238,7 @@ export class EventsService {
             eventId,
             guestName: dto.guestName,
             guestPhone: dto.guestPhone,
+            guestPhoneNormalized: normalizePhone(dto.guestPhone),
             partySize: dto.partySize,
             reservationDate: new Date(dto.reservationDate),
             notes: dto.notes,
@@ -258,22 +262,28 @@ export class EventsService {
     return reservation;
   }
 
-  listReservations(restaurantId: string) {
-    return this.prisma.db.chefTableBooking.findMany({
+  async listReservations(restaurantId: string) {
+    const reservations = await this.prisma.db.chefTableBooking.findMany({
       where: { restaurantId },
       select: reservationSelect,
       orderBy: { reservationDate: 'asc' },
     });
+
+    const phones = reservations.map((r) => normalizePhone(r.guestPhone));
+    const tiersByPhone = await this.loyalty.currentTiersForPhones(phones);
+    return reservations.map((r, i) => ({ ...r, guestTier: tiersByPhone.get(phones[i]) ?? null }));
   }
 
   async updateReservationStatus(restaurantId: string, id: string, dto: UpdateReservationStatusDto) {
     const booking = await this.prisma.db.chefTableBooking.findUnique({ where: { id } });
     if (!booking || booking.restaurantId !== restaurantId) throw new NotFoundException('Reservation not found');
-    return this.prisma.db.chefTableBooking.update({
+    const updated = await this.prisma.db.chefTableBooking.update({
       where: { id },
       data: { status: dto.status },
       select: reservationSelect,
     });
+    this.loyalty.maybeAutoIssue(booking.guestPhoneNormalized).catch(() => {});
+    return updated;
   }
 
   // ── Admin moderation ─────────────────────────────────────────────────

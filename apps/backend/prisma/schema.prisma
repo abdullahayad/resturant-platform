@@ -239,6 +239,7 @@ model AdminUser {
   sentNotifications          AdminNotification[]
   reviewedPromotions         Promotion[]
   reviewedFeatured           FeaturedPlacement[]
+  issuedLoyaltyRewards       LoyaltyReward[]
 
   @@map("admin_users")
 }
@@ -526,24 +527,85 @@ model ReviewReply {
 // reservationDate is the specific date being requested — for a recurring
 // event (e.g. "every Friday") this is which Friday, not just a timestamp.
 model ChefTableBooking {
-  id              String        @id @default(uuid())
-  restaurantId    String
-  eventId         String
-  guestName       String
-  guestPhone      String
-  partySize       Int
-  reservationDate DateTime
-  status          BookingStatus @default(PENDING)
-  notes           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                   String        @id @default(uuid())
+  restaurantId         String
+  eventId              String
+  guestName            String
+  guestPhone           String
+  // Derived from guestPhone at write time (see common/phone.ts) — used for
+  // all loyalty-program matching so the same guest is recognized across
+  // restaurants regardless of how staff typed their number.
+  guestPhoneNormalized String
+  partySize            Int
+  reservationDate      DateTime
+  status               BookingStatus @default(PENDING)
+  notes                String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   event      RestaurantEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([restaurantId, status])
   @@index([eventId, reservationDate])
+  @@index([guestPhoneNormalized, status])
   @@map("chef_table_bookings")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Guest loyalty program — platform-wide (not per-restaurant), tracked by
+// guest phone number since there's no customer account system yet.
+// ────────────────────────────────────────────────────────────────────────────
+
+// Admin-configured tiers, e.g. "Silver" at 3 qualifying bookings, "Gold" at 6.
+// Deactivated (isActive: false) rather than deleted once a reward exists
+// against them, so issuance history stays intact.
+model LoyaltyTier {
+  id             String   @id @default(uuid())
+  labelEn        String
+  labelAr        String
+  thresholdCount Int // minimum qualifying (CONFIRMED/COMPLETED) bookings across all restaurants
+  rewardEn       String // e.g. "10% off next visit"
+  rewardAr       String
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  rewards LoyaltyReward[]
+
+  @@map("loyalty_tiers")
+}
+
+// An issued reward tied to a guest's phone number, not a restaurant.
+// Snapshots the tier's label/reward text at issuance time so later tier
+// edits don't rewrite history for rewards already granted. issuedById is
+// null for system-auto-issued rewards (threshold crossed) and set for a
+// manual grant. Redemption is manual/trust-based — the restaurant honors it
+// in person and an admin marks it redeemed here for bookkeeping; there is
+// no automated customer notification or redemption-code flow.
+model LoyaltyReward {
+  id                     String    @id @default(uuid())
+  guestPhone             String // normalized form — see common/phone.ts
+  tierId                 String
+  tierLabelEn            String
+  tierLabelAr            String
+  rewardEn               String
+  rewardAr               String
+  bookingCountAtIssuance Int
+  issuedById             String?
+  issuedAt               DateTime  @default(now())
+  redeemedAt             DateTime?
+  redeemedNote           String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  tier     LoyaltyTier @relation(fields: [tierId], references: [id])
+  issuedBy AdminUser?  @relation(fields: [issuedById], references: [id])
+
+  @@unique([guestPhone, tierId])
+  @@index([guestPhone])
+  @@map("loyalty_rewards")
 }
 
 // Restaurant-created event listings (buffet nights, live music, chef's

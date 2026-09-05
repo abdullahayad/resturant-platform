@@ -196,6 +196,13 @@ export function ChefTableEventsScreen() {
                 <Text style={styles.reservationGuest}>{t('partyOf', { name: r.guestName, size: r.partySize })}</Text>
                 <Text style={styles.eventType}>{r.event.titleEn} — {formatReservationDate(r.reservationDate)}</Text>
                 <Text style={styles.eventType}>{r.guestPhone}</Text>
+                {r.guestTier && (
+                  <View style={styles.badgeTier}>
+                    <Text style={styles.badgeTierText}>
+                      {t('tierBadge', { labelEn: r.guestTier.labelEn, labelAr: r.guestTier.labelAr })}
+                    </Text>
+                  </View>
+                )}
                 {r.notes && <Text style={styles.eventDescription}>{r.notes}</Text>}
               </View>
               <View style={styles.reservationActions}>
@@ -335,6 +342,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   eventPrice: { color: colors.foreground, fontSize: 12 },
   eventDescription: { color: colors.mutedForeground, fontSize: 12 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  badgeTier: { alignSelf: 'flex-start', backgroundColor: colors.primaryTint15, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 },
+  badgeTierText: { color: colors.primary, fontSize: 11, fontWeight: '700' },
   badgeActive: { backgroundColor: colors.successTint15 },
   badgeInactive: { backgroundColor: colors.secondary },
   badgeActiveText: { color: colors.success, fontSize: 12, fontWeight: '600' },

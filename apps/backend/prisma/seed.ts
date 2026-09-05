@@ -4,6 +4,7 @@ import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
+import { normalizePhone } from '../src/common/phone';
 
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -379,6 +380,7 @@ async function main() {
             eventId: buffetEvent.id,
             guestName: 'Mustafa Ali',
             guestPhone: '07709991234',
+            guestPhoneNormalized: normalizePhone('07709991234'),
             partySize: 6,
             reservationDate: buffetEvent.eventDate!,
             status: 'CONFIRMED',
@@ -388,6 +390,7 @@ async function main() {
             eventId: buffetEvent.id,
             guestName: 'Rasha Kamal',
             guestPhone: '07709995678',
+            guestPhoneNormalized: normalizePhone('07709995678'),
             partySize: 4,
             reservationDate: buffetEvent.eventDate!,
             status: 'PENDING',
@@ -397,6 +400,7 @@ async function main() {
             eventId: chefEvent.id,
             guestName: 'Firas Nabil',
             guestPhone: '07709998765',
+            guestPhoneNormalized: normalizePhone('07709998765'),
             partySize: 2,
             reservationDate: chefEvent.eventDate!,
             status: 'PENDING',
@@ -406,6 +410,30 @@ async function main() {
       });
       console.log('Seeded 3 demo reservations.');
     }
+  }
+
+  if ((await db.loyaltyTier.count()) === 0) {
+    await db.loyaltyTier.createMany({
+      data: [
+        {
+          labelEn: 'Silver',
+          labelAr: 'فضي',
+          thresholdCount: 3,
+          rewardEn: '10% off your next visit',
+          rewardAr: 'خصم 10% على زيارتك القادمة',
+          sortOrder: 1,
+        },
+        {
+          labelEn: 'Gold',
+          labelAr: 'ذهبي',
+          thresholdCount: 6,
+          rewardEn: 'A free dessert on your next visit',
+          rewardAr: 'حلوى مجانية في زيارتك القادمة',
+          sortOrder: 2,
+        },
+      ],
+    });
+    console.log('Seeded 2 demo loyalty tiers.');
   }
 
   console.log('Seed complete.');

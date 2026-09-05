@@ -12,6 +12,7 @@ import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { PromotionsPage } from '@/pages/PromotionsPage'
 import { AdvertisingPage } from '@/pages/AdvertisingPage'
+import { LoyaltyPage } from '@/pages/LoyaltyPage'
 import { PublishReviewPage } from '@/pages/PublishReviewPage'
 import { ContentModerationPage } from '@/pages/ContentModerationPage'
 
@@ -31,6 +32,7 @@ function App() {
           <Route path="content-moderation" element={<ContentModerationPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="advertising" element={<AdvertisingPage />} />
+          <Route path="loyalty" element={<LoyaltyPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="admins" element={<AdminUsersPage />} />
         </Route>

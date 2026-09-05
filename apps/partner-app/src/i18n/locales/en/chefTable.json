@@ -13,6 +13,7 @@
   "confirm": "Confirm",
   "cancel": "Cancel",
   "noReservationsYet": "No reservation requests yet.",
+  "tierBadge": "⭐ {{labelEn}} · {{labelAr}} guest",
   "createEvent": "Create Event",
   "titleEnLabel": "Title (English)",
   "titleEnPlaceholder": "Friday Live Music",
