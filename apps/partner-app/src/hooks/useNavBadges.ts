@@ -52,9 +52,9 @@ export function useNavBadges(active: ScreenKey): Partial<Record<ScreenKey, numbe
         // unread-announcements count above, this does NOT clear just by
         // opening the screen, only via the explicit "Mark as Done" action.
         api.me(token).then((r) => (r.publishStatus === 'REJECTED' && !r.publishDeclineAcknowledgedAt ? 1 : 0)).catch(() => 0),
-      ]).then(([unreadAnnouncements, chefTable, reviews, promotions, unacknowledgedPublishDecline]) => {
+      ]).then(([unreadAnnouncements, pendingReservations, reviews, promotions, unacknowledgedPublishDecline]) => {
         if (cancelled) return;
-        setBadges({ announcements: unreadAnnouncements + unacknowledgedPublishDecline, chefTable, reviews, promotions });
+        setBadges({ announcements: unreadAnnouncements + unacknowledgedPublishDecline, reservations: pendingReservations, reviews, promotions });
       });
     }, REFETCH_DEBOUNCE_MS);
 

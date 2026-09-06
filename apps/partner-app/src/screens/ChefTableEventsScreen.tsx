@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { CalendarClock, Users } from 'lucide-react-native';
+import { CalendarClock } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -11,7 +13,8 @@ import { TimeField } from '../components/TimeField';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
-import { api, type EventTypeItem, type ReservationItem, type ReservationStatus, type RestaurantEventItem } from '../lib/api';
+import { resizeForUpload } from '../lib/resizeImage';
+import { api, type EventTypeItem, type RestaurantEventItem } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
@@ -31,6 +34,7 @@ const emptyForm = {
   titleEn: '',
   titleAr: '',
   descriptionEn: '',
+  photoUrl: '',
   price: '',
   capacity: '',
   eventTypeId: '',
@@ -41,19 +45,6 @@ const emptyForm = {
   recurringTime: '',
 };
 
-type ScreenStyles = ReturnType<typeof createStyles>;
-
-const reservationStatusStyles: Record<ReservationStatus, { badge: keyof ScreenStyles; text: keyof ScreenStyles }> = {
-  PENDING: { badge: 'badgeInactive', text: 'badgeInactiveText' },
-  CONFIRMED: { badge: 'badgeActive', text: 'badgeActiveText' },
-  CANCELLED: { badge: 'badgeCancelled', text: 'badgeCancelledText' },
-  COMPLETED: { badge: 'badgeActive', text: 'badgeActiveText' },
-};
-
-function formatReservationDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-}
-
 export function ChefTableEventsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
@@ -61,25 +52,78 @@ export function ChefTableEventsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
   const [events, setEvents] = useState<RestaurantEventItem[]>([]);
-  const [reservations, setReservations] = useState<ReservationItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [localPhotoPreview, setLocalPhotoPreview] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [busyReservationId, setBusyReservationId] = useState<string | null>(null);
 
   const loadAll = useCallback(() => {
-    Promise.all([api.eventTypes(), api.myEvents(token), api.myReservations(token)])
-      .then(([types, mine, myReservations]) => {
+    Promise.all([api.eventTypes(), api.myEvents(token)])
+      .then(([types, mine]) => {
         setEventTypes(types);
         setEvents(mine);
-        setReservations(myReservations);
       })
       .catch(() => setLoadError(t('common:networkError')));
   }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
+
+  const resetForm = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+    setFormError(null);
+    setLocalPhotoPreview(null);
+  };
+
+  const startEdit = (event: RestaurantEventItem) => {
+    setLocalPhotoPreview(null);
+    setEditingId(event.id);
+    setFormError(null);
+    setForm({
+      titleEn: event.titleEn,
+      titleAr: event.titleAr,
+      descriptionEn: event.descriptionEn ?? '',
+      photoUrl: event.photoUrl ?? '',
+      price: event.price ?? '',
+      capacity: event.capacity != null ? String(event.capacity) : '',
+      eventTypeId: event.eventTypeId,
+      isRecurring: event.isRecurring,
+      eventDate: event.eventDate ? event.eventDate.slice(0, 10) : '',
+      eventTime: event.eventDate ? new Date(event.eventDate).toTimeString().slice(0, 5) : '',
+      recurringDayOfWeek: event.recurringDayOfWeek ?? 0,
+      recurringTime: event.recurringTime ?? '',
+    });
+  };
+
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    setLocalPhotoPreview(asset.uri);
+    setUploadingPhoto(true);
+    try {
+      const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+      const wasResized = resizedUri !== asset.uri;
+      const { url } = await api.uploadFile(token, {
+        uri: resizedUri,
+        name: asset.fileName ?? 'event.jpg',
+        type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
+      });
+      setForm((f) => ({ ...f, photoUrl: url }));
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : t('photoUploadFailed'));
+      setLocalPhotoPreview(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const submit = async () => {
     setFormError(null);
@@ -98,10 +142,11 @@ export function ChefTableEventsScreen() {
 
     setSubmitting(true);
     try {
-      const created = await api.createEvent(token, {
+      const payload = {
         titleEn: form.titleEn.trim(),
         titleAr: form.titleAr.trim(),
         descriptionEn: form.descriptionEn.trim() || undefined,
+        photoUrl: form.photoUrl || undefined,
         price: form.price ? Number(form.price) : undefined,
         capacity: form.capacity ? Number(form.capacity) : undefined,
         eventTypeId: form.eventTypeId,
@@ -109,11 +154,17 @@ export function ChefTableEventsScreen() {
         eventDate: form.isRecurring ? undefined : `${form.eventDate}T${form.eventTime}:00`,
         recurringDayOfWeek: form.isRecurring ? form.recurringDayOfWeek : undefined,
         recurringTime: form.isRecurring ? form.recurringTime : undefined,
-      });
-      setEvents((prev) => [created, ...prev]);
-      setForm(emptyForm);
+      };
+      if (editingId) {
+        const updated = await api.updateEvent(token, editingId, payload);
+        setEvents((prev) => prev.map((e) => (e.id === editingId ? updated : e)));
+      } else {
+        const created = await api.createEvent(token, payload);
+        setEvents((prev) => [created, ...prev]);
+      }
+      resetForm();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : t('createFailed'));
+      setFormError(err instanceof Error ? err.message : editingId ? t('updateFailed') : t('createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -134,18 +185,9 @@ export function ChefTableEventsScreen() {
     try {
       await api.deleteEvent(token, id);
       setEvents((prev) => prev.filter((e) => e.id !== id));
+      if (editingId === id) resetForm();
     } finally {
       setBusyId(null);
-    }
-  };
-
-  const setReservationStatus = async (id: string, status: ReservationStatus) => {
-    setBusyReservationId(id);
-    try {
-      const updated = await api.updateReservationStatus(token, id, status);
-      setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)));
-    } finally {
-      setBusyReservationId(null);
     }
   };
 
@@ -158,6 +200,9 @@ export function ChefTableEventsScreen() {
       <View style={styles.list}>
         {events.map((event) => (
           <View key={event.id} style={styles.card}>
+            {event.photoUrl ? (
+              <Image source={{ uri: event.photoUrl }} style={styles.cardPhoto} />
+            ) : null}
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleBlock}>
                 <Text style={styles.eventIcon}>{event.eventType.icon ?? '📅'}</Text>
@@ -180,64 +225,21 @@ export function ChefTableEventsScreen() {
             {event.price && <Text style={styles.eventPrice}>{Number(event.price).toLocaleString()} IQD</Text>}
             {event.capacity != null && <Text style={styles.eventPrice}>{t('capacity', { count: event.capacity })}</Text>}
             {event.descriptionEn && <Text style={styles.eventDescription}>{event.descriptionEn}</Text>}
-            <Pressable onPress={() => removeEvent(event.id)} disabled={busyId === event.id} style={styles.removeButton}>
-              <Text style={styles.removeButtonText}>{t('delete')}</Text>
-            </Pressable>
+            <View style={styles.cardActions}>
+              <Pressable onPress={() => startEdit(event)} disabled={busyId === event.id}>
+                <Text style={styles.link}>{t('edit')}</Text>
+              </Pressable>
+              <Pressable onPress={() => removeEvent(event.id)} disabled={busyId === event.id}>
+                <Text style={[styles.link, styles.destructiveLink]}>{t('delete')}</Text>
+              </Pressable>
+            </View>
           </View>
         ))}
         {events.length === 0 && !loadError && <EmptyState icon={CalendarClock} message={t('noEventsYet')} />}
       </View>
 
       <View style={styles.formCard}>
-        <Text style={styles.formTitle}>{t('reservations')}</Text>
-        {reservations.map((r) => {
-          const statusStyle = reservationStatusStyles[r.status];
-          return (
-            <View key={r.id} style={styles.reservationRow}>
-              <View style={styles.reservationInfo}>
-                <Text style={styles.reservationGuest}>{t('partyOf', { name: r.guestName, size: r.partySize })}</Text>
-                <Text style={styles.eventType}>{r.event.titleEn} — {formatReservationDate(r.reservationDate)}</Text>
-                <Text style={styles.eventType}>{r.guestPhone}</Text>
-                {r.guestTier && (
-                  <View style={styles.badgeTier}>
-                    <Text style={styles.badgeTierText}>
-                      {t('tierBadge', { labelEn: r.guestTier.labelEn, labelAr: r.guestTier.labelAr })}
-                    </Text>
-                  </View>
-                )}
-                {r.notes && <Text style={styles.eventDescription}>{r.notes}</Text>}
-              </View>
-              <View style={styles.reservationActions}>
-                <View style={[styles.badge, styles[statusStyle.badge]]}>
-                  <Text style={styles[statusStyle.text]}>{t(`status.${r.status}`)}</Text>
-                </View>
-                {r.status === 'PENDING' && (
-                  <Pressable
-                    disabled={busyReservationId === r.id}
-                    onPress={() => setReservationStatus(r.id, 'CONFIRMED')}
-                    style={styles.confirmLink}
-                  >
-                    <Text style={styles.confirmLinkText}>{t('confirm')}</Text>
-                  </Pressable>
-                )}
-                {(r.status === 'PENDING' || r.status === 'CONFIRMED') && (
-                  <Pressable
-                    disabled={busyReservationId === r.id}
-                    onPress={() => setReservationStatus(r.id, 'CANCELLED')}
-                    style={styles.removeButton}
-                  >
-                    <Text style={styles.removeButtonText}>{t('cancel')}</Text>
-                  </Pressable>
-                )}
-              </View>
-            </View>
-          );
-        })}
-        {reservations.length === 0 && !loadError && <EmptyState icon={Users} message={t('noReservationsYet')} />}
-      </View>
-
-      <View style={styles.formCard}>
-        <Text style={styles.formTitle}>{t('createEvent')}</Text>
+        <Text style={styles.formTitle}>{editingId ? t('editEvent') : t('createEvent')}</Text>
         <FormField label={t('titleEnLabel')} value={form.titleEn} onChangeText={(v) => setForm((f) => ({ ...f, titleEn: v }))} placeholder={t('titleEnPlaceholder')} />
         <FormField label={t('titleArLabel')} value={form.titleAr} onChangeText={(v) => setForm((f) => ({ ...f, titleAr: v }))} placeholder={t('titleArPlaceholder')} />
         <FormField
@@ -246,6 +248,20 @@ export function ChefTableEventsScreen() {
           onChangeText={(v) => setForm((f) => ({ ...f, descriptionEn: v }))}
           placeholder={t('descriptionPlaceholder')}
         />
+
+        <View style={styles.photoRow}>
+          {localPhotoPreview || form.photoUrl ? (
+            <Image source={{ uri: localPhotoPreview ?? form.photoUrl }} style={styles.photoPreview} />
+          ) : (
+            <View style={[styles.photoPreview, styles.photoPlaceholder]}>
+              <Text style={styles.hint}>{t('noPhoto')}</Text>
+            </View>
+          )}
+          <Pressable style={[styles.button, styles.secondaryButton]} onPress={pickPhoto} disabled={uploadingPhoto}>
+            {uploadingPhoto ? <ActivityIndicator color={colors.foreground} /> : <Text style={styles.secondaryButtonText}>{t('choosePhoto')}</Text>}
+          </Pressable>
+        </View>
+
         <View style={styles.row}>
           <View style={styles.flex1}>
             <FormField
@@ -311,9 +327,20 @@ export function ChefTableEventsScreen() {
         )}
 
         {formError && <Text style={styles.error}>{formError}</Text>}
-        <Pressable style={[styles.button, styles.primaryButton]} onPress={submit} disabled={submitting}>
-          {submitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('submit')}</Text>}
-        </Pressable>
+        <View style={styles.row}>
+          <Pressable style={[styles.button, styles.primaryButton, styles.flex1]} onPress={submit} disabled={submitting}>
+            {submitting ? (
+              <ActivityIndicator color={colors.primaryForeground} />
+            ) : (
+              <Text style={styles.primaryButtonText}>{editingId ? t('saveChanges') : t('submit')}</Text>
+            )}
+          </Pressable>
+          {editingId && (
+            <Pressable style={[styles.button, styles.secondaryButton]} onPress={resetForm}>
+              <Text style={styles.secondaryButtonText}>{t('cancel')}</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
     </ScrollView>
   );
@@ -333,8 +360,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.card,
     padding: 14,
     gap: 6,
+    overflow: 'hidden',
     ...cardShadow,
   },
+  cardPhoto: { width: '100%', height: 140, borderRadius: radii.sm, backgroundColor: colors.secondary, marginBottom: 4 },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   cardTitleBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   eventIcon: { fontSize: 22 },
@@ -344,31 +373,13 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   eventPrice: { color: colors.foreground, fontSize: 12 },
   eventDescription: { color: colors.mutedForeground, fontSize: 12 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeTier: { alignSelf: 'flex-start', backgroundColor: colors.primaryTint15, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 },
-  badgeTierText: { color: colors.primary, fontSize: 11, fontWeight: '700' },
   badgeActive: { backgroundColor: colors.successTint15 },
   badgeInactive: { backgroundColor: colors.secondary },
   badgeActiveText: { color: colors.success, fontSize: 12, fontWeight: '600' },
   badgeInactiveText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },
-  badgeCancelled: { backgroundColor: colors.destructiveTint15 },
-  badgeCancelledText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
-  removeButton: { alignSelf: 'flex-start', marginTop: 4 },
-  removeButtonText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
-
-  reservationRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 10,
-  },
-  reservationInfo: { flex: 1, gap: 2 },
-  reservationGuest: { color: colors.foreground, fontSize: 14, fontWeight: '600' },
-  reservationActions: { alignItems: 'flex-end', gap: 6 },
-  confirmLink: {},
-  confirmLinkText: { color: colors.success, fontSize: 12, fontWeight: '600' },
+  cardActions: { flexDirection: 'row', gap: 16, marginTop: 4 },
+  link: { color: colors.mutedForeground, fontSize: 13 },
+  destructiveLink: { color: colors.destructive },
 
   formCard: {
     gap: 12,
@@ -381,9 +392,15 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   formTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   fieldLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
+  hint: { fontSize: 12, color: colors.mutedForeground },
+  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  photoPreview: { width: 64, height: 64, borderRadius: 10, backgroundColor: colors.secondary },
+  photoPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
   row: { flexDirection: 'row', gap: 12 },
   flex1: { flex: 1 },
-  button: { borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  button: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', paddingHorizontal: 16 },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
+  secondaryButton: { borderWidth: 1, borderColor: colors.border },
+  secondaryButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 13 },
 });
