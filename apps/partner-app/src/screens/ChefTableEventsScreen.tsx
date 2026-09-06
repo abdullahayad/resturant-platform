@@ -14,6 +14,8 @@ import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
+import { localizedName } from '../lib/localizedName';
+import { useLanguage } from '../i18n/LanguageContext';
 import { api, type EventTypeItem, type RestaurantEventItem } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
 
@@ -48,6 +50,7 @@ const emptyForm = {
 export function ChefTableEventsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { language } = useLanguage();
   const { t } = useTranslation('chefTable');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
@@ -208,7 +211,7 @@ export function ChefTableEventsScreen() {
                 <Text style={styles.eventIcon}>{event.eventType.icon ?? '📅'}</Text>
                 <View>
                   <Text style={styles.eventTitle}>{event.titleEn} · {event.titleAr}</Text>
-                  <Text style={styles.eventType}>{event.eventType.nameEn}</Text>
+                  <Text style={styles.eventType}>{localizedName(event.eventType, language)}</Text>
                 </View>
               </View>
               <Pressable
@@ -285,7 +288,7 @@ export function ChefTableEventsScreen() {
 
         <Text style={styles.fieldLabel}>{t('eventType')}</Text>
         <ChipSelect
-          options={eventTypes.map((type) => ({ id: type.id, label: `${type.icon ?? ''} ${type.nameEn}`.trim() }))}
+          options={eventTypes.map((type) => ({ id: type.id, label: `${type.icon ?? ''} ${localizedName(type, language)}`.trim() }))}
           selectedIds={form.eventTypeId ? [form.eventTypeId] : []}
           onToggle={(id) => setForm((f) => ({ ...f, eventTypeId: id === f.eventTypeId ? '' : id }))}
         />

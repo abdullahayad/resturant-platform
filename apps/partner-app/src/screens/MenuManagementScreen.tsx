@@ -12,6 +12,8 @@ import { UtensilsCrossed } from 'lucide-react-native';
 import { radii, cardShadow } from '../theme/tokens';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
+import { localizedName } from '../lib/localizedName';
+import { useLanguage } from '../i18n/LanguageContext';
 import { api, type Dish, type MasterDataItem } from '../lib/api';
 
 const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as string | null, photoUrl: '', isMostOrdered: false };
@@ -22,6 +24,7 @@ const CARD_GAP = 12;
 export function MenuManagementScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { language } = useLanguage();
   const { t } = useTranslation('menu');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width } = useWindowDimensions();
@@ -156,7 +159,7 @@ export function MenuManagementScreen() {
       <View style={styles.dishBody}>
         <Text style={styles.dishName}>{dish.nameEn} · {dish.nameAr}</Text>
         <Text style={styles.dishMeta}>
-          {dish.menuCategory?.nameEn ?? t('uncategorized')} · {Number(dish.price).toLocaleString()} IQD
+          {dish.menuCategory ? localizedName(dish.menuCategory, language) : t('uncategorized')} · {Number(dish.price).toLocaleString()} IQD
         </Text>
         {dish.isMostOrdered && <Text style={styles.badge}>{t('mostOrdered')}</Text>}
         <View style={styles.dishActions}>
@@ -218,7 +221,7 @@ export function MenuManagementScreen() {
 
             <Text style={styles.fieldLabel}>{t('category')}</Text>
             <ChipSelect
-              options={categories.map((c) => ({ id: c.id, label: c.nameEn }))}
+              options={categories.map((c) => ({ id: c.id, label: localizedName(c, language) }))}
               selectedIds={form.categoryId ? [form.categoryId] : []}
               onToggle={(id) => setForm((f) => ({ ...f, categoryId: id === f.categoryId ? null : id }))}
             />

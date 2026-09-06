@@ -10,6 +10,8 @@ import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
+import { localizedName } from '../lib/localizedName';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   api,
   type AmbienceSubCategory,
@@ -24,6 +26,7 @@ const CARD_GAP = 12;
 export function PhotoGalleryScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { language } = useLanguage();
   const { t } = useTranslation('gallery');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width } = useWindowDimensions();
@@ -67,13 +70,13 @@ export function PhotoGalleryScreen() {
     const seen = new Map<string, { label: string; sortOrder: number }>();
     dishes.forEach((d) => {
       if (d.menuCategory) {
-        seen.set(d.menuCategory.id, { label: d.menuCategory.nameEn, sortOrder: d.menuCategory.sortOrder ?? 0 });
+        seen.set(d.menuCategory.id, { label: localizedName(d.menuCategory, language), sortOrder: d.menuCategory.sortOrder ?? 0 });
       }
     });
     return Array.from(seen, ([id, { label, sortOrder }]) => ({ id, label, sortOrder })).sort(
       (a, b) => a.sortOrder - b.sortOrder,
     );
-  }, [dishes]);
+  }, [dishes, language]);
 
   const foodPhotos = useMemo(() => {
     const list = photos.filter((p) => p.album === 'FOOD');

@@ -10,6 +10,7 @@ import { ChipSelect } from '../../components/ChipSelect';
 import { LegalDocumentModal } from '../../components/LegalDocumentModal';
 import { BrandMark } from '../../components/BrandMark';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../lib/legalContent';
+import { localizedName } from '../../lib/localizedName';
 import { api, type MasterDataItem, type Province } from '../../lib/api';
 
 interface RegisterRestaurantScreenProps {
@@ -19,7 +20,7 @@ interface RegisterRestaurantScreenProps {
 
 export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterRestaurantScreenProps) {
   const { colors } = useTheme();
-  const { isRTL } = useLanguage();
+  const { isRTL, language } = useLanguage();
   const { t } = useTranslation('auth');
   const styles = useMemo(() => createStyles(colors), [colors]);
   const BackIcon = isRTL ? ChevronRight : ChevronLeft;
@@ -129,7 +130,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>{t('register.businessTypes')}</Text>
         <ChipSelect
-          options={businessTypes.map((b) => ({ id: b.id, label: b.nameEn }))}
+          options={businessTypes.map((b) => ({ id: b.id, label: localizedName(b, language) }))}
           selectedIds={businessTypeIds}
           onToggle={(id) => toggle(businessTypeIds, setBusinessTypeIds, id)}
         />
@@ -138,7 +139,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>{t('register.foodCategories')}</Text>
         <ChipSelect
-          options={foodCategories.map((f) => ({ id: f.id, label: f.nameEn }))}
+          options={foodCategories.map((f) => ({ id: f.id, label: localizedName(f, language) }))}
           selectedIds={foodCategoryIds}
           onToggle={(id) => toggle(foodCategoryIds, setFoodCategoryIds, id)}
         />
@@ -147,7 +148,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>{t('register.city')}</Text>
         <ChipSelect
-          options={provinces.map((p) => ({ id: p.id, label: p.nameEn }))}
+          options={provinces.map((p) => ({ id: p.id, label: localizedName(p, language) }))}
           selectedIds={provinceId ? [provinceId] : []}
           onToggle={(id) => {
             setProvinceId(id === provinceId ? null : id);
@@ -160,7 +161,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('register.district')}</Text>
           <ChipSelect
-            options={selectedProvince.districts.map((d) => ({ id: d.id, label: d.nameEn }))}
+            options={selectedProvince.districts.map((d) => ({ id: d.id, label: localizedName(d, language) }))}
             selectedIds={districtId ? [districtId] : []}
             onToggle={(id) => setDistrictId(id === districtId ? null : id)}
           />

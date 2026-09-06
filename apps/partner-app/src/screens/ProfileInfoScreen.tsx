@@ -12,6 +12,8 @@ import { MapPinPicker } from '../components/MapPinPicker';
 import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
+import { localizedName } from '../lib/localizedName';
+import { useLanguage } from '../i18n/LanguageContext';
 import { api, type MasterDataItem, type OpeningHoursDay, type Province, type RestaurantDetail, type Story } from '../lib/api';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
@@ -22,6 +24,7 @@ const defaultOpeningHours = (): OpeningHoursDay[] =>
 export function ProfileInfoScreen() {
   const { token, restaurant, setRestaurant } = useAuth();
   const { colors } = useTheme();
+  const { language } = useLanguage();
   const { t } = useTranslation('profile');
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -200,14 +203,14 @@ export function ProfileInfoScreen() {
 
         <Text style={styles.fieldLabel}>{t('businessTypes')}</Text>
         <ChipSelect
-          options={businessTypes.map((b) => ({ id: b.id, label: b.nameEn }))}
+          options={businessTypes.map((b) => ({ id: b.id, label: localizedName(b, language) }))}
           selectedIds={businessTypeIds}
           onToggle={(id) => toggle(businessTypeIds, setBusinessTypeIds, id)}
         />
 
         <Text style={styles.fieldLabel}>{t('foodCategories')}</Text>
         <ChipSelect
-          options={foodCategories.map((f) => ({ id: f.id, label: f.nameEn }))}
+          options={foodCategories.map((f) => ({ id: f.id, label: localizedName(f, language) }))}
           selectedIds={foodCategoryIds}
           onToggle={(id) => toggle(foodCategoryIds, setFoodCategoryIds, id)}
         />
@@ -217,7 +220,7 @@ export function ProfileInfoScreen() {
         <Text style={styles.sectionTitle}>{t('sections.location')}</Text>
         <Text style={styles.fieldLabel}>{t('city')}</Text>
         <ChipSelect
-          options={provinces.map((p) => ({ id: p.id, label: p.nameEn }))}
+          options={provinces.map((p) => ({ id: p.id, label: localizedName(p, language) }))}
           selectedIds={provinceId ? [provinceId] : []}
           onToggle={(id) => {
             setProvinceId(id === provinceId ? null : id);
@@ -228,7 +231,7 @@ export function ProfileInfoScreen() {
           <>
             <Text style={styles.fieldLabel}>{t('district')}</Text>
             <ChipSelect
-              options={selectedProvince.districts.map((d) => ({ id: d.id, label: d.nameEn }))}
+              options={selectedProvince.districts.map((d) => ({ id: d.id, label: localizedName(d, language) }))}
               selectedIds={districtId ? [districtId] : []}
               onToggle={(id) => setDistrictId(id === districtId ? null : id)}
             />
@@ -309,7 +312,7 @@ export function ProfileInfoScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('sections.facilities')}</Text>
         <ChipSelect
-          options={facilities.map((f) => ({ id: f.id, label: f.nameEn }))}
+          options={facilities.map((f) => ({ id: f.id, label: localizedName(f, language) }))}
           selectedIds={facilityIds}
           onToggle={(id) => toggle(facilityIds, setFacilityIds, id)}
         />
