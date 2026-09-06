@@ -33,8 +33,8 @@ export function Header({ nameEn, nameAr, codeNumber, onSignOut }: HeaderProps) {
           {staff ? ` · ${staff.fullName} (${roleLabel})` : ''}
         </Text>
       </View>
-      <Pressable onPress={toggleLanguage} style={styles.themeToggle}>
-        <Text style={styles.langToggleText}>{language === 'en' ? 'AR' : 'EN'}</Text>
+      <Pressable onPress={toggleLanguage} style={styles.langToggle}>
+        <Text style={styles.langToggleText}>{language === 'en' ? 'العربية' : 'English'}</Text>
       </Pressable>
       <Pressable onPress={toggleTheme} style={styles.themeToggle}>
         {theme === 'dark' ? (
@@ -90,6 +90,15 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langToggle: {
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
