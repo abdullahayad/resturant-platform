@@ -17,4 +17,9 @@ export class AdminEventsController {
   moderate(@Param('id') id: string, @Body() dto: ModerateEventDto) {
     return this.events.moderate(id, dto);
   }
+
+  @Get(':id/reservations')
+  eventReservations(@Param('id') id: string) {
+    return this.events.adminEventReservations(id);
+  }
 }

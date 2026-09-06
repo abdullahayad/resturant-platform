@@ -291,8 +291,24 @@ export class EventsService {
   adminList(status?: ModerationStatusValue) {
     return this.prisma.db.restaurantEvent.findMany({
       where: { moderationStatus: status },
-      select: { ...eventSelect, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
+      select: {
+        ...eventSelect,
+        restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
+        // Only active-statused bookings count as "real" demand — a cancelled
+        // request shouldn't inflate what admin sees as a busy event.
+        _count: { select: { reservations: { where: { status: { in: [...ACTIVE_STATUSES] } } } } },
+      },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async adminEventReservations(eventId: string) {
+    const event = await this.prisma.db.restaurantEvent.findUnique({ where: { id: eventId }, select: { id: true } });
+    if (!event) throw new NotFoundException('Event not found');
+    return this.prisma.db.chefTableBooking.findMany({
+      where: { eventId },
+      select: reservationSelect,
+      orderBy: { reservationDate: 'asc' },
     });
   }
 

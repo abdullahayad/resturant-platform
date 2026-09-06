@@ -167,6 +167,38 @@ export interface ModeratableEventItem {
   restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
 }
 
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+
+export interface AdminEventItem {
+  id: string
+  titleEn: string
+  titleAr: string
+  photoUrl: string | null
+  price: string | null
+  capacity: number | null
+  isRecurring: boolean
+  eventDate: string | null
+  recurringDayOfWeek: number | null
+  recurringTime: string | null
+  isActive: boolean
+  moderationStatus: ModerationStatus
+  createdAt: string
+  eventType: { id: string; nameEn: string; nameAr: string; icon: string | null }
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
+  _count: { reservations: number }
+}
+
+export interface AdminEventReservationItem {
+  id: string
+  guestName: string
+  guestPhone: string
+  partySize: number
+  reservationDate: string
+  status: ReservationStatus
+  notes: string | null
+  createdAt: string
+}
+
 export type MasterDataKind = 'business-types' | 'food-categories' | 'menu-categories' | 'facilities' | 'event-types'
 
 export interface MasterDataItemFull {
@@ -411,6 +443,9 @@ export const api = {
     get<ModeratableEventItem[]>(`/admin/events${status ? `?status=${status}` : ''}`),
   moderateEvent: (id: string, status: ModerationStatus) =>
     send<ModeratableEventItem>('PATCH', `/admin/events/${id}/moderate`, { status }),
+
+  adminEvents: () => get<AdminEventItem[]>('/admin/events'),
+  adminEventReservations: (id: string) => get<AdminEventReservationItem[]>(`/admin/events/${id}/reservations`),
 
   masterData: (kind: MasterDataKind) => get<MasterDataItemFull[]>(`/master-data/admin/${kind}`),
   createMasterDataItem: (kind: MasterDataKind, payload: MasterDataItemPayload) =>
