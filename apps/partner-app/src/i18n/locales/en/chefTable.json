@@ -12,6 +12,7 @@
   "reservations": "Reservations",
   "reservationsSubtitle": "Booking requests for your Chef Table & Events listings.",
   "partyOf": "{{name}} · party of {{size}}",
+  "partySize": "Party of {{size}}",
   "confirm": "Confirm",
   "cancel": "Cancel",
   "noReservationsYet": "No reservation requests yet.",
@@ -50,5 +51,10 @@
     "CONFIRMED": "Confirmed",
     "CANCELLED": "Cancelled",
     "COMPLETED": "Completed"
+  },
+  "stats": {
+    "total": "Total",
+    "awaitingReply": "Awaiting reply",
+    "all": "All"
   }
 }

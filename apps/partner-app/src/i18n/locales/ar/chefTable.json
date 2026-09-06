@@ -12,6 +12,7 @@
   "reservations": "الحجوزات",
   "reservationsSubtitle": "طلبات الحجز الخاصة بفعاليات طاولة الشيف.",
   "partyOf": "{{name}} · مجموعة من {{size}}",
+  "partySize": "مجموعة من {{size}}",
   "confirm": "تأكيد",
   "cancel": "إلغاء",
   "noReservationsYet": "لا توجد طلبات حجز بعد.",
@@ -50,5 +51,10 @@
     "CONFIRMED": "مؤكد",
     "CANCELLED": "ملغى",
     "COMPLETED": "مكتمل"
+  },
+  "stats": {
+    "total": "الإجمالي",
+    "awaitingReply": "بانتظار الرد",
+    "all": "الكل"
   }
 }
