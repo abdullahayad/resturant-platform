@@ -6,6 +6,8 @@ import { CalendarClock, Users } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
+import { DateField } from '../components/DateField';
+import { TimeField } from '../components/TimeField';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
@@ -290,20 +292,20 @@ export function ChefTableEventsScreen() {
               selectedIds={[String(form.recurringDayOfWeek)]}
               onToggle={(id) => setForm((f) => ({ ...f, recurringDayOfWeek: Number(id) }))}
             />
-            <FormField
+            <TimeField
               label={t('timeLabel')}
               value={form.recurringTime}
-              onChangeText={(v) => setForm((f) => ({ ...f, recurringTime: v }))}
+              onChange={(v) => setForm((f) => ({ ...f, recurringTime: v }))}
               placeholder="20:00"
             />
           </>
         ) : (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <FormField label={t('dateLabel')} value={form.eventDate} onChangeText={(v) => setForm((f) => ({ ...f, eventDate: v }))} placeholder="2026-08-28" />
+              <DateField label={t('dateLabel')} value={form.eventDate} onChange={(v) => setForm((f) => ({ ...f, eventDate: v }))} placeholder="2026-08-28" />
             </View>
             <View style={styles.flex1}>
-              <FormField label={t('timeLabel')} value={form.eventTime} onChangeText={(v) => setForm((f) => ({ ...f, eventTime: v }))} placeholder="20:00" />
+              <TimeField label={t('timeLabel')} value={form.eventTime} onChange={(v) => setForm((f) => ({ ...f, eventTime: v }))} placeholder="20:00" />
             </View>
           </View>
         )}
