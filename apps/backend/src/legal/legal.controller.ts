@@ -207,7 +207,7 @@ function renderPage(title: string, sections: Section[]): string {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>${title} — LiQETA</title>
+<title>${title} — LiGETA</title>
 <style>
   :root { color-scheme: light dark; }
   body {

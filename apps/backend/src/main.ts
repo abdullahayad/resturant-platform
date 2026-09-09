@@ -71,7 +71,7 @@ async function bootstrap() {
   if (swaggerEnabled) {
     const config = new DocumentBuilder()
       .setTitle('Restaurant Platform API')
-      .setDescription('Backend API for the LiQETA partner app and admin portal')
+      .setDescription('Backend API for the LiGETA partner app and admin portal')
       .setVersion('1.0')
       .addBearerAuth()
       .build();

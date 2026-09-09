@@ -2,7 +2,7 @@
 
 Two-sided platform for a restaurant-discovery service in Iraq: a **Partner App**
 (Expo / React Native) for restaurant owners, and an **Admin Portal** (React / Vite) for
-platform staff, sharing one **NestJS + PostgreSQL** backend. Branded as **LiQETA**.
+platform staff, sharing one **NestJS + PostgreSQL** backend. Branded as **LiGETA**.
 
 ## Structure
 
