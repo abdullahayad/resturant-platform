@@ -28,6 +28,9 @@
   "networkError": "Could not reach the server. Check your connection and try again.",
   "wakingUpServer": "Still loading — the server may be waking up, this can take up to a minute.",
   "soon": "Soon",
+  "introTaglineWord1": "Pick",
+  "introTaglineWord2": "Better",
+  "introTaglineWord3": "Today",
   "lastUpdated": "Last updated {{date}}",
   "announcementBanner": {
     "unread_one": "You have a new announcement from the platform team.",

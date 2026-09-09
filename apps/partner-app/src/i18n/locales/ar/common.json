@@ -28,6 +28,9 @@
   "networkError": "تعذر الوصول إلى الخادم. تحقق من اتصالك وحاول مرة أخرى.",
   "wakingUpServer": "لا يزال التحميل جاريًا — قد يكون الخادم في طور التشغيل، قد يستغرق هذا حتى دقيقة.",
   "soon": "قريباً",
+  "introTaglineWord1": "اختيار",
+  "introTaglineWord2": "افضل",
+  "introTaglineWord3": "اليوم",
   "lastUpdated": "آخر تحديث {{date}}",
   "announcementBanner": {
     "unread_one": "لديك إشعار جديد من فريق المنصة.",

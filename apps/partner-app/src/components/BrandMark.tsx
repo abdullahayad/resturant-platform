@@ -6,7 +6,7 @@ interface BrandMarkProps {
 }
 
 /** The app's brand mark, used everywhere branding appears in the UI chrome (nav, auth screens,
- * boot screen). Renders just the pin symbol from the LiQETA logo — a compact square badge can't
+ * boot screen). Renders just the pin symbol from the LiGETA logo — a compact square badge can't
  * fit the full wordmark legibly, unlike the native app icon which uses the full logo. */
 export function BrandMark({ size = 40 }: BrandMarkProps) {
   return (
