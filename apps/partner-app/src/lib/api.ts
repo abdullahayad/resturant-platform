@@ -3,7 +3,7 @@
 // restaurant) instead of an empty local database. Swap the web branch back
 // to 'http://localhost:3000' when doing fast local-iteration dev work
 // against a local backend instead.
-export const API_BASE_URL = 'https://restuarant-portal-liqeta-app.onrender.com';
+export const API_BASE_URL = 'https://restuarant-portal-liqeta-app.onrender.com/v1';
 
 export interface MasterDataItem {
   id: string;

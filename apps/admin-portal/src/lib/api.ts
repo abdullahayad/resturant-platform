@@ -4,7 +4,7 @@ import { auth, type AdminProfile } from './auth'
 // .env.local, gitignored) to point this at a deployed backend instead —
 // needed to manage real data from a hosted app instead of this machine's
 // own local database.
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000') + '/v1'
 
 export type RestaurantStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
 export type PublishStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
