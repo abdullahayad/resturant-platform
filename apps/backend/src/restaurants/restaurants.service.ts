@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '../../generated/prisma/client';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
 import type { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import type { ChangePasswordDto } from './dto/change-password.dto';
@@ -114,25 +115,38 @@ export class RestaurantsService {
     const codeNumber = await this.generateUniqueCode();
     const ownerPasswordHash = await bcrypt.hash(dto.ownerPassword, 10);
 
-    return this.prisma.db.restaurant.create({
-      data: {
-        codeNumber,
-        nameEn: dto.nameEn,
-        nameAr: dto.nameAr,
-        phone: dto.phone,
-        ownerEmail: dto.ownerEmail,
-        ownerPasswordHash,
-        termsAcceptedAt: new Date(),
-        provinceId: dto.provinceId,
-        districtId: dto.districtId,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        businessTypes: { create: dto.businessTypeIds.map((businessTypeId) => ({ businessTypeId })) },
-        foodCategories: { create: dto.foodCategoryIds.map((foodCategoryId) => ({ foodCategoryId })) },
-        facilities: { create: (dto.facilityIds ?? []).map((facilityId) => ({ facilityId })) },
-      },
-      select: restaurantDetailSelect,
-    });
+    try {
+      return await this.prisma.db.restaurant.create({
+        data: {
+          codeNumber,
+          nameEn: dto.nameEn,
+          nameAr: dto.nameAr,
+          phone: dto.phone,
+          ownerEmail: dto.ownerEmail,
+          ownerPasswordHash,
+          termsAcceptedAt: new Date(),
+          provinceId: dto.provinceId,
+          districtId: dto.districtId,
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          businessTypes: { create: dto.businessTypeIds.map((businessTypeId) => ({ businessTypeId })) },
+          foodCategories: { create: dto.foodCategoryIds.map((foodCategoryId) => ({ foodCategoryId })) },
+          facilities: { create: (dto.facilityIds ?? []).map((facilityId) => ({ facilityId })) },
+        },
+        select: restaurantDetailSelect,
+      });
+    } catch (err) {
+      // Backstop for the narrow race the check above can't fully close: two
+      // signups for the same email/phone landing at the same instant can
+      // both pass the pre-check and only collide here, at the database's
+      // own unique constraint. Without this, the loser of that race would
+      // surface as an unhandled 500 instead of the same clean message the
+      // pre-check already gives everyone else.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('An account with this email or phone number already exists');
+      }
+      throw err;
+    }
   }
 
   list(filters: {

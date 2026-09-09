@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { PushService } from '../push/push.service';
 import type { RegisterRestaurantDto } from './dto/register-restaurant.dto';
+import { Prisma } from '../../generated/prisma/client';
 
 describe('RestaurantsService', () => {
   let service: RestaurantsService;
@@ -78,6 +79,31 @@ describe('RestaurantsService', () => {
 
       expect(result).toEqual({ id: 'new-id', publishStatus: 'NOT_SUBMITTED' });
       expect(prisma.db.restaurant.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('converts a database-level unique-constraint race into the same clean message', async () => {
+      // Simulates two signups for the same email/phone landing at the same
+      // instant: both pass the pre-check above (mocked null here), and only
+      // collide at the database's own unique constraint on the insert.
+      prisma.db.restaurant.findUnique
+        .mockResolvedValueOnce(null) // ownerEmail lookup: free
+        .mockResolvedValueOnce(null) // phone lookup: free
+        .mockResolvedValueOnce(null); // generateUniqueCode's first candidate: free
+      prisma.db.restaurant.create.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed on the fields: (`ownerEmail`)', {
+          code: 'P2002',
+          clientVersion: '7.9.1',
+        }),
+      );
+
+      let caught: unknown;
+      try {
+        await service.register(baseRegisterDto);
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeInstanceOf(ConflictException);
+      expect((caught as ConflictException).message).toBe('An account with this email or phone number already exists');
     });
   });
 
