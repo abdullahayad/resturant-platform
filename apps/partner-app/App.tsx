@@ -16,21 +16,24 @@ import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
 import { IntroOverlay } from './src/components/IntroOverlay';
 import { AnalyticsProvider, useAnalytics } from './src/lib/analytics';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 type AuthView = 'landing' | 'register' | 'signIn' | 'forgotPassword';
 type Session = StoredSession;
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AnalyticsProvider>
-        <ThemeProvider>
-          <LanguageProvider>
-            <AppContent />
-          </LanguageProvider>
-        </ThemeProvider>
-      </AnalyticsProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AnalyticsProvider>
+          <ThemeProvider>
+            <LanguageProvider>
+              <AppContent />
+            </LanguageProvider>
+          </ThemeProvider>
+        </AnalyticsProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 
