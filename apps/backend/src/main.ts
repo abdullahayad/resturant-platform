@@ -9,9 +9,18 @@
 import './instrument';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import type { NextFunction, Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+
+// Routes that stay at a permanent, unversioned address — either because
+// they're given out externally (the Privacy Policy link goes in the Play
+// Store listing itself; changing it later would mean re-submitting store
+// metadata), or because something outside our own apps depends on the exact
+// path (UptimeRobot pings "/", Swagger serves its own sub-paths under
+// "/docs"). Everything else moves under /v1.
+const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json'];
 
 // Comma-separated list of allowed browser origins, e.g.
 // "http://localhost:5173,https://admin.example.com". Falls back to the
@@ -31,6 +40,24 @@ const swaggerEnabled = process.env.ENABLE_SWAGGER === 'true';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
+
+  // Every route now canonically lives under /v1 (see setGlobalPrefix below),
+  // but the app already installed on real phones was built calling the old
+  // unprefixed paths (e.g. /restaurants, not /v1/restaurants) — this
+  // silently rewrites those old-style requests to hit the same /v1 handlers,
+  // so both styles work at once. Once every installed app has updated to
+  // call /v1 directly, this rewrite (and the old-style calls it supports)
+  // can be dropped.
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    const path = req.url.split('?')[0];
+    const isRoot = path === '/';
+    const isUnversioned = isRoot || UNVERSIONED_ROUTES.some((route) => path === `/${route}` || path.startsWith(`/${route}/`));
+    if (!isUnversioned && !path.startsWith('/v1/') && path !== '/v1') {
+      req.url = `/v1${req.url}`;
+    }
+    next();
+  });
+  app.setGlobalPrefix('v1', { exclude: ['/', ...UNVERSIONED_ROUTES] });
 
   if (swaggerEnabled) {
     // Swagger UI's bootstrap script is inline, which the default CSP blocks —
