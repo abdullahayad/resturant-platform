@@ -10,13 +10,15 @@ interface IntroOverlayProps {
 }
 
 // Each language's wordmark is cropped into three pieces at its own source
-// resolution — English's "Li" / "G" (with the pin) / "ETA", Arabic's matching
-// three-piece split of "ليكيته" with the pin-bearing piece in the middle.
-// All three pieces of a set share one source height (cropped on the same
-// baseline), only their widths differ.
+// resolution, arranged left-to-right on screen. All three pieces of a set
+// share one source height (cropped on the same baseline), only their widths
+// differ. `reverseDropOrder` controls the order pieces animate in (see
+// below) — it's independent of their fixed left-to-right screen position.
 const SEGMENT_SETS = {
   en: {
     sourceHeight: 197,
+    reverseDropOrder: false,
+    // "Li" / "G" (with the pin) / "ETA" — drops in reading order, left to right.
     segments: [
       { source: require('../../assets/intro-en-1.png'), width: 131 },
       { source: require('../../assets/intro-en-2.png'), width: 192 },
@@ -25,6 +27,12 @@ const SEGMENT_SETS = {
   },
   ar: {
     sourceHeight: 264,
+    reverseDropOrder: true,
+    // Screen-left to screen-right this reads "يته" / "ك" (with the pin) / "لي" — but
+    // Arabic is read right-to-left, so reverseDropOrder makes "لي" (rightmost on
+    // screen) drop first, then "ك", then "يته" last: the pieces still land in their
+    // fixed left-to-right screen positions, only the *order* they arrive in follows
+    // how the word is actually read.
     segments: [
       { source: require('../../assets/intro-ar-1.png'), width: 348 },
       { source: require('../../assets/intro-ar-2.png'), width: 187 },
@@ -84,9 +92,12 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
   const wordRise = useRef(TAGLINE_WORD_KEYS.map(() => new Animated.Value(10))).current;
 
   useEffect(() => {
+    const lastCount = set.segments.length - 1;
     set.segments.forEach((_, i) => {
-      const isLast = i === set.segments.length - 1;
-      dropWithBounce(dropY[i], LEAD_IN_MS + i * STAGGER_MS, isLast ? revealTagline : undefined);
+      // Screen position (i) is fixed; drop order can differ from it (see reverseDropOrder above).
+      const dropOrder = set.reverseDropOrder ? lastCount - i : i;
+      const isLastToLand = dropOrder === lastCount;
+      dropWithBounce(dropY[i], LEAD_IN_MS + dropOrder * STAGGER_MS, isLastToLand ? revealTagline : undefined);
     });
 
     function revealTagline() {
