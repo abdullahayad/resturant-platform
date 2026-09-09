@@ -19,32 +19,60 @@ type SimpleListDelegate = {
   delete: (args: { where: { id: string } }) => Promise<unknown>;
 };
 
+// These six lists are read on nearly every partner-app screen (they back
+// every category/facility/city picker) but change maybe a few times a year —
+// an admin adding a new food category is a rare, deliberate action, not
+// something anyone needs reflected instantly. Holding the last answer in
+// memory for a few minutes cuts that repeated database load with the only
+// cost being a short delay before a brand-new admin-added item shows up
+// everywhere. Admin's own management screens are unaffected — they call the
+// separate, uncached listAll()-backed methods below, so an admin always sees
+// their own edit immediately.
+const READ_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
 @Injectable()
 export class MasterDataService {
+  private readonly readCache = new Map<string, CacheEntry<unknown>>();
+
   constructor(private readonly prisma: PrismaService) {}
+
+  private async cached<T>(key: string, fetch: () => Promise<T>): Promise<T> {
+    const hit = this.readCache.get(key);
+    if (hit && hit.expiresAt > Date.now()) return hit.value as T;
+    const value = await fetch();
+    this.readCache.set(key, { value, expiresAt: Date.now() + READ_CACHE_TTL_MS });
+    return value;
+  }
 
   // ── public reads (active items only — used by the partner app's pickers) ──
   businessTypes() {
-    return this.listActive(this.prisma.db.businessType);
+    return this.cached('businessTypes', () => this.listActive(this.prisma.db.businessType));
   }
   foodCategories() {
-    return this.listActive(this.prisma.db.foodCategory);
+    return this.cached('foodCategories', () => this.listActive(this.prisma.db.foodCategory));
   }
   menuCategories() {
-    return this.listActive(this.prisma.db.menuCategory);
+    return this.cached('menuCategories', () => this.listActive(this.prisma.db.menuCategory));
   }
   facilities() {
-    return this.listActive(this.prisma.db.facility);
+    return this.cached('facilities', () => this.listActive(this.prisma.db.facility));
   }
   eventTypes() {
-    return this.listActive(this.prisma.db.eventType);
+    return this.cached('eventTypes', () => this.listActive(this.prisma.db.eventType));
   }
   provinces() {
-    return this.prisma.db.province.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-      include: { districts: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
-    });
+    return this.cached('provinces', () =>
+      this.prisma.db.province.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        include: { districts: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+      }),
+    );
   }
 
   // ── admin reads (everything, including inactive) + CRUD ──────────────
