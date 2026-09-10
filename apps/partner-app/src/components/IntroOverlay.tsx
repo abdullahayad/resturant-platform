@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -91,6 +91,18 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
   const wordOpacity = useRef(TAGLINE_WORD_KEYS.map(() => new Animated.Value(0))).current;
   const wordRise = useRef(TAGLINE_WORD_KEYS.map(() => new Animated.Value(10))).current;
 
+  // React Native Web doesn't reliably honor the row's `direction: 'ltr'` override
+  // when the document itself is globally RTL — it still mirrors the flex order,
+  // unlike native, which respects the override correctly. Compensate by reversing
+  // the *rendered* order on web only, for RTL wordmarks only. Each image keeps its
+  // own dropY (indexed by its original, unreversed position), so the drop-order
+  // timing logic below — which is about reading order, not screen position — is
+  // completely unaffected by this.
+  const displayIndices = useMemo(() => {
+    const indices = set.segments.map((_, i) => i);
+    return Platform.OS === 'web' && set.reverseDropOrder ? indices.reverse() : indices;
+  }, [set]);
+
   useEffect(() => {
     const lastCount = set.segments.length - 1;
     set.segments.forEach((_, i) => {
@@ -118,18 +130,21 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
   return (
     <Animated.View style={[styles.overlay, { opacity }]}>
       <View style={styles.row}>
-        {set.segments.map((seg, i) => (
-          <Animated.Image
-            key={i}
-            source={seg.source}
-            style={{
-              width: seg.width * scale,
-              height: displayHeight,
-              transform: [{ translateY: dropY[i] }],
-            }}
-            resizeMode="contain"
-          />
-        ))}
+        {displayIndices.map((i) => {
+          const seg = set.segments[i];
+          return (
+            <Animated.Image
+              key={i}
+              source={seg.source}
+              style={{
+                width: seg.width * scale,
+                height: displayHeight,
+                transform: [{ translateY: dropY[i] }],
+              }}
+              resizeMode="contain"
+            />
+          );
+        })}
       </View>
       <View style={styles.taglineRow}>
         {TAGLINE_WORD_KEYS.map((key, i) => (
