@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import type { ThemeColors } from './src/theme/colors';
@@ -20,6 +20,12 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 type AuthView = 'landing' | 'register' | 'signIn' | 'forgotPassword';
 type Session = StoredSession;
+
+// After sitting in the background this long, replaying the intro on return makes
+// the app feel deliberately "reopened" rather than just resumed mid-thought —
+// matching what most well-made apps do. A brief switch away (a notification, a
+// phone call) shouldn't trigger it, only a genuine period of not using the app.
+const INTRO_REPLAY_AFTER_MS = 15 * 60 * 1000;
 
 export default function App() {
   return (
@@ -45,12 +51,29 @@ function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [introVisible, setIntroVisible] = useState(true);
+  const backgroundedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     getStoredSession().then((stored) => {
       if (stored) setSession(stored);
       setBootstrapped(true);
     });
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'background') {
+        backgroundedAtRef.current = Date.now();
+        return;
+      }
+      if (nextState === 'active' && backgroundedAtRef.current !== null) {
+        if (Date.now() - backgroundedAtRef.current >= INTRO_REPLAY_AFTER_MS) {
+          setIntroVisible(true);
+        }
+        backgroundedAtRef.current = null;
+      }
+    });
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
