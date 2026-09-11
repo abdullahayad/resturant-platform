@@ -41,7 +41,11 @@ export const lightColors: ThemeColors = {
   card: '#ffffff',
   border: '#e2ddd3',
   foreground: '#242426',
-  mutedForeground: '#6b6b70',
+  // Was #6b6b70 — measured at ~4.4:1 against the `secondary` chip background
+  // (e.g. unselected Business Types pills), just under the 4.5:1 accessibility
+  // minimum for normal text. This darker value clears 4.5:1 against every
+  // background this token pairs with in the light theme.
+  mutedForeground: '#57575c',
   primary: '#b8722a',
   primaryForeground: '#2a1c0c',
   secondary: '#eee9e1',
