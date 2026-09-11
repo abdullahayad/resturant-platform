@@ -13,9 +13,10 @@ interface SignInScreenProps {
   onBack: () => void;
   onSignedIn: (token: string, restaurant: AuthenticatedRestaurant, staff?: StaffSession) => void;
   onForgotPassword: () => void;
+  sessionExpired?: boolean;
 }
 
-export function SignInScreen({ onBack, onSignedIn, onForgotPassword }: SignInScreenProps) {
+export function SignInScreen({ onBack, onSignedIn, onForgotPassword, sessionExpired }: SignInScreenProps) {
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
   const { t } = useTranslation('auth');
@@ -63,6 +64,7 @@ export function SignInScreen({ onBack, onSignedIn, onForgotPassword }: SignInScr
           <BrandMark size={44} />
         </View>
         <Text style={styles.title}>{t('signIn.title')}</Text>
+        {sessionExpired && <Text style={styles.notice}>{t('signIn.sessionExpired')}</Text>}
 
         <FormField
           label={t('signIn.emailLabel')}
@@ -144,6 +146,15 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },
+  notice: {
+    color: colors.primary,
+    fontSize: 13,
+    textAlign: 'center',
+    backgroundColor: colors.primaryTint15,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
   slowHint: { color: colors.mutedForeground, fontSize: 12.5, textAlign: 'center', marginTop: -4 },
   forgotLink: { alignSelf: 'flex-end' },
   forgotLinkText: { color: colors.primary, fontSize: 13, fontWeight: '600' },

@@ -7,6 +7,7 @@ import type { ThemeColors } from './src/theme/colors';
 import './src/i18n';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { getStoredSession, setStoredSession, type StoredSession } from './src/lib/session/storage';
+import { setUnauthorizedHandler } from './src/lib/api';
 import { AuthLandingScreen } from './src/screens/auth/AuthLandingScreen';
 import { RegisterRestaurantScreen } from './src/screens/auth/RegisterRestaurantScreen';
 import { SignInScreen } from './src/screens/auth/SignInScreen';
@@ -51,6 +52,7 @@ function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [introVisible, setIntroVisible] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const backgroundedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -58,6 +60,19 @@ function AppContent() {
       if (stored) setSession(stored);
       setBootstrapped(true);
     });
+  }, []);
+
+  // A stale login token makes every authenticated request fail with 401 — the
+  // api layer reports that here instead of each screen showing a misleading
+  // "Could not reach the server" message. Route straight to sign-in with a
+  // clear explanation instead of leaving the user stuck on a broken screen.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setSession(null);
+      setSessionExpired(true);
+      setView('signIn');
+    });
+    return () => setUnauthorizedHandler(null);
   }, []);
 
   useEffect(() => {
@@ -112,11 +127,21 @@ function AppContent() {
       ) : (
         <>
           {view === 'landing' && (
-            <AuthLandingScreen onSignIn={() => setView('signIn')} onRegister={() => setView('register')} />
+            <AuthLandingScreen
+              onSignIn={() => {
+                setSessionExpired(false);
+                setView('signIn');
+              }}
+              onRegister={() => setView('register')}
+            />
           )}
           {view === 'signIn' && (
             <SignInScreen
-              onBack={() => setView('landing')}
+              sessionExpired={sessionExpired}
+              onBack={() => {
+                setSessionExpired(false);
+                setView('landing');
+              }}
               onSignedIn={(token, restaurant, staff) => {
                 identify(restaurant.id, { name: restaurant.nameEn, status: restaurant.status });
                 track('signed_in');

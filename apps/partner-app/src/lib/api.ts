@@ -13,12 +13,25 @@ export const API_BASE_URL = 'https://restuarant-portal-liqeta-app.onrender.com/v
 // the free-tier host waking up, or see which endpoint was actually involved.
 // Both request failure modes get flagged here: fetch() itself throwing (no
 // response at all — DNS/network/timeout) and a response that came back with an
-// error status (the server answered, just not successfully).
+// error status (the server answered, just not successfully). A 401 isn't
+// reported here — it's an expected, already-handled case (see
+// setUnauthorizedHandler below), not a bug worth an alert.
 function reportRequestFailure(kind: 'network' | 'http_status', method: string, path: string, detail: unknown) {
   Sentry.captureException(detail instanceof Error ? detail : new Error(String(detail)), {
     tags: { request_failure_kind: kind },
     extra: { method, path },
   });
+}
+
+// A stale or expired login token makes every authenticated request fail with
+// 401, which screens were previously showing as a generic "Could not reach
+// the server" — misleading, since the server and network are both fine. App.tsx
+// registers a handler here (once, on mount) that signs the user out and routes
+// them back to sign-in with a clear "session expired" message instead.
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler;
 }
 
 export interface MasterDataItem {
@@ -381,7 +394,11 @@ async function get<T>(path: string, token?: string): Promise<T> {
   }
   if (!res.ok) {
     const err = new Error(`GET ${path} failed: ${res.status}`);
-    reportRequestFailure('http_status', 'GET', path, err);
+    if (res.status === 401 && token) {
+      unauthorizedHandler?.();
+    } else {
+      reportRequestFailure('http_status', 'GET', path, err);
+    }
     throw err;
   }
   return res.json();
@@ -407,7 +424,11 @@ async function send<T>(
   const data = await res.json();
   if (!res.ok) {
     const err = new Error(data.message || `${method} ${path} failed`);
-    reportRequestFailure('http_status', method, path, err);
+    if (res.status === 401) {
+      unauthorizedHandler?.();
+    } else {
+      reportRequestFailure('http_status', method, path, err);
+    }
     throw err;
   }
   return data;
