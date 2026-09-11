@@ -1,9 +1,25 @@
+import * as Sentry from '@sentry/react-native';
+
 // Both web and native point at the real hosted backend by default, so
 // browser testing sees real production data (e.g. an already-registered
 // restaurant) instead of an empty local database. Swap the web branch back
 // to 'http://localhost:3000' when doing fast local-iteration dev work
 // against a local backend instead.
 export const API_BASE_URL = 'https://restuarant-portal-liqeta-app.onrender.com/v1';
+
+// Every screen's "Could not reach the server" message comes from a request that
+// failed somewhere below — but until now none of those failures were ever
+// reported anywhere, so there was no way to tell a genuine outage apart from
+// the free-tier host waking up, or see which endpoint was actually involved.
+// Both request failure modes get flagged here: fetch() itself throwing (no
+// response at all — DNS/network/timeout) and a response that came back with an
+// error status (the server answered, just not successfully).
+function reportRequestFailure(kind: 'network' | 'http_status', method: string, path: string, detail: unknown) {
+  Sentry.captureException(detail instanceof Error ? detail : new Error(String(detail)), {
+    tags: { request_failure_kind: kind },
+    extra: { method, path },
+  });
+}
 
 export interface MasterDataItem {
   id: string;
@@ -354,10 +370,20 @@ export interface InviteStaffPayload {
 }
 
 async function get<T>(path: string, token?: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  } catch (err) {
+    reportRequestFailure('network', 'GET', path, err);
+    throw err;
+  }
+  if (!res.ok) {
+    const err = new Error(`GET ${path} failed: ${res.status}`);
+    reportRequestFailure('http_status', 'GET', path, err);
+    throw err;
+  }
   return res.json();
 }
 
@@ -367,13 +393,23 @@ async function send<T>(
   token: string,
   body?: unknown,
 ): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    reportRequestFailure('network', method, path, err);
+    throw err;
+  }
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || `${method} ${path} failed`);
+  if (!res.ok) {
+    const err = new Error(data.message || `${method} ${path} failed`);
+    reportRequestFailure('http_status', method, path, err);
+    throw err;
+  }
   return data;
 }
 
