@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "iq.restaurantplatform.partnerapp",
+      "package": "com.ligeta.partner",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",

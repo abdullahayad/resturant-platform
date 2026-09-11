@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:23351615520:android:e1ac57c5a996927fb15c45",
+        "android_client_info": {
+          "package_name": "com.ligeta.partner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxHM5ztqKaLz1yrPJtujt8-F3MsklkQVk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:23351615520:android:828d48fd7ef1d63cb15c45",
         "android_client_info": {
           "package_name": "iq.restaurantplatform.partnerapp"
