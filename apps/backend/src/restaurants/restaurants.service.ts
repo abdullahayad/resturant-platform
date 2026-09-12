@@ -420,6 +420,25 @@ export class RestaurantsService {
     return { success: true };
   }
 
+  // Admin-only diagnostic: push delivery is fire-and-forget with no success
+  // logging, so when a restaurant reports "I didn't get the notification"
+  // there's otherwise no way to tell "no token ever registered" apart from
+  // "registered fine, something else went wrong." Token values themselves
+  // aren't returned — just enough to see how many devices are registered and
+  // when each last checked in.
+  async pushTokenDiagnostics(id: string) {
+    const tokens = await this.prisma.db.restaurantPushToken.findMany({
+      where: { restaurantId: id },
+      select: { token: true, createdAt: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return tokens.map((t) => ({
+      tokenPreview: `${t.token.slice(0, 18)}…`,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    }));
+  }
+
   // Self-service account deletion (app store requirement for any app that
   // supports in-app account creation). A staff login only removes that
   // staff member's own access — the restaurant itself is untouched. The

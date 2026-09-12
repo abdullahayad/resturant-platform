@@ -149,6 +149,12 @@ export class RestaurantsController {
   }
 
   @UseGuards(AdminAuthGuard)
+  @Get(':id/push-tokens')
+  pushTokenDiagnostics(@Param('id') id: string) {
+    return this.restaurants.pushTokenDiagnostics(id);
+  }
+
+  @UseGuards(AdminAuthGuard)
   @Patch(':id/publish-moderate')
   moderatePublish(
     @Req() req: { user: AdminJwtPayload },
