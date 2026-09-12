@@ -355,6 +355,21 @@ export interface Province extends District {
   districts: District[]
 }
 
+export interface FeatureFlagOverrideItem {
+  id: string
+  enabled: boolean
+  restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string } | null
+  province: { id: string; nameEn: string; nameAr: string } | null
+}
+
+export interface FeatureFlagItem {
+  id: string
+  key: string
+  labelEn: string
+  defaultEnabled: boolean
+  overrides: FeatureFlagOverrideItem[]
+}
+
 class UnauthorizedError extends Error {}
 
 function authHeaders(): HeadersInit {
@@ -503,6 +518,16 @@ export const api = {
   grantLoyaltyReward: (payload: { guestPhone: string; tierId: string }) =>
     send<LoyaltyRewardItem>('POST', '/admin/loyalty/rewards/grant', payload),
   redeemLoyaltyReward: (id: string) => send<LoyaltyRewardItem>('PATCH', `/admin/loyalty/rewards/${id}/redeem`),
+
+  featureFlags: () => get<FeatureFlagItem[]>('/admin/feature-flags'),
+  updateFeatureFlagDefault: (id: string, defaultEnabled: boolean) =>
+    send<FeatureFlagItem>('PATCH', `/admin/feature-flags/${id}`, { defaultEnabled }),
+  setFeatureFlagOverride: (
+    id: string,
+    payload: { restaurantId?: string; provinceId?: string; enabled: boolean },
+  ) => send<FeatureFlagOverrideItem>('POST', `/admin/feature-flags/${id}/overrides`, payload),
+  removeFeatureFlagOverride: (overrideId: string) =>
+    send<{ id: string }>('DELETE', `/admin/feature-flags/overrides/${overrideId}`),
 
   notifications: () => get<NotificationItem[]>('/admin/notifications'),
   createNotification: (payload: CreateNotificationPayload) =>

@@ -15,12 +15,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ active, badges, onSelect }: SidebarProps) {
-  const { staff } = useAuth();
+  const { staff, enabledKeys } = useAuth();
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
   const { t } = useTranslation('nav');
   const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
-  const visibleItems = getVisibleNavItems(staff?.role);
+  const visibleItems = getVisibleNavItems(staff?.role, enabledKeys);
 
   return (
     <View style={styles.sidebar}>

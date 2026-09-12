@@ -16,6 +16,7 @@ import { LoyaltyPage } from '@/pages/LoyaltyPage'
 import { EventBookingsPage } from '@/pages/EventBookingsPage'
 import { PublishReviewPage } from '@/pages/PublishReviewPage'
 import { ContentModerationPage } from '@/pages/ContentModerationPage'
+import { FeatureFlagsPage } from '@/pages/FeatureFlagsPage'
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
           <Route path="loyalty" element={<LoyaltyPage />} />
           <Route path="event-bookings" element={<EventBookingsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="feature-flags" element={<FeatureFlagsPage />} />
           <Route path="admins" element={<AdminUsersPage />} />
         </Route>
       </Route>

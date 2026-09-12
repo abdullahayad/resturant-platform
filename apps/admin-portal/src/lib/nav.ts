@@ -13,6 +13,7 @@ import {
   Sparkles,
   Award,
   CalendarCheck,
+  ToggleLeft,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -35,5 +36,6 @@ export const navItems: NavItem[] = [
   { label: 'Loyalty & Rewards', path: '/loyalty', icon: Award },
   { label: 'Event Bookings', path: '/event-bookings', icon: CalendarCheck },
   { label: 'Notifications', path: '/notifications', icon: Megaphone },
+  { label: 'Feature Flags', path: '/feature-flags', icon: ToggleLeft },
   { label: 'Admin Users', path: '/admins', icon: ShieldCheck, superAdminOnly: true },
 ]

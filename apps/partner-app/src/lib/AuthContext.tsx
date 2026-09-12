@@ -5,6 +5,8 @@ export interface AuthContextValue {
   token: string;
   restaurant: AuthenticatedRestaurant;
   staff?: StaffSession;
+  /** Which flaggable sidebar sections this restaurant can currently see — see lib/nav.ts's FLAGGABLE_KEYS. */
+  enabledKeys: string[];
   setRestaurant: (restaurant: AuthenticatedRestaurant) => void;
   setToken: (token: string) => void;
   signOut: () => void;

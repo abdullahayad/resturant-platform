@@ -24,6 +24,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { FeaturedModule } from './featured/featured.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
     PromotionsModule,
     FeaturedModule,
     LoyaltyModule,
+    FeatureFlagsModule,
   ],
   controllers: [AppController, LegalController],
   providers: [

@@ -16,12 +16,12 @@ interface NavRailProps {
 
 /** Medium-width tier (portrait tablets): icon-only column, same nav data as Sidebar/BottomTabBar. */
 export function NavRail({ active, badges, onSelect }: NavRailProps) {
-  const { staff } = useAuth();
+  const { staff, enabledKeys } = useAuth();
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
   const { t } = useTranslation('nav');
   const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
-  const visibleItems = getVisibleNavItems(staff?.role);
+  const visibleItems = getVisibleNavItems(staff?.role, enabledKeys);
 
   return (
     <View style={styles.rail}>

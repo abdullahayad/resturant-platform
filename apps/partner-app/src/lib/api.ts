@@ -576,6 +576,7 @@ export const api = {
     send<{ id: string }>('DELETE', `/restaurants/me/events/${id}`, token),
 
   myFeatured: (token: string) => get<FeaturedPlacementItem[]>('/restaurants/me/featured', token),
+  myFeatureFlags: (token: string) => get<string[]>('/restaurants/me/feature-flags', token),
   requestFeatured: (token: string, payload: RequestFeaturedPayload) =>
     send<FeaturedPlacementItem>('POST', '/restaurants/me/featured', token, payload),
   cancelFeaturedRequest: (token: string, id: string) =>

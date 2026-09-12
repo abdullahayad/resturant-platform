@@ -55,14 +55,14 @@ interface AppShellProps {
 }
 
 export function AppShell({ restaurant, onSignOut }: AppShellProps) {
-  const { staff } = useAuth();
+  const { staff, enabledKeys } = useAuth();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const tier = useBreakpoint();
   const [active, setActive] = useState<ScreenKey>('dashboard');
   const ActiveScreen = screens[active];
 
-  const visibleItems = useMemo(() => getVisibleNavItems(staff?.role), [staff?.role]);
+  const visibleItems = useMemo(() => getVisibleNavItems(staff?.role, enabledKeys), [staff?.role, enabledKeys]);
   const badges = useNavBadges(active);
   usePushRegistration();
   useNotificationNavigation(setActive);

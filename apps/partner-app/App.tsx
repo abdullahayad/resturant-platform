@@ -7,7 +7,8 @@ import type { ThemeColors } from './src/theme/colors';
 import './src/i18n';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { getStoredSession, setStoredSession, type StoredSession } from './src/lib/session/storage';
-import { setUnauthorizedHandler } from './src/lib/api';
+import { api, setUnauthorizedHandler } from './src/lib/api';
+import { FLAGGABLE_KEYS } from './src/lib/nav';
 import { AuthLandingScreen } from './src/screens/auth/AuthLandingScreen';
 import { RegisterRestaurantScreen } from './src/screens/auth/RegisterRestaurantScreen';
 import { SignInScreen } from './src/screens/auth/SignInScreen';
@@ -53,6 +54,7 @@ function AppContent() {
   const [bootstrapped, setBootstrapped] = useState(false);
   const [introVisible, setIntroVisible] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [enabledKeys, setEnabledKeys] = useState<string[] | null>(null);
   const backgroundedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -61,6 +63,26 @@ function AppContent() {
       setBootstrapped(true);
     });
   }, []);
+
+  // Which sidebar sections this restaurant can see — fetched once per
+  // sign-in so AppShell never flashes a section and then removes it a
+  // moment later. Reset on sign-out so the next sign-in fetches fresh.
+  useEffect(() => {
+    if (!session || session.restaurant.status !== 'APPROVED') {
+      setEnabledKeys(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .myFeatureFlags(session.token)
+      .then((keys) => { if (!cancelled) setEnabledKeys(keys); })
+      // Fail open, not closed — a network hiccup here should never lock a
+      // restaurant out of sections they'd normally see.
+      .catch(() => { if (!cancelled) setEnabledKeys([...FLAGGABLE_KEYS]); });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token, session?.restaurant.status]);
 
   // A stale login token makes every authenticated request fail with 401 — the
   // api layer reports that here instead of each screen showing a misleading
@@ -109,18 +131,25 @@ function AppContent() {
         </View>
       ) : session ? (
         session.restaurant.status === 'APPROVED' ? (
-          <AuthContext.Provider
-            value={{
-              token: session.token,
-              restaurant: session.restaurant,
-              staff: session.staff,
-              setRestaurant: (restaurant) => setSession({ ...session, restaurant }),
-              setToken: (token) => setSession({ ...session, token }),
-              signOut,
-            }}
-          >
-            <AppShell restaurant={session.restaurant} onSignOut={signOut} />
-          </AuthContext.Provider>
+          enabledKeys === null ? (
+            <View style={[styles.root, styles.centered]}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <AuthContext.Provider
+              value={{
+                token: session.token,
+                restaurant: session.restaurant,
+                staff: session.staff,
+                enabledKeys,
+                setRestaurant: (restaurant) => setSession({ ...session, restaurant }),
+                setToken: (token) => setSession({ ...session, token }),
+                signOut,
+              }}
+            >
+              <AppShell restaurant={session.restaurant} onSignOut={signOut} />
+            </AuthContext.Provider>
+          )
         ) : (
           <AccountStatusScreen restaurant={session.restaurant} onSignOut={signOut} />
         )

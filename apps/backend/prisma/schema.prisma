@@ -197,6 +197,7 @@ model Province {
 
   districts   District[]
   restaurants Restaurant[]
+  featureFlagOverrides FeatureFlagOverride[]
 
   @@map("provinces")
 }
@@ -333,6 +334,7 @@ model Restaurant {
   promotions        Promotion[]
   featuredPlacements FeaturedPlacement[]
   pushTokens        RestaurantPushToken[]
+  featureFlagOverrides FeatureFlagOverride[]
 
   @@index([status])
   @@index([publishStatus])
@@ -828,4 +830,49 @@ model RestaurantPushToken {
 
   @@index([restaurantId])
   @@map("restaurant_push_tokens")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Feature flags — staged per-restaurant / per-region section rollout
+// ────────────────────────────────────────────────────────────────────────────
+
+// One row per flaggable partner-app sidebar section. Absence of a row for a
+// given key means "always enabled" — core sections (dashboard, profile,
+// settings) are never given a row here on purpose, so admin can never
+// accidentally lock a restaurant out of managing their own account.
+model FeatureFlag {
+  id             String   @id @default(uuid())
+  key            String   @unique // matches the partner-app's ScreenKey exactly, e.g. "chefTable"
+  labelEn        String
+  defaultEnabled Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  overrides FeatureFlagOverride[]
+
+  @@map("feature_flags")
+}
+
+// Exactly one of restaurantId / provinceId is set per row (enforced in the
+// service layer, not a DB constraint). Resolution order when checking whether
+// a restaurant sees a section: restaurant-specific override wins, then
+// province override, then the flag's own defaultEnabled.
+model FeatureFlagOverride {
+  id            String   @id @default(uuid())
+  featureFlagId String
+  restaurantId  String?
+  provinceId    String?
+  enabled       Boolean
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  featureFlag FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+  restaurant  Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  province    Province?   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+
+  @@unique([featureFlagId, restaurantId])
+  @@unique([featureFlagId, provinceId])
+  @@index([restaurantId])
+  @@index([provinceId])
+  @@map("feature_flag_overrides")
 }

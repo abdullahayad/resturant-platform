@@ -57,7 +57,29 @@ export const navItems: NavItem[] = [
   { key: 'settings', labelEn: 'Settings & Staff', icon: Settings },
 ];
 
-/** Shared across Sidebar/NavRail/BottomTabBar so the role filter lives in one place. */
-export function getVisibleNavItems(role?: StaffRole): NavItem[] {
-  return navItems.filter((item) => !(item.managerOrOwnerOnly && role === 'MENU_EDITOR'));
+// Sections a restaurant's visibility can be staged-rolled-out for (matches
+// the backend's seeded FeatureFlag.key rows exactly). dashboard/profile/settings
+// are deliberately excluded — always visible, so admin can never accidentally
+// lock a restaurant out of managing their own account.
+export const FLAGGABLE_KEYS: ScreenKey[] = [
+  'menu',
+  'promotions',
+  'advertising',
+  'gallery',
+  'chefManagement',
+  'chefTable',
+  'reviews',
+  'reservations',
+  'analytics',
+  'announcements',
+];
+const flaggableKeySet = new Set<ScreenKey>(FLAGGABLE_KEYS);
+
+/** Shared across Sidebar/NavRail/BottomTabBar so the role + rollout filters live in one place. */
+export function getVisibleNavItems(role?: StaffRole, enabledKeys?: string[]): NavItem[] {
+  return navItems.filter((item) => {
+    if (item.managerOrOwnerOnly && role === 'MENU_EDITOR') return false;
+    if (enabledKeys && flaggableKeySet.has(item.key) && !enabledKeys.includes(item.key)) return false;
+    return true;
+  });
 }
