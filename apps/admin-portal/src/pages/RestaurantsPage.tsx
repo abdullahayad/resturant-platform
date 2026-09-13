@@ -268,6 +268,7 @@ export function RestaurantsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground">
+              <th className="px-4 py-2 font-medium">Sr. No.</th>
               <th className="px-4 py-2 font-medium">Code</th>
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">City</th>
@@ -279,12 +280,13 @@ export function RestaurantsPage() {
             </tr>
           </thead>
           <tbody>
-            {restaurants.map((r) => (
+            {restaurants.map((r, i) => (
               <Fragment key={r.id}>
                 <tr
                   onClick={() => toggleExpand(r.id)}
                   className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/50"
                 >
+                  <td className="px-4 py-2 text-muted-foreground">{i + 1}</td>
                   <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{r.codeNumber}</td>
                   <td className="px-4 py-2 font-semibold">
                     {r.nameEn} <span className="font-normal text-muted-foreground">· {r.nameAr}</span>
@@ -328,7 +330,7 @@ export function RestaurantsPage() {
                 </tr>
                 {expandedId === r.id && (
                   <tr className="border-b border-border last:border-0 bg-secondary/30">
-                    <td colSpan={8} className="px-4 py-4 text-sm">
+                    <td colSpan={9} className="px-4 py-4 text-sm">
                       {!detail ? (
                         <p className="text-muted-foreground">Loading…</p>
                       ) : (
@@ -377,7 +379,7 @@ export function RestaurantsPage() {
             ))}
             {!loading && restaurants.length === 0 && !error && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No restaurants match these filters.
                 </td>
               </tr>
