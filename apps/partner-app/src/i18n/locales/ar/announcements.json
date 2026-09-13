@@ -9,5 +9,8 @@
   "noAnnouncementsYet": "لا توجد إشعارات بعد.",
   "columnSubject": "الموضوع",
   "columnDate": "التاريخ",
-  "columnStatus": "الحالة"
+  "columnStatus": "الحالة",
+  "replyPlaceholder": "اكتب ردًا…",
+  "sendReply": "إرسال الرد",
+  "yourReply": "ردك"
 }

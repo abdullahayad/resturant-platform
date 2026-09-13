@@ -257,13 +257,21 @@ export function NotificationsPage() {
                 {!recipients ? (
                   <p className="text-muted-foreground">Loading…</p>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {recipients.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between">
-                        <span>{r.restaurant.nameEn} · {r.restaurant.codeNumber}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {r.acknowledgedAt ? '✓ Completed' : r.readAt ? 'Read' : 'Unread'}
-                        </span>
+                      <div key={r.id} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span>{r.restaurant.nameEn} · {r.restaurant.codeNumber}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {r.acknowledgedAt ? '✓ Completed' : r.readAt ? 'Read' : 'Unread'}
+                          </span>
+                        </div>
+                        {r.replyText && (
+                          <div className="rounded-lg bg-secondary px-3 py-2 text-xs">
+                            <span className="text-muted-foreground">Reply: </span>
+                            {r.replyText}
+                          </div>
+                        )}
                       </div>
                     ))}
                     {recipients.length === 0 && <p className="text-muted-foreground">No recipients.</p>}

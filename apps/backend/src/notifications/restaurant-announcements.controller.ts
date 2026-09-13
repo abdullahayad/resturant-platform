@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { ReplyToAnnouncementDto } from './dto/notification.dto';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
@@ -21,5 +22,10 @@ export class RestaurantAnnouncementsController {
   @Patch(':id/acknowledge')
   markAcknowledged(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
     return this.notifications.markAcknowledged(req.user.sub, id);
+  }
+
+  @Patch(':id/reply')
+  reply(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: ReplyToAnnouncementDto) {
+    return this.notifications.reply(req.user.sub, id, dto.text);
   }
 }

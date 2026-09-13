@@ -15,6 +15,7 @@
   "partySize": "مجموعة من {{size}}",
   "confirm": "تأكيد",
   "cancel": "إلغاء",
+  "markCompleted": "وضع علامة كمكتمل",
   "noReservationsYet": "لا توجد طلبات حجز بعد.",
   "tierBadge": "⭐ ضيف {{labelEn}} · {{labelAr}}",
   "createEvent": "إنشاء فعالية",
@@ -56,5 +57,11 @@
     "total": "الإجمالي",
     "awaitingReply": "بانتظار الرد",
     "all": "الكل"
+  },
+  "view": {
+    "list": "قائمة",
+    "calendar": "تقويم",
+    "selectDayHint": "اضغط على يوم فيه حجوزات لعرض الضيوف القادمين.",
+    "noBookingsThisDay": "لا توجد حجوزات في هذا اليوم."
   }
 }

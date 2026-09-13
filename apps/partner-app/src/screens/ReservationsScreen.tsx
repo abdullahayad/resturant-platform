@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Pressable, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Users, Phone, CalendarDays, Check, X } from 'lucide-react-native';
+import { Users, Phone, CalendarDays, Check, X, ChevronLeft, ChevronRight, CalendarCheck2 } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
@@ -35,6 +35,35 @@ function formatReservationDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+type ViewMode = 'list' | 'calendar';
+
+function dateKey(value: Date | string): string {
+  const d = typeof value === 'string' ? new Date(value) : value;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+// Locale-aware short weekday labels (Sun..Sat) for the calendar header —
+// derived from a known Sunday rather than hardcoded English abbreviations,
+// so this reads correctly under Arabic too. The app fully reloads on
+// language switch (see LanguageContext), so a module-level constant is fine.
+const WEEKDAY_LABELS = (() => {
+  const knownSunday = new Date(2026, 0, 4);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(knownSunday);
+    d.setDate(knownSunday.getDate() + i);
+    return d.toLocaleDateString(undefined, { weekday: 'short' });
+  });
+})();
+
+function callGuest(phone: string) {
+  const digits = phone.replace(/[^\d+]/g, '');
+  if (digits) Linking.openURL(`tel:${digits}`).catch(() => {});
+}
+
 export function ReservationsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
@@ -44,6 +73,9 @@ export function ReservationsScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<ReservationStatus | 'ALL'>('ALL');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [calendarCursor, setCalendarCursor] = useState<Date>(() => startOfMonth(new Date()));
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const loadAll = useCallback(() => {
     api
@@ -64,8 +96,46 @@ export function ReservationsScreen() {
     }
   };
 
-  const visible = filter === 'ALL' ? reservations : reservations.filter((r) => r.status === filter);
   const pendingCount = reservations.filter((r) => r.status === 'PENDING').length;
+
+  const countsByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    reservations.forEach((r) => {
+      const key = dateKey(r.reservationDate);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    });
+    return map;
+  }, [reservations]);
+
+  const calendarCells = useMemo(() => {
+    const startOffset = calendarCursor.getDay();
+    const daysInMonth = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 0).getDate();
+    const cells: { date: Date | null; key: string | null }[] = [];
+    for (let i = 0; i < startOffset; i++) cells.push({ date: null, key: null });
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), day);
+      cells.push({ date, key: dateKey(date) });
+    }
+    return cells;
+  }, [calendarCursor]);
+
+  const goPrevMonth = () => {
+    setCalendarCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setSelectedDay(null);
+  };
+  const goNextMonth = () => {
+    setCalendarCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setSelectedDay(null);
+  };
+
+  const visible =
+    viewMode === 'list'
+      ? filter === 'ALL'
+        ? reservations
+        : reservations.filter((r) => r.status === filter)
+      : selectedDay
+        ? reservations.filter((r) => dateKey(r.reservationDate) === selectedDay)
+        : [];
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -90,12 +160,83 @@ export function ReservationsScreen() {
 
       {reservations.length > 0 && (
         <ChipSelect
+          options={[
+            { id: 'list', label: t('view.list') },
+            { id: 'calendar', label: t('view.calendar') },
+          ]}
+          selectedIds={[viewMode]}
+          onToggle={(id) => setViewMode(id as ViewMode)}
+        />
+      )}
+
+      {reservations.length > 0 && viewMode === 'list' && (
+        <ChipSelect
           options={FILTERS.map((key) => ({ id: key, label: key === 'ALL' ? t('stats.all') : t(`status.${key}`) }))}
           selectedIds={[filter]}
           onToggle={(id) => setFilter(id as ReservationStatus | 'ALL')}
         />
       )}
 
+      {reservations.length > 0 && viewMode === 'calendar' && (
+        <View style={styles.calendar}>
+          <View style={styles.calendarHeader}>
+            <Pressable onPress={goPrevMonth} style={styles.calendarNavButton}>
+              <ChevronLeft size={18} color={colors.foreground} />
+            </Pressable>
+            <Text style={styles.calendarMonthLabel}>
+              {calendarCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+            </Text>
+            <Pressable onPress={goNextMonth} style={styles.calendarNavButton}>
+              <ChevronRight size={18} color={colors.foreground} />
+            </Pressable>
+          </View>
+          <View style={styles.calendarWeekdaysRow}>
+            {WEEKDAY_LABELS.map((w) => (
+              <Text key={w} style={styles.calendarWeekdayText}>{w}</Text>
+            ))}
+          </View>
+          <View style={styles.calendarGrid}>
+            {calendarCells.map((cell, i) => {
+              if (!cell.date || !cell.key) return <View key={`blank-${i}`} style={styles.calendarCell} />;
+              const count = countsByDay.get(cell.key) ?? 0;
+              const isSelected = selectedDay === cell.key;
+              return (
+                <Pressable
+                  key={cell.key}
+                  disabled={count === 0}
+                  onPress={() => setSelectedDay(isSelected ? null : cell.key)}
+                  style={[
+                    styles.calendarCell,
+                    styles.calendarDayCell,
+                    count > 0 && styles.calendarDayCellHasBookings,
+                    isSelected && styles.calendarDayCellSelected,
+                  ]}
+                >
+                  <Text style={[styles.calendarDayNumber, isSelected && styles.calendarDayNumberSelected]}>
+                    {cell.date.getDate()}
+                  </Text>
+                  {count > 0 && (
+                    <View style={[styles.calendarDayBadge, isSelected && styles.calendarDayBadgeSelected]}>
+                      <Text style={[styles.calendarDayBadgeText, isSelected && styles.calendarDayBadgeTextSelected]}>
+                        {count}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+          {selectedDay && (
+            <Text style={styles.calendarSelectedLabel}>
+              {new Date(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {viewMode === 'calendar' && !selectedDay ? (
+        <Text style={styles.calendarHint}>{t('view.selectDayHint')}</Text>
+      ) : (
       <View style={styles.list}>
         {visible.map((r) => (
           <View key={r.id} style={[styles.card, styles[STATUS_ACCENT[r.status]]]}>
@@ -118,10 +259,10 @@ export function ReservationsScreen() {
               <CalendarDays size={14} color={colors.mutedForeground} />
               <Text style={styles.metaText}>{r.event.titleEn} — {formatReservationDate(r.reservationDate)}</Text>
             </View>
-            <View style={styles.metaRow}>
+            <Pressable style={styles.metaRow} onPress={() => callGuest(r.guestPhone)}>
               <Phone size={14} color={colors.mutedForeground} />
-              <Text style={styles.metaText}>{r.guestPhone}</Text>
-            </View>
+              <Text style={[styles.metaText, styles.phoneText]}>{r.guestPhone}</Text>
+            </Pressable>
 
             {r.guestTier && (
               <View style={styles.badgeTier}>
@@ -144,6 +285,16 @@ export function ReservationsScreen() {
                     <Text style={styles.confirmButtonText}>{t('confirm')}</Text>
                   </Pressable>
                 )}
+                {r.status === 'CONFIRMED' && (
+                  <Pressable
+                    disabled={busyId === r.id}
+                    onPress={() => setReservationStatus(r.id, 'COMPLETED')}
+                    style={[styles.actionButton, styles.completeButton]}
+                  >
+                    <CalendarCheck2 size={14} color={colors.primary} />
+                    <Text style={styles.completeButtonText}>{t('markCompleted')}</Text>
+                  </Pressable>
+                )}
                 <Pressable
                   disabled={busyId === r.id}
                   onPress={() => setReservationStatus(r.id, 'CANCELLED')}
@@ -156,8 +307,14 @@ export function ReservationsScreen() {
             )}
           </View>
         ))}
-        {visible.length === 0 && !loadError && <EmptyState icon={Users} message={t('noReservationsYet')} />}
+        {visible.length === 0 && !loadError && (
+          <EmptyState
+            icon={Users}
+            message={viewMode === 'calendar' ? t('view.noBookingsThisDay') : t('noReservationsYet')}
+          />
+        )}
       </View>
+      )}
     </ScrollView>
   );
 }
@@ -227,6 +384,51 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   badgeCancelled: { backgroundColor: colors.destructiveTint15 },
   badgeCancelledText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
 
+  phoneText: { textDecorationLine: 'underline' },
+
+  calendar: {
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 12,
+    gap: 10,
+    ...cardShadow,
+  },
+  calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  calendarNavButton: { padding: 6, borderRadius: 8 },
+  calendarMonthLabel: { fontSize: 14, fontWeight: '700', color: colors.foreground },
+  calendarWeekdaysRow: { flexDirection: 'row' },
+  calendarWeekdayText: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.mutedForeground,
+  },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calendarCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: 2 },
+  calendarDayCell: { borderRadius: 8 },
+  calendarDayCellHasBookings: { backgroundColor: colors.secondary },
+  calendarDayCellSelected: { backgroundColor: colors.primary },
+  calendarDayNumber: { fontSize: 13, color: colors.foreground },
+  calendarDayNumberSelected: { color: colors.primaryForeground, fontWeight: '700' },
+  calendarDayBadge: {
+    marginTop: 2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calendarDayBadgeSelected: { backgroundColor: colors.primaryForeground },
+  calendarDayBadgeText: { color: colors.primaryForeground, fontSize: 9, fontWeight: '700' },
+  calendarDayBadgeTextSelected: { color: colors.primary },
+  calendarSelectedLabel: { fontSize: 13, fontWeight: '600', color: colors.primary, textAlign: 'center' },
+  calendarHint: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center', paddingVertical: 20 },
+
   actionsRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   actionButton: {
     flexDirection: 'row',
@@ -241,4 +443,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   confirmButtonText: { color: colors.success, fontSize: 13, fontWeight: '600' },
   cancelButton: { borderColor: colors.destructiveTint15 },
   cancelButtonText: { color: colors.destructive, fontSize: 13, fontWeight: '600' },
+  completeButton: { borderColor: colors.primaryTint30, backgroundColor: colors.primaryTint15 },
+  completeButtonText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
 });

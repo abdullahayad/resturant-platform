@@ -753,6 +753,13 @@ model PartnerStaffUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Same forgot/reset-password fields as Restaurant.ownerEmail's flow — lets a
+  // staff member who forgot their invite-time temp password recover on their
+  // own via the same "Forgot password?" link, instead of admin having to
+  // delete and re-invite them.
+  passwordResetCodeHash  String?
+  passwordResetExpiresAt DateTime?
+
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@map("partner_staff_users")
@@ -806,6 +813,10 @@ model NotificationRecipient {
   restaurantId   String
   readAt         DateTime?
   acknowledgedAt DateTime?
+  // One reply per recipient, not a thread — "who sent it" is already this row's
+  // own restaurant relation, so no separate author field is needed.
+  replyText      String?
+  repliedAt      DateTime?
 
   notification AdminNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
   restaurant   Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)

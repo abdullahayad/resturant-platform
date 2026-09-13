@@ -348,50 +348,100 @@ export class RestaurantsService {
   // Always returns the same generic response whether or not the email
   // matches an account — an email-enumeration endpoint would let anyone
   // probe which restaurant owner emails are registered.
+  private async generateResetCode() {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const passwordResetCodeHash = await bcrypt.hash(code, 10);
+    const passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    return { code, passwordResetCodeHash, passwordResetExpiresAt };
+  }
+
+  private sendResetCodeEmail(email: string, code: string) {
+    return this.email.send(
+      email,
+      'Reset your Restaurant Partner Portal password',
+      `<p>Your password reset code is:</p><h1 style="letter-spacing:4px">${code}</h1><p>This code expires in 15 minutes. If you didn't request this, you can safely ignore this email.</p>`,
+    );
+  }
+
+  // Owners and invited staff sign in through the same form (see
+  // AuthService.partnerLogin/staffLogin), so this checks both tables in the
+  // same order login already does — a staff member who forgot their
+  // invite-time temp password can now recover it themselves instead of
+  // needing admin to delete and re-invite them.
   async forgotPassword(dto: ForgotPasswordDto) {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { ownerEmail: dto.email },
       select: { id: true },
     });
     if (restaurant) {
-      const code = String(Math.floor(100000 + Math.random() * 900000));
-      const passwordResetCodeHash = await bcrypt.hash(code, 10);
-      const passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      const { code, passwordResetCodeHash, passwordResetExpiresAt } = await this.generateResetCode();
       await this.prisma.db.restaurant.update({
         where: { id: restaurant.id },
         data: { passwordResetCodeHash, passwordResetExpiresAt },
       });
-      await this.email.send(
-        dto.email,
-        'Reset your Restaurant Partner Portal password',
-        `<p>Your password reset code is:</p><h1 style="letter-spacing:4px">${code}</h1><p>This code expires in 15 minutes. If you didn't request this, you can safely ignore this email.</p>`,
-      );
+      await this.sendResetCodeEmail(dto.email, code);
+      return { success: true };
     }
-    return { success: true };
+
+    const staff = await this.prisma.db.partnerStaffUser.findUnique({
+      where: { email: dto.email },
+      select: { id: true },
+    });
+    if (staff) {
+      const { code, passwordResetCodeHash, passwordResetExpiresAt } = await this.generateResetCode();
+      await this.prisma.db.partnerStaffUser.update({
+        where: { id: staff.id },
+        data: { passwordResetCodeHash, passwordResetExpiresAt },
+      });
+      await this.sendResetCodeEmail(dto.email, code);
+    }
+    return { success: true }; // same response either way — anti-enumeration
   }
 
   async resetPassword(dto: ResetPasswordDto) {
     const restaurant = await this.prisma.db.restaurant.findUnique({ where: { ownerEmail: dto.email } });
-    const codeValid =
+    const restaurantCodeValid =
       restaurant?.passwordResetCodeHash &&
       restaurant.passwordResetExpiresAt &&
       restaurant.passwordResetExpiresAt > new Date() &&
       (await bcrypt.compare(dto.code, restaurant.passwordResetCodeHash));
-    if (!restaurant || !codeValid) {
-      throw new BadRequestException('Invalid or expired code');
+
+    if (restaurant && restaurantCodeValid) {
+      const ownerPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+      await this.prisma.db.restaurant.update({
+        where: { id: restaurant.id },
+        data: {
+          ownerPasswordHash,
+          tokenVersion: { increment: 1 },
+          passwordResetCodeHash: null,
+          passwordResetExpiresAt: null,
+        },
+      });
+      return { success: true };
     }
 
-    const ownerPasswordHash = await bcrypt.hash(dto.newPassword, 10);
-    await this.prisma.db.restaurant.update({
-      where: { id: restaurant.id },
-      data: {
-        ownerPasswordHash,
-        tokenVersion: { increment: 1 },
-        passwordResetCodeHash: null,
-        passwordResetExpiresAt: null,
-      },
-    });
-    return { success: true };
+    const staff = await this.prisma.db.partnerStaffUser.findUnique({ where: { email: dto.email } });
+    const staffCodeValid =
+      staff?.passwordResetCodeHash &&
+      staff.passwordResetExpiresAt &&
+      staff.passwordResetExpiresAt > new Date() &&
+      (await bcrypt.compare(dto.code, staff.passwordResetCodeHash));
+
+    if (staff && staffCodeValid) {
+      const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+      await this.prisma.db.partnerStaffUser.update({
+        where: { id: staff.id },
+        data: {
+          passwordHash,
+          tokenVersion: { increment: 1 },
+          passwordResetCodeHash: null,
+          passwordResetExpiresAt: null,
+        },
+      });
+      return { success: true };
+    }
+
+    throw new BadRequestException('Invalid or expired code');
   }
 
   async updateNotificationPrefs(id: string, dto: UpdateNotificationPrefsDto) {

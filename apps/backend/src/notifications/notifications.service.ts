@@ -136,6 +136,18 @@ export class NotificationsService {
     });
   }
 
+  // One reply per recipient, not a thread — rejects a second attempt rather
+  // than overwriting the first.
+  async reply(restaurantId: string, notificationId: string, text: string) {
+    const recipient = await this.ensureRecipient(restaurantId, notificationId);
+    if (recipient.replyText) throw new BadRequestException('You have already replied to this announcement');
+    return this.prisma.db.notificationRecipient.update({
+      where: { id: recipient.id },
+      data: { replyText: text, repliedAt: new Date() },
+      include: { notification: true },
+    });
+  }
+
   private async ensureRecipient(restaurantId: string, notificationId: string) {
     const recipient = await this.prisma.db.notificationRecipient.findUnique({
       where: { notificationId_restaurantId: { notificationId, restaurantId } },

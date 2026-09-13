@@ -1,0 +1,23 @@
+{
+  "title": "Deep Analytics",
+  "subtitle": "How your restaurant is really doing, based on your own bookings and reviews.",
+  "repeatGuestRate": "Repeat guest rate",
+  "repeatGuestRateDetail": "{{repeatGuests}} of {{uniqueGuests}} guests have booked more than once",
+  "ratingTrend": "Rating (last 30 days)",
+  "ratingTrendUp": "up {{amount}} vs. the 30 days before",
+  "ratingTrendDown": "down {{amount}} vs. the 30 days before",
+  "ratingTrendFlat": "about the same as the 30 days before",
+  "notEnoughData": "Not enough data yet",
+  "busiestDay": "Busiest day of the week",
+  "busiestDaySubtitle": "Based on confirmed and completed bookings",
+  "noBookingsYet": "No bookings yet — this fills in once you start getting reservations.",
+  "weekdays": {
+    "0": "Sun",
+    "1": "Mon",
+    "2": "Tue",
+    "3": "Wed",
+    "4": "Thu",
+    "5": "Fri",
+    "6": "Sat"
+  }
+}

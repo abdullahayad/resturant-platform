@@ -36,3 +36,9 @@ export class CreateNotificationDto {
   @IsUUID()
   businessTypeId?: string;
 }
+
+export class ReplyToAnnouncementDto {
+  @IsString()
+  @MaxLength(2000)
+  text: string;
+}

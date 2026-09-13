@@ -9,5 +9,8 @@
   "noAnnouncementsYet": "No announcements yet.",
   "columnSubject": "Subject",
   "columnDate": "Date",
-  "columnStatus": "Status"
+  "columnStatus": "Status",
+  "replyPlaceholder": "Type a reply…",
+  "sendReply": "Send Reply",
+  "yourReply": "Your reply"
 }

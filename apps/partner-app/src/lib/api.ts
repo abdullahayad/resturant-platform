@@ -337,6 +337,8 @@ export interface Announcement {
   id: string;
   readAt: string | null;
   acknowledgedAt: string | null;
+  replyText: string | null;
+  repliedAt: string | null;
   notification: {
     id: string;
     titleEn: string;
@@ -345,6 +347,21 @@ export interface Announcement {
     bodyAr: string;
     actionRequired: boolean;
     createdAt: string;
+  };
+}
+
+export interface RestaurantAnalytics {
+  busiestDay: number[]; // 7 counts, Sun..Sat
+  ratingTrend: {
+    weekly: { weekStart: string; average: number | null; count: number }[];
+    last30Average: number | null;
+    trend: number | null;
+  };
+  repeatGuestRate: {
+    totalBookings: number;
+    uniqueGuests: number;
+    repeatGuests: number;
+    pctOfBookingsFromRepeatGuests: number;
   };
 }
 
@@ -577,6 +594,8 @@ export const api = {
 
   myFeatured: (token: string) => get<FeaturedPlacementItem[]>('/restaurants/me/featured', token),
   myFeatureFlags: (token: string) => get<string[]>('/restaurants/me/feature-flags', token),
+
+  myAnalytics: (token: string) => get<RestaurantAnalytics>('/restaurants/me/analytics', token),
   requestFeatured: (token: string, payload: RequestFeaturedPayload) =>
     send<FeaturedPlacementItem>('POST', '/restaurants/me/featured', token, payload),
   cancelFeaturedRequest: (token: string, id: string) =>
@@ -587,6 +606,8 @@ export const api = {
     send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/read`, token),
   markAnnouncementAcknowledged: (token: string, id: string) =>
     send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/acknowledge`, token),
+  replyToAnnouncement: (token: string, id: string, text: string) =>
+    send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/reply`, token, { text }),
 
   myPromotions: (token: string) => get<PromotionItem[]>('/restaurants/me/promotions', token),
   createPromotion: (token: string, payload: PromotionPayload) =>

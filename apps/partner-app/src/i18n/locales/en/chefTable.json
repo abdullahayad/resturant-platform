@@ -15,6 +15,7 @@
   "partySize": "Party of {{size}}",
   "confirm": "Confirm",
   "cancel": "Cancel",
+  "markCompleted": "Mark Completed",
   "noReservationsYet": "No reservation requests yet.",
   "tierBadge": "⭐ {{labelEn}} · {{labelAr}} guest",
   "createEvent": "Create Event",
@@ -56,5 +57,11 @@
     "total": "Total",
     "awaitingReply": "Awaiting reply",
     "all": "All"
+  },
+  "view": {
+    "list": "List",
+    "calendar": "Calendar",
+    "selectDayHint": "Tap a day with bookings to see who's coming in.",
+    "noBookingsThisDay": "No bookings on this day."
   }
 }

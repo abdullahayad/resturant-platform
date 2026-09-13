@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, ChevronDown, ChevronRight, Clock, Inbox, XCircle } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
@@ -51,6 +51,7 @@ function AnnouncementsSection() {
   const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const markedRead = useRef(false);
 
   const load = useCallback(() => {
@@ -91,6 +92,25 @@ function AnnouncementsSection() {
       setAnnouncements((prev) =>
         prev ? prev.map((a) => (a.notification.id === notificationId ? updated : a)) : prev,
       );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sendReply = async (notificationId: string) => {
+    const text = (replyDrafts[notificationId] ?? '').trim();
+    if (!text) return;
+    setBusyId(notificationId);
+    try {
+      const updated = await api.replyToAnnouncement(token, notificationId, text);
+      setAnnouncements((prev) =>
+        prev ? prev.map((a) => (a.notification.id === notificationId ? updated : a)) : prev,
+      );
+      setReplyDrafts((prev) => {
+        const next = { ...prev };
+        delete next[notificationId];
+        return next;
+      });
     } finally {
       setBusyId(null);
     }
@@ -155,6 +175,37 @@ function AnnouncementsSection() {
                           <Text style={styles.primaryButtonText}>{t('markAsDone')}</Text>
                         )}
                       </Pressable>
+                    )}
+
+                    {a.replyText ? (
+                      <View style={styles.reasonBox}>
+                        <Text style={styles.reasonLabel}>{t('yourReply')}</Text>
+                        <Text style={styles.reasonText}>{a.replyText}</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.replyRow}>
+                        <TextInput
+                          value={replyDrafts[a.notification.id] ?? ''}
+                          onChangeText={(text) =>
+                            setReplyDrafts((prev) => ({ ...prev, [a.notification.id]: text }))
+                          }
+                          placeholder={t('replyPlaceholder')}
+                          placeholderTextColor={colors.mutedForeground}
+                          multiline
+                          style={styles.replyInput}
+                        />
+                        <Pressable
+                          style={[styles.button, styles.secondaryButton, styles.inlineButton]}
+                          onPress={() => sendReply(a.notification.id)}
+                          disabled={busyId === a.notification.id || !(replyDrafts[a.notification.id] ?? '').trim()}
+                        >
+                          {busyId === a.notification.id ? (
+                            <ActivityIndicator color={colors.foreground} />
+                          ) : (
+                            <Text style={styles.secondaryButtonText}>{t('sendReply')}</Text>
+                          )}
+                        </Pressable>
+                      </View>
                     )}
                   </View>
                 )}
@@ -425,4 +476,17 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   reasonLabel: { fontSize: 12, color: colors.mutedForeground },
   reasonText: { fontSize: 13, color: colors.foreground, marginTop: 4 },
+
+  replyRow: { gap: 8, marginStart: 20, marginTop: 4 },
+  replyInput: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    color: colors.foreground,
+    fontSize: 13,
+    padding: 10,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
 });

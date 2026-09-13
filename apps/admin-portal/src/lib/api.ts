@@ -285,6 +285,8 @@ export interface NotificationRecipientDetail {
   id: string
   readAt: string | null
   acknowledgedAt: string | null
+  replyText: string | null
+  repliedAt: string | null
   restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
 }
 

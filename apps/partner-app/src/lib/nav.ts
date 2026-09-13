@@ -52,7 +52,7 @@ export const navItems: NavItem[] = [
   { key: 'chefTable', labelEn: 'Chef Table & Events', icon: CalendarClock, managerOrOwnerOnly: true },
   { key: 'reviews', labelEn: 'Customer Reviews', icon: Star },
   { key: 'reservations', labelEn: 'Reservations', icon: CalendarCheck, managerOrOwnerOnly: true },
-  { key: 'analytics', labelEn: 'Deep Analytics', icon: BarChart3, comingSoon: true, managerOrOwnerOnly: true },
+  { key: 'analytics', labelEn: 'Deep Analytics', icon: BarChart3, managerOrOwnerOnly: true },
   { key: 'announcements', labelEn: 'Inbox', icon: Inbox },
   { key: 'settings', labelEn: 'Settings & Staff', icon: Settings },
 ];
