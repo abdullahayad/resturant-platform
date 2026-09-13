@@ -24,13 +24,41 @@ export function FeatureFlagsPage() {
   const [newDistrictId, setNewDistrictId] = useState('')
   const [newRestaurantId, setNewRestaurantId] = useState('')
 
-  const districts = useMemo(
+  const allDistricts = useMemo(
     () =>
       provinces.flatMap((p) =>
-        p.districts.map((d) => ({ id: d.id, label: `${d.nameEn} (${p.nameEn})` })),
+        p.districts.map((d) => ({ id: d.id, provinceId: p.id, label: `${d.nameEn} (${p.nameEn})` })),
       ),
     [provinces],
   )
+
+  // Picking a city above narrows both pickers below it to that city only —
+  // makes it easy to find the right district/restaurant in a long list
+  // instead of scrolling every district/restaurant on the platform.
+  const districts = useMemo(
+    () => (newProvinceId ? allDistricts.filter((d) => d.provinceId === newProvinceId) : allDistricts),
+    [allDistricts, newProvinceId],
+  )
+  // Picking a district narrows the restaurant list further, down to just
+  // that district — takes priority over the city filter since it's more
+  // specific (a district always belongs to exactly one city already).
+  const filteredRestaurants = useMemo(() => {
+    if (newDistrictId) return restaurants.filter((r) => r.district?.id === newDistrictId)
+    if (newProvinceId) return restaurants.filter((r) => r.province?.id === newProvinceId)
+    return restaurants
+  }, [restaurants, newProvinceId, newDistrictId])
+
+  const selectProvinceFilter = (id: string) => {
+    setNewProvinceId(id)
+    // Clear any selection that would now be hidden by the narrower list.
+    setNewDistrictId('')
+    setNewRestaurantId('')
+  }
+
+  const selectDistrictFilter = (id: string) => {
+    setNewDistrictId(id)
+    setNewRestaurantId('')
+  }
 
   const load = () => {
     setLoading(true)
@@ -190,7 +218,7 @@ export function FeatureFlagsPage() {
                     <div className="mt-2 flex gap-2">
                       <select
                         value={newProvinceId}
-                        onChange={(e) => setNewProvinceId(e.target.value)}
+                        onChange={(e) => selectProvinceFilter(e.target.value)}
                         className="min-w-[200px] rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
                       >
                         <option value="">Select a province…</option>
@@ -206,6 +234,12 @@ export function FeatureFlagsPage() {
                         Add
                       </button>
                     </div>
+                    {newProvinceId && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        District and restaurant lists below are narrowed to this city.{' '}
+                        <button onClick={() => selectProvinceFilter('')} className="underline">Clear</button>
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -231,7 +265,7 @@ export function FeatureFlagsPage() {
                     <div className="mt-2 flex gap-2">
                       <select
                         value={newDistrictId}
-                        onChange={(e) => setNewDistrictId(e.target.value)}
+                        onChange={(e) => selectDistrictFilter(e.target.value)}
                         className="min-w-[240px] rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
                       >
                         <option value="">Select a district…</option>
@@ -247,6 +281,12 @@ export function FeatureFlagsPage() {
                         Add
                       </button>
                     </div>
+                    {newDistrictId && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Restaurant list below is narrowed to this district.{' '}
+                        <button onClick={() => selectDistrictFilter('')} className="underline">Clear</button>
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -276,7 +316,7 @@ export function FeatureFlagsPage() {
                         className="min-w-[240px] rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
                       >
                         <option value="">Select a restaurant…</option>
-                        {restaurants.map((r) => (
+                        {filteredRestaurants.map((r) => (
                           <option key={r.id} value={r.id}>{r.nameEn} · {r.codeNumber}</option>
                         ))}
                       </select>
