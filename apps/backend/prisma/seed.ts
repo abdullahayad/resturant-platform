@@ -111,25 +111,45 @@ const eventTypes: [string, string, string][] = [
   ["Chef's Table", 'طاولة الشيف', '👨‍🍳'],
 ];
 
-const provinces: Record<string, string[][]> = {
-  'Baghdad|بغداد': [
-    ['Karkh', 'الكرخ'],
-    ['Rusafa', 'الرصافة'],
-    ['Kadhimiya', 'الكاظمية'],
-  ],
-  'Basra|البصرة': [
-    ['Basra Center', 'مركز البصرة'],
-    ['Zubair', 'الزبير'],
-  ],
-  'Erbil|أربيل': [
-    ['Erbil Center', 'مركز أربيل'],
-    ['Ankawa', 'عنكاوا'],
-  ],
-  'Najaf|النجف': [
-    ['Najaf Center', 'مركز النجف'],
-    ['Kufa', 'الكوفة'],
-  ],
-  'Sulaymaniyah|السليمانية': [['Sulaymaniyah Center', 'مركز السليمانية']],
+// Each province/district also carries a 2-letter code — the first/second
+// segment of every restaurant code in it (e.g. "BG" + "KR" -> BGKR001). Must
+// match what the restaurant_code_scheme migration assigns to these same
+// names, so a fresh seed and a migrated existing database land on the same
+// codes.
+const provinces: Record<string, { code: string; districts: [string, string, string][] }> = {
+  'Baghdad|بغداد': {
+    code: 'BG',
+    districts: [
+      ['Karkh', 'الكرخ', 'KR'],
+      ['Rusafa', 'الرصافة', 'RS'],
+      ['Kadhimiya', 'الكاظمية', 'KD'],
+    ],
+  },
+  'Basra|البصرة': {
+    code: 'BS',
+    districts: [
+      ['Basra Center', 'مركز البصرة', 'BC'],
+      ['Zubair', 'الزبير', 'ZB'],
+    ],
+  },
+  'Erbil|أربيل': {
+    code: 'EB',
+    districts: [
+      ['Erbil Center', 'مركز أربيل', 'EC'],
+      ['Ankawa', 'عنكاوا', 'AN'],
+    ],
+  },
+  'Najaf|النجف': {
+    code: 'NJ',
+    districts: [
+      ['Najaf Center', 'مركز النجف', 'NC'],
+      ['Kufa', 'الكوفة', 'KF'],
+    ],
+  },
+  'Sulaymaniyah|السليمانية': {
+    code: 'SU',
+    districts: [['Sulaymaniyah Center', 'مركز السليمانية', 'SC']],
+  },
 };
 
 async function seedList(
@@ -157,17 +177,19 @@ async function main() {
 
   if ((await db.province.count()) === 0) {
     let sortOrder = 0;
-    for (const [key, districts] of Object.entries(provinces)) {
+    for (const [key, { code, districts }] of Object.entries(provinces)) {
       const [nameEn, nameAr] = key.split('|');
       await db.province.create({
         data: {
           nameEn,
           nameAr,
+          code,
           sortOrder: sortOrder++,
           districts: {
-            create: districts.map(([dNameEn, dNameAr], index) => ({
+            create: districts.map(([dNameEn, dNameAr, dCode], index) => ({
               nameEn: dNameEn,
               nameAr: dNameAr,
+              code: dCode,
               sortOrder: index,
             })),
           },
@@ -195,7 +217,10 @@ async function main() {
 
     await db.restaurant.create({
       data: {
-        codeNumber: '#IRQ-00001',
+        // Matches the province/district picked just above (first province,
+        // first district - Baghdad/Karkh as currently seeded) so a fresh
+        // database's demo restaurant already has a code in the new scheme.
+        codeNumber: `${province?.code ?? 'XX'}${province?.districts[0]?.code ?? 'XX'}001`,
         nameEn: 'Demo Restaurant',
         nameAr: 'مطعم تجريبي',
         phone: '07700000000',

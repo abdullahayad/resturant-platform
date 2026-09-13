@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type District, type Province } from '@/lib/api'
 
-const emptyProvinceForm = { nameEn: '', nameAr: '' }
+const emptyProvinceForm = { nameEn: '', nameAr: '', code: '' }
 
 export function LocationsPage() {
   const navigate = useNavigate()
@@ -28,7 +28,7 @@ export function LocationsPage() {
   useEffect(load, [])
 
   const addProvince = async () => {
-    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim()) return
+    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 2) return
     const created = await api.createProvince(newProvince)
     setProvinces((prev) => [...prev, { ...created, districts: [] }])
     setNewProvince(emptyProvinceForm)
@@ -39,13 +39,29 @@ export function LocationsPage() {
     setProvinces((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x)))
   }
 
+  const saveProvinceCode = async (p: Province, code: string) => {
+    if (code === p.code || code.trim().length !== 2) return
+    const updated = await api.updateProvince(p.id, { code })
+    setProvinces((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x)))
+  }
+
+  const saveDistrictCode = async (provinceId: string, d: District, code: string) => {
+    if (code === d.code || code.trim().length !== 2) return
+    const updated = await api.updateDistrict(d.id, { code })
+    setProvinces((prev) =>
+      prev.map((p) =>
+        p.id === provinceId ? { ...p, districts: p.districts.map((x) => (x.id === d.id ? updated : x)) } : p,
+      ),
+    )
+  }
+
   const deleteProvince = async (id: string) => {
     await api.deleteProvince(id)
     setProvinces((prev) => prev.filter((p) => p.id !== id))
   }
 
   const addDistrict = async (provinceId: string) => {
-    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim()) return
+    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 2) return
     const created = await api.createDistrict(provinceId, newDistrict)
     setProvinces((prev) =>
       prev.map((p) => (p.id === provinceId ? { ...p, districts: [...p.districts, created] } : p)),
@@ -99,6 +115,14 @@ export function LocationsPage() {
             placeholder="Name (Arabic)"
             className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
           />
+          <input
+            value={newProvince.code}
+            onChange={(e) => setNewProvince((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 2) }))}
+            placeholder="Code"
+            maxLength={2}
+            title="Two-letter code used in restaurant codes, e.g. BG for Baghdad"
+            className="w-16 rounded-lg border border-border bg-secondary px-3 py-2 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+          />
           <button onClick={addProvince} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             Add Province
           </button>
@@ -118,6 +142,14 @@ export function LocationsPage() {
                 <span className="text-xs font-normal text-muted-foreground">({p.districts.length} districts)</span>
               </button>
               <div className="flex items-center gap-3">
+                <input
+                  key={p.code}
+                  defaultValue={p.code}
+                  onBlur={(e) => saveProvinceCode(p, e.target.value.toUpperCase())}
+                  maxLength={2}
+                  title="Two-letter code used in restaurant codes"
+                  className="w-12 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+                />
                 <button
                   onClick={() => toggleProvinceActive(p)}
                   className={
@@ -140,6 +172,14 @@ export function LocationsPage() {
                   <div key={d.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2 text-sm">
                     <span>{d.nameEn} · {d.nameAr}</span>
                     <div className="flex items-center gap-3">
+                      <input
+                        key={d.code}
+                        defaultValue={d.code}
+                        onBlur={(e) => saveDistrictCode(p.id, d, e.target.value.toUpperCase())}
+                        maxLength={2}
+                        title="Two-letter code used in restaurant codes"
+                        className="w-12 rounded-lg border border-border bg-card px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+                      />
                       <button
                         onClick={() => toggleDistrictActive(p.id, d)}
                         className={d.isActive ? 'text-xs text-success' : 'text-xs text-muted-foreground'}
@@ -166,6 +206,14 @@ export function LocationsPage() {
                     onChange={(e) => setNewDistrict((f) => ({ ...f, nameAr: e.target.value }))}
                     placeholder="District name (Arabic)"
                     className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+                  />
+                  <input
+                    value={newDistrict.code}
+                    onChange={(e) => setNewDistrict((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 2) }))}
+                    placeholder="Code"
+                    maxLength={2}
+                    title="Two-letter code used in restaurant codes, e.g. KR for Karkh"
+                    className="w-16 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
                   />
                   <button
                     onClick={() => addDistrict(p.id)}

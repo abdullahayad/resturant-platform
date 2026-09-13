@@ -88,9 +88,37 @@ export class RestaurantsService {
     private readonly push: PushService,
   ) {}
 
-  private async generateUniqueCode(): Promise<string> {
+  // City code + district code + a 3-digit number that resets per district
+  // (e.g. "BGKR001" for the 1st restaurant in Karkh, Baghdad). Falls back to
+  // "XX" for a missing segment — province/district are both optional at
+  // registration.
+  private async generateCodeNumber(provinceId?: string, districtId?: string): Promise<string> {
+    let provinceCode = 'XX';
+    if (provinceId) {
+      const province = await this.prisma.db.province.findUnique({ where: { id: provinceId }, select: { code: true } });
+      if (province) provinceCode = province.code;
+    }
+
+    if (!districtId) return this.generateFallbackCode(provinceCode);
+    const district = await this.prisma.db.district.findUnique({ where: { id: districtId }, select: { code: true } });
+    if (!district) return this.generateFallbackCode(provinceCode);
+
+    // Atomic increment-and-return in one statement — the row-level lock
+    // during this UPDATE is what actually prevents two simultaneous
+    // registrations in the same district from getting the same number, not
+    // just returning the post-increment value.
+    const rows = await this.prisma.db.$queryRaw<{ nextCodeSeq: number }[]>`
+      UPDATE districts SET "nextCodeSeq" = "nextCodeSeq" + 1 WHERE id = ${districtId} RETURNING "nextCodeSeq"
+    `;
+    return `${provinceCode}${district.code}${String(rows[0].nextCodeSeq).padStart(3, '0')}`;
+  }
+
+  // No district to atomically count against — random-with-retry, same
+  // pattern the old global scheme used, scoped under this province (or "XX"
+  // if that's missing too) so the code still reads like a real one.
+  private async generateFallbackCode(provinceCode: string): Promise<string> {
     for (let attempt = 0; attempt < 10; attempt++) {
-      const candidate = `#IRQ-${Math.floor(10000 + Math.random() * 90000)}`;
+      const candidate = `${provinceCode}XX${Math.floor(100 + Math.random() * 900)}`;
       const existing = await this.prisma.db.restaurant.findUnique({
         where: { codeNumber: candidate },
         select: { id: true },
@@ -112,7 +140,7 @@ export class RestaurantsService {
       throw new ConflictException('An account with this email or phone number already exists');
     }
 
-    const codeNumber = await this.generateUniqueCode();
+    const codeNumber = await this.generateCodeNumber(dto.provinceId, dto.districtId);
     const ownerPasswordHash = await bcrypt.hash(dto.ownerPassword, 10);
 
     try {

@@ -72,7 +72,7 @@ describe('RestaurantsService', () => {
       prisma.db.restaurant.findUnique
         .mockResolvedValueOnce(null) // ownerEmail lookup: free
         .mockResolvedValueOnce(null) // phone lookup: free
-        .mockResolvedValueOnce(null); // generateUniqueCode's first candidate: free
+        .mockResolvedValueOnce(null); // generateFallbackCode's first candidate: free (no province/district set here)
       prisma.db.restaurant.create.mockResolvedValue({ id: 'new-id', publishStatus: 'NOT_SUBMITTED' });
 
       const result = await service.register(baseRegisterDto);
@@ -88,7 +88,7 @@ describe('RestaurantsService', () => {
       prisma.db.restaurant.findUnique
         .mockResolvedValueOnce(null) // ownerEmail lookup: free
         .mockResolvedValueOnce(null) // phone lookup: free
-        .mockResolvedValueOnce(null); // generateUniqueCode's first candidate: free
+        .mockResolvedValueOnce(null); // generateFallbackCode's first candidate: free (no province/district set here)
       prisma.db.restaurant.create.mockRejectedValueOnce(
         new Prisma.PrismaClientKnownRequestError('Unique constraint failed on the fields: (`ownerEmail`)', {
           code: 'P2002',

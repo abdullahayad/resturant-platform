@@ -350,6 +350,7 @@ export interface District {
   id: string
   nameEn: string
   nameAr: string
+  code: string
   sortOrder: number
   isActive: boolean
 }
@@ -475,15 +476,15 @@ export const api = {
     send<{ id: string }>('DELETE', `/master-data/admin/${kind}/${id}`),
 
   provinces: () => get<Province[]>('/master-data/admin/provinces'),
-  createProvince: (payload: { nameEn: string; nameAr: string; sortOrder?: number }) =>
+  createProvince: (payload: { nameEn: string; nameAr: string; code: string; sortOrder?: number }) =>
     send<District>('POST', '/master-data/admin/provinces', payload),
-  updateProvince: (id: string, payload: Partial<MasterDataItemPayload>) =>
+  updateProvince: (id: string, payload: Partial<MasterDataItemPayload & { code: string }>) =>
     send<District>('PATCH', `/master-data/admin/provinces/${id}`, payload),
   deleteProvince: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/provinces/${id}`),
 
-  createDistrict: (provinceId: string, payload: { nameEn: string; nameAr: string; sortOrder?: number }) =>
+  createDistrict: (provinceId: string, payload: { nameEn: string; nameAr: string; code: string; sortOrder?: number }) =>
     send<District>('POST', `/master-data/admin/provinces/${provinceId}/districts`, payload),
-  updateDistrict: (id: string, payload: Partial<MasterDataItemPayload>) =>
+  updateDistrict: (id: string, payload: Partial<MasterDataItemPayload & { code: string }>) =>
     send<District>('PATCH', `/master-data/admin/districts/${id}`, payload),
   deleteDistrict: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/districts/${id}`),
 

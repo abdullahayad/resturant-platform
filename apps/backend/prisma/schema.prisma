@@ -190,6 +190,9 @@ model Province {
   id        String   @id @default(uuid())
   nameEn    String
   nameAr    String
+  // Two-letter code used as the first segment of every restaurant code in
+  // this province (e.g. "BG" for Baghdad -> BGKR001). Admin-editable.
+  code      String   @unique
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
@@ -207,6 +210,14 @@ model District {
   provinceId String
   nameEn     String
   nameAr     String
+  // Two-letter code, unique within its own province (not globally - the
+  // province code already disambiguates). Second segment of the restaurant
+  // code (e.g. "KR" for Karkh -> BGKR001).
+  code       String
+  // Running counter for this district's restaurant codes - incremented
+  // atomically (raw SQL UPDATE ... RETURNING) at registration time so two
+  // restaurants registering in the same district at once can't collide.
+  nextCodeSeq Int     @default(0)
   isActive   Boolean  @default(true)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
@@ -216,6 +227,7 @@ model District {
   restaurants Restaurant[]
   featureFlagOverrides FeatureFlagOverride[]
 
+  @@unique([provinceId, code])
   @@index([provinceId])
   @@map("districts")
 }
@@ -252,7 +264,7 @@ model AdminUser {
 
 model Restaurant {
   id         String           @id @default(uuid())
-  codeNumber String           @unique // formatted as #IRQ-XXXXX at the API layer
+  codeNumber String           @unique // e.g. "BGKR001" - province code + district code + a number that resets per district, see RestaurantsService.generateCodeNumber
   nameEn     String
   nameAr     String
   phone      String           @unique

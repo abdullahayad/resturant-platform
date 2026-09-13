@@ -150,13 +150,16 @@ export class MasterDataService {
 
   createProvince(dto: CreateProvinceDto) {
     return this.prisma.db.province.create({
-      data: { nameEn: dto.nameEn, nameAr: dto.nameAr, sortOrder: dto.sortOrder ?? 0 },
+      data: { nameEn: dto.nameEn, nameAr: dto.nameAr, code: dto.code.toUpperCase(), sortOrder: dto.sortOrder ?? 0 },
     });
   }
 
   async updateProvince(id: string, dto: UpdateProvinceDto) {
     await this.ensureExists(this.prisma.db.province, id);
-    return this.prisma.db.province.update({ where: { id }, data: dto });
+    return this.prisma.db.province.update({
+      where: { id },
+      data: { ...dto, code: dto.code ? dto.code.toUpperCase() : undefined },
+    });
   }
 
   async deleteProvince(id: string) {
@@ -168,13 +171,16 @@ export class MasterDataService {
   async createDistrict(provinceId: string, dto: CreateDistrictDto) {
     await this.ensureExists(this.prisma.db.province, provinceId);
     return this.prisma.db.district.create({
-      data: { provinceId, nameEn: dto.nameEn, nameAr: dto.nameAr, sortOrder: dto.sortOrder ?? 0 },
+      data: { provinceId, nameEn: dto.nameEn, nameAr: dto.nameAr, code: dto.code.toUpperCase(), sortOrder: dto.sortOrder ?? 0 },
     });
   }
 
   async updateDistrict(id: string, dto: UpdateDistrictDto) {
     await this.ensureExists(this.prisma.db.district, id);
-    return this.prisma.db.district.update({ where: { id }, data: dto });
+    return this.prisma.db.district.update({
+      where: { id },
+      data: { ...dto, code: dto.code ? dto.code.toUpperCase() : undefined },
+    });
   }
 
   async deleteDistrict(id: string) {
