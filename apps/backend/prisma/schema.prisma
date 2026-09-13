@@ -818,6 +818,9 @@ model NotificationRecipient {
   // own restaurant relation, so no separate author field is needed.
   replyText      String?
   repliedAt      DateTime?
+  // Set once an admin has actually opened this notification's recipient list
+  // and seen the reply — powers the "N new replies" badge on the admin list.
+  replySeenAt    DateTime?
 
   notification AdminNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
   restaurant   Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)

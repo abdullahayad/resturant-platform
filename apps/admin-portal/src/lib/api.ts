@@ -279,6 +279,7 @@ export interface NotificationItem {
   recipientCount: number
   readCount: number
   acknowledgedCount: number
+  unseenReplyCount: number
 }
 
 export interface NotificationRecipientDetail {

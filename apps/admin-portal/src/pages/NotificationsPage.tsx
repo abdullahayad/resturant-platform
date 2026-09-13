@@ -89,6 +89,9 @@ export function NotificationsPage() {
     setRecipients(null)
     const detail = await api.notificationRecipients(id)
     setRecipients(detail)
+    // Fetching recipients marks any unseen replies on it as seen server-side —
+    // clear the badge here too instead of waiting on a full reload.
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unseenReplyCount: 0 } : n)))
   }
 
   const remove = async (id: string) => {
@@ -237,6 +240,11 @@ export function NotificationsPage() {
                   <span className="font-semibold">{n.titleEn}</span>
                   {n.actionRequired && (
                     <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">Action Required</span>
+                  )}
+                  {n.unseenReplyCount > 0 && (
+                    <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">
+                      {n.unseenReplyCount} new {n.unseenReplyCount === 1 ? 'reply' : 'replies'}
+                    </span>
                   )}
                 </div>
                 <div className="mt-0.5 text-sm text-muted-foreground">{n.bodyEn}</div>

@@ -57,7 +57,7 @@ export class NotificationsService {
     if (notifications.length === 0) return [];
 
     const ids = notifications.map((n) => n.id);
-    const [totalCounts, readCounts, ackCounts] = await Promise.all([
+    const [totalCounts, readCounts, ackCounts, unseenReplyCounts] = await Promise.all([
       this.prisma.db.notificationRecipient.groupBy({
         by: ['notificationId'],
         where: { notificationId: { in: ids } },
@@ -73,19 +73,31 @@ export class NotificationsService {
         where: { notificationId: { in: ids }, acknowledgedAt: { not: null } },
         _count: true,
       }),
+      this.prisma.db.notificationRecipient.groupBy({
+        by: ['notificationId'],
+        where: { notificationId: { in: ids }, replyText: { not: null }, replySeenAt: null },
+        _count: true,
+      }),
     ]);
     const totalMap = new Map(totalCounts.map((c) => [c.notificationId, c._count]));
     const readMap = new Map(readCounts.map((c) => [c.notificationId, c._count]));
     const ackMap = new Map(ackCounts.map((c) => [c.notificationId, c._count]));
+    const unseenReplyMap = new Map(unseenReplyCounts.map((c) => [c.notificationId, c._count]));
 
     return notifications.map((n) => ({
       ...n,
       recipientCount: totalMap.get(n.id) ?? 0,
       readCount: readMap.get(n.id) ?? 0,
       acknowledgedCount: ackMap.get(n.id) ?? 0,
+      unseenReplyCount: unseenReplyMap.get(n.id) ?? 0,
     }));
   }
 
+  // Viewing a notification's recipient list is how an admin actually reads
+  // any replies on it — same "viewing marks it read" idea as the
+  // restaurant-side Inbox already uses for announcements — so any unseen
+  // reply here gets marked seen as a side effect of this call, clearing the
+  // "N new replies" badge in list() for next time.
   async recipients(notificationId: string) {
     const notification = await this.prisma.db.adminNotification.findUnique({
       where: { id: notificationId },
@@ -93,11 +105,18 @@ export class NotificationsService {
     });
     if (!notification) throw new NotFoundException('Notification not found');
 
-    return this.prisma.db.notificationRecipient.findMany({
+    const recipients = await this.prisma.db.notificationRecipient.findMany({
       where: { notificationId },
       include: { restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
       orderBy: { restaurant: { nameEn: 'asc' } },
     });
+
+    await this.prisma.db.notificationRecipient.updateMany({
+      where: { notificationId, replyText: { not: null }, replySeenAt: null },
+      data: { replySeenAt: new Date() },
+    });
+
+    return recipients;
   }
 
   async remove(id: string) {
