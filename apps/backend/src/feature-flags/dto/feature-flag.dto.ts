@@ -6,13 +6,17 @@ export class UpdateFeatureFlagDto {
 }
 
 // Each field validates as a UUID if present, but nothing here enforces
-// "exactly one of the two" — that's checked explicitly in
+// "exactly one of the three" — that's checked explicitly in
 // FeatureFlagsService.setOverride, where a clear error message is easier to
 // produce than encoding the cross-field rule into decorators here.
 export class SetFeatureFlagOverrideDto {
   @IsOptional()
   @IsUUID()
   restaurantId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  districtId?: string;
 
   @IsOptional()
   @IsUUID()

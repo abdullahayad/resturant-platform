@@ -214,6 +214,7 @@ model District {
 
   province    Province     @relation(fields: [provinceId], references: [id], onDelete: Cascade)
   restaurants Restaurant[]
+  featureFlagOverrides FeatureFlagOverride[]
 
   @@index([provinceId])
   @@map("districts")
@@ -872,6 +873,7 @@ model FeatureFlagOverride {
   id            String   @id @default(uuid())
   featureFlagId String
   restaurantId  String?
+  districtId    String?
   provinceId    String?
   enabled       Boolean
   createdAt     DateTime @default(now())
@@ -879,11 +881,14 @@ model FeatureFlagOverride {
 
   featureFlag FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
   restaurant  Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  district    District?   @relation(fields: [districtId], references: [id], onDelete: Cascade)
   province    Province?   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
 
   @@unique([featureFlagId, restaurantId])
+  @@unique([featureFlagId, districtId])
   @@unique([featureFlagId, provinceId])
   @@index([restaurantId])
+  @@index([districtId])
   @@index([provinceId])
   @@map("feature_flag_overrides")
 }

@@ -4,6 +4,10 @@ import type { SetFeatureFlagOverrideDto } from './dto/feature-flag.dto';
 
 const restaurantSummary = { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } as const;
 const provinceSummary = { select: { id: true, nameEn: true, nameAr: true } } as const;
+const districtSummary = {
+  select: { id: true, nameEn: true, nameAr: true, province: { select: { nameEn: true, nameAr: true } } },
+} as const;
+const overrideInclude = { restaurant: restaurantSummary, district: districtSummary, province: provinceSummary } as const;
 
 @Injectable()
 export class FeatureFlagsService {
@@ -11,23 +15,27 @@ export class FeatureFlagsService {
 
   // ── Restaurant-facing ──────────────────────────────────────────────────
 
-  // Resolution order: a restaurant-specific override wins outright; failing
-  // that, a province-level override; failing that, the flag's own
-  // defaultEnabled. A key with no FeatureFlag row at all (dashboard, profile,
-  // settings) never reaches this — the partner-app treats those as always on.
+  // Resolution order, most specific wins: restaurant-specific override, then
+  // district, then province ("city"), then the flag's own defaultEnabled. A
+  // key with no FeatureFlag row at all (dashboard, profile, settings) never
+  // reaches this — the partner-app treats those as always on.
   async resolveEnabledKeys(restaurantId: string): Promise<string[]> {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { id: restaurantId },
-      select: { provinceId: true },
+      select: { provinceId: true, districtId: true },
     });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
     const flags = await this.prisma.db.featureFlag.findMany({
       include: {
         overrides: {
-          where: restaurant.provinceId
-            ? { OR: [{ restaurantId }, { provinceId: restaurant.provinceId }] }
-            : { restaurantId },
+          where: {
+            OR: [
+              { restaurantId },
+              ...(restaurant.districtId ? [{ districtId: restaurant.districtId }] : []),
+              ...(restaurant.provinceId ? [{ provinceId: restaurant.provinceId }] : []),
+            ],
+          },
         },
       },
     });
@@ -36,8 +44,17 @@ export class FeatureFlagsService {
       .filter((flag) => {
         const restaurantOverride = flag.overrides.find((o) => o.restaurantId === restaurantId);
         if (restaurantOverride) return restaurantOverride.enabled;
-        const provinceOverride = flag.overrides.find((o) => o.provinceId === restaurant.provinceId);
+
+        const districtOverride = restaurant.districtId
+          ? flag.overrides.find((o) => o.districtId === restaurant.districtId)
+          : undefined;
+        if (districtOverride) return districtOverride.enabled;
+
+        const provinceOverride = restaurant.provinceId
+          ? flag.overrides.find((o) => o.provinceId === restaurant.provinceId)
+          : undefined;
         if (provinceOverride) return provinceOverride.enabled;
+
         return flag.defaultEnabled;
       })
       .map((flag) => flag.key);
@@ -49,11 +66,13 @@ export class FeatureFlagsService {
     return this.prisma.db.featureFlag.findMany({
       include: {
         overrides: {
-          include: { restaurant: restaurantSummary, province: provinceSummary },
+          include: overrideInclude,
           orderBy: { createdAt: 'desc' },
         },
       },
-      orderBy: { key: 'asc' },
+      // Flags currently off by default surface first — those are the ones
+      // mid-rollout and needing attention, not the ones already fully live.
+      orderBy: [{ defaultEnabled: 'asc' }, { key: 'asc' }],
     });
   }
 
@@ -64,8 +83,9 @@ export class FeatureFlagsService {
   }
 
   async setOverride(featureFlagId: string, dto: SetFeatureFlagOverrideDto) {
-    if (!!dto.restaurantId === !!dto.provinceId) {
-      throw new BadRequestException('Provide exactly one of restaurantId or provinceId');
+    const targetCount = [dto.restaurantId, dto.districtId, dto.provinceId].filter(Boolean).length;
+    if (targetCount !== 1) {
+      throw new BadRequestException('Provide exactly one of restaurantId, districtId, or provinceId');
     }
     const flag = await this.prisma.db.featureFlag.findUnique({ where: { id: featureFlagId }, select: { id: true } });
     if (!flag) throw new NotFoundException('Feature flag not found');
@@ -79,14 +99,22 @@ export class FeatureFlagsService {
         where: { featureFlagId_restaurantId: { featureFlagId, restaurantId: dto.restaurantId } },
         update: { enabled: dto.enabled },
         create: { featureFlagId, restaurantId: dto.restaurantId, enabled: dto.enabled },
-        include: { restaurant: restaurantSummary, province: provinceSummary },
+        include: overrideInclude,
+      });
+    }
+    if (dto.districtId) {
+      return this.prisma.db.featureFlagOverride.upsert({
+        where: { featureFlagId_districtId: { featureFlagId, districtId: dto.districtId } },
+        update: { enabled: dto.enabled },
+        create: { featureFlagId, districtId: dto.districtId, enabled: dto.enabled },
+        include: overrideInclude,
       });
     }
     return this.prisma.db.featureFlagOverride.upsert({
       where: { featureFlagId_provinceId: { featureFlagId, provinceId: dto.provinceId! } },
       update: { enabled: dto.enabled },
       create: { featureFlagId, provinceId: dto.provinceId!, enabled: dto.enabled },
-      include: { restaurant: restaurantSummary, province: provinceSummary },
+      include: overrideInclude,
     });
   }
 

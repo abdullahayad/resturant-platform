@@ -361,6 +361,7 @@ export interface FeatureFlagOverrideItem {
   id: string
   enabled: boolean
   restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string } | null
+  district: { id: string; nameEn: string; nameAr: string; province: { nameEn: string; nameAr: string } } | null
   province: { id: string; nameEn: string; nameAr: string } | null
 }
 
@@ -526,7 +527,7 @@ export const api = {
     send<FeatureFlagItem>('PATCH', `/admin/feature-flags/${id}`, { defaultEnabled }),
   setFeatureFlagOverride: (
     id: string,
-    payload: { restaurantId?: string; provinceId?: string; enabled: boolean },
+    payload: { restaurantId?: string; districtId?: string; provinceId?: string; enabled: boolean },
   ) => send<FeatureFlagOverrideItem>('POST', `/admin/feature-flags/${id}/overrides`, payload),
   removeFeatureFlagOverride: (overrideId: string) =>
     send<{ id: string }>('DELETE', `/admin/feature-flags/overrides/${overrideId}`),

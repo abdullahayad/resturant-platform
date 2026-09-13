@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   api,
@@ -21,7 +21,16 @@ export function FeatureFlagsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const [newProvinceId, setNewProvinceId] = useState('')
+  const [newDistrictId, setNewDistrictId] = useState('')
   const [newRestaurantId, setNewRestaurantId] = useState('')
+
+  const districts = useMemo(
+    () =>
+      provinces.flatMap((p) =>
+        p.districts.map((d) => ({ id: d.id, label: `${d.nameEn} (${p.nameEn})` })),
+      ),
+    [provinces],
+  )
 
   const load = () => {
     setLoading(true)
@@ -63,6 +72,18 @@ export function FeatureFlagsPage() {
     }
   }
 
+  const addDistrictOverride = async (flagId: string) => {
+    if (!newDistrictId) return
+    setBusyId(flagId)
+    try {
+      await api.setFeatureFlagOverride(flagId, { districtId: newDistrictId, enabled: true })
+      setNewDistrictId('')
+      load()
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const addRestaurantOverride = async (flagId: string) => {
     if (!newRestaurantId) return
     setBusyId(flagId)
@@ -80,6 +101,7 @@ export function FeatureFlagsPage() {
     try {
       await api.setFeatureFlagOverride(flagId, {
         restaurantId: override.restaurant?.id,
+        districtId: override.district?.id,
         provinceId: override.province?.id,
         enabled: !override.enabled,
       })
@@ -105,7 +127,8 @@ export function FeatureFlagsPage() {
         <h1 className="text-xl font-semibold">Feature Flags</h1>
         <p className="text-sm text-muted-foreground">
           Control which sidebar sections restaurants can see — turn on a new feature for a handful of
-          restaurants or a whole city first, before opening it up to everyone.
+          restaurants, a district, or a whole city first, before opening it up to everyone. Sections
+          still off by default are listed first.
         </p>
       </div>
 
@@ -115,6 +138,7 @@ export function FeatureFlagsPage() {
       <div className="space-y-3">
         {flags.map((flag) => {
           const provinceOverrides = flag.overrides.filter((o) => o.province)
+          const districtOverrides = flag.overrides.filter((o) => o.district)
           const restaurantOverrides = flag.overrides.filter((o) => o.restaurant)
           const isExpanded = expandedId === flag.id
 
@@ -177,6 +201,47 @@ export function FeatureFlagsPage() {
                       <button
                         onClick={() => addProvinceOverride(flag.id)}
                         disabled={!newProvinceId || busyId === flag.id}
+                        className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-sm font-semibold text-primary">
+                      District overrides ({districtOverrides.length})
+                    </div>
+                    <div className="space-y-2">
+                      {districtOverrides.map((o) => (
+                        <div key={o.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2">
+                          <span className="text-sm">{o.district?.nameEn} ({o.district?.province.nameEn})</span>
+                          <div className="flex items-center gap-2">
+                            <Switch checked={o.enabled} disabled={busyId === o.id} onChange={() => toggleOverride(flag.id, o)} />
+                            <button onClick={() => removeOverride(o.id)} disabled={busyId === o.id} className="text-muted-foreground disabled:opacity-50">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {districtOverrides.length === 0 && (
+                        <p className="text-sm text-muted-foreground">No district overrides.</p>
+                      )}
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <select
+                        value={newDistrictId}
+                        onChange={(e) => setNewDistrictId(e.target.value)}
+                        className="min-w-[240px] rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+                      >
+                        <option value="">Select a district…</option>
+                        {districts.map((d) => (
+                          <option key={d.id} value={d.id}>{d.label}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => addDistrictOverride(flag.id)}
+                        disabled={!newDistrictId || busyId === flag.id}
                         className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                       >
                         Add
