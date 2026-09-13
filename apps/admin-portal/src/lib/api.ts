@@ -28,6 +28,7 @@ export interface RestaurantListItem {
   publishReviewedAt: string | null
   province: { id: string; nameEn: string; nameAr: string } | null
   district: { id: string; nameEn: string; nameAr: string } | null
+  businessTypes: { businessType: { id: string; nameEn: string; nameAr: string } }[]
 }
 
 export interface AdminUserItem {
@@ -73,7 +74,6 @@ export interface ReviewItem {
 export interface RestaurantDetail extends RestaurantListItem {
   latitude: number | null
   longitude: number | null
-  businessTypes: { businessType: { id: string; nameEn: string; nameAr: string } }[]
   foodCategories: { foodCategory: { id: string; nameEn: string; nameAr: string } }[]
   facilities: { facility: { id: string; nameEn: string; nameAr: string } }[]
   openingHours: {

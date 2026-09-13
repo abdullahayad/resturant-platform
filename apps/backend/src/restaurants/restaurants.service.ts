@@ -35,6 +35,7 @@ const restaurantListSelect = {
   publishDeclineAcknowledgedAt: true,
   province: { select: { id: true, nameEn: true, nameAr: true } },
   district: { select: { id: true, nameEn: true, nameAr: true } },
+  businessTypes: { select: { businessType: { select: { id: true, nameEn: true, nameAr: true } } } },
 } as const;
 
 const restaurantDetailSelect = {

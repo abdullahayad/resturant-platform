@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   api,
@@ -264,99 +264,118 @@ export function RestaurantsPage() {
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
-      <div className="space-y-3">
-        {restaurants.map((r) => (
-          <div key={r.id} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <button onClick={() => toggleExpand(r.id)} className="text-left">
-                <div className="font-semibold">
-                  {r.nameEn} <span className="text-muted-foreground">· {r.nameAr}</span>
-                </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {r.codeNumber} · {r.phone}
-                  {r.province ? ` · ${r.province.nameEn}${r.district ? `, ${r.district.nameEn}` : ''}` : ''}
-                </div>
-              </button>
-              <div className="flex items-center gap-3">
-                <StatusPill label={r.status.replace('_', ' ')} tone={statusTones[r.status]} />
-                {(r.status === 'APPROVED' || r.status === 'SUSPENDED') && (
-                  <Switch
-                    checked={r.status === 'APPROVED'}
-                    disabled={busyId === r.id}
-                    onChange={() => setActive(r.id, r.status !== 'APPROVED')}
-                    label={r.status === 'APPROVED' ? 'Active' : 'Inactive'}
-                  />
-                )}
-                {r.status === 'REJECTED' && (
-                  <button
-                    disabled={busyId === r.id}
-                    onClick={() => reinstate(r.id)}
-                    className="rounded-lg border border-border px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
-                  >
-                    Reinstate
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {expandedId === r.id && (
-              <div className="mt-4 border-t border-border pt-4 text-sm">
-                {!detail ? (
-                  <p className="text-muted-foreground">Loading…</p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Owner email</div>
-                      <div>{detail.ownerEmail}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Location</div>
-                      <div>
-                        {detail.province?.nameEn ?? '—'}
-                        {detail.district ? `, ${detail.district.nameEn}` : ''}
-                        {detail.latitude != null && detail.longitude != null
-                          ? ` (${detail.latitude}, ${detail.longitude})`
-                          : ''}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Business Types</div>
-                      <div>{detail.businessTypes.map((b) => b.businessType.nameEn).join(', ') || '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Food Categories</div>
-                      <div>{detail.foodCategories.map((f) => f.foodCategory.nameEn).join(', ') || '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Facilities</div>
-                      <div>{detail.facilities.map((f) => f.facility.nameEn).join(', ') || '—'}</div>
-                    </div>
-                    {detail.rejectionReason && (
-                      <div>
-                        <div className="text-xs text-muted-foreground">Rejection Reason</div>
-                        <div>{detail.rejectionReason}</div>
-                      </div>
-                    )}
-                    <div>
-                      <div className="mb-1 text-xs text-muted-foreground">Overview Dashboard Numbers</div>
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-muted-foreground">
+              <th className="px-4 py-2 font-medium">Code</th>
+              <th className="px-4 py-2 font-medium">Name</th>
+              <th className="px-4 py-2 font-medium">City</th>
+              <th className="px-4 py-2 font-medium">District</th>
+              <th className="px-4 py-2 font-medium">Business Type</th>
+              <th className="px-4 py-2 font-medium">Phone</th>
+              <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-4 py-2 font-medium">Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            {restaurants.map((r) => (
+              <Fragment key={r.id}>
+                <tr
+                  onClick={() => toggleExpand(r.id)}
+                  className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/50"
+                >
+                  <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{r.codeNumber}</td>
+                  <td className="px-4 py-2 font-semibold">
+                    {r.nameEn} <span className="font-normal text-muted-foreground">· {r.nameAr}</span>
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">{r.province?.nameEn ?? '—'}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{r.district?.nameEn ?? '—'}</td>
+                  <td className="px-4 py-2 text-muted-foreground">
+                    {r.businessTypes.map((b) => b.businessType.nameEn).join(', ') || '—'}
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">{r.phone}</td>
+                  <td className="px-4 py-2">
+                    <StatusPill label={r.status.replace('_', ' ')} tone={statusTones[r.status]} />
+                  </td>
+                  <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                    {(r.status === 'APPROVED' || r.status === 'SUSPENDED') && (
                       <Switch
-                        checked={detail.statsVisible}
+                        checked={r.status === 'APPROVED'}
                         disabled={busyId === r.id}
-                        onChange={() => toggleStatsVisible(r.id, !detail.statsVisible)}
-                        label={detail.statsVisible ? 'Visible to partner' : 'Hidden from partner'}
+                        onChange={() => setActive(r.id, r.status !== 'APPROVED')}
+                        label={r.status === 'APPROVED' ? 'Active' : 'Inactive'}
                       />
-                    </div>
-                  </div>
+                    )}
+                    {r.status === 'REJECTED' && (
+                      <button
+                        disabled={busyId === r.id}
+                        onClick={() => reinstate(r.id)}
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs text-foreground disabled:opacity-50"
+                      >
+                        Reinstate
+                      </button>
+                    )}
+                  </td>
+                </tr>
+                {expandedId === r.id && (
+                  <tr className="border-b border-border last:border-0 bg-secondary/30">
+                    <td colSpan={8} className="px-4 py-4 text-sm">
+                      {!detail ? (
+                        <p className="text-muted-foreground">Loading…</p>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div>
+                            <div className="text-xs text-muted-foreground">Owner email</div>
+                            <div>{detail.ownerEmail}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Coordinates</div>
+                            <div>
+                              {detail.latitude != null && detail.longitude != null
+                                ? `${detail.latitude}, ${detail.longitude}`
+                                : '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Food Categories</div>
+                            <div>{detail.foodCategories.map((f) => f.foodCategory.nameEn).join(', ') || '—'}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Facilities</div>
+                            <div>{detail.facilities.map((f) => f.facility.nameEn).join(', ') || '—'}</div>
+                          </div>
+                          {detail.rejectionReason && (
+                            <div>
+                              <div className="text-xs text-muted-foreground">Rejection Reason</div>
+                              <div>{detail.rejectionReason}</div>
+                            </div>
+                          )}
+                          <div>
+                            <div className="mb-1 text-xs text-muted-foreground">Overview Dashboard Numbers</div>
+                            <Switch
+                              checked={detail.statsVisible}
+                              disabled={busyId === r.id}
+                              onChange={() => toggleStatsVisible(r.id, !detail.statsVisible)}
+                              label={detail.statsVisible ? 'Visible to partner' : 'Hidden from partner'}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
                 )}
-              </div>
+              </Fragment>
+            ))}
+            {!loading && restaurants.length === 0 && !error && (
+              <tr>
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  No restaurants match these filters.
+                </td>
+              </tr>
             )}
-          </div>
-        ))}
-        {!loading && restaurants.length === 0 && !error && (
-          <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            No restaurants match these filters.
-          </div>
-        )}
+          </tbody>
+        </table>
       </div>
     </div>
   )
