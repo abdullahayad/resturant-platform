@@ -292,7 +292,15 @@ export function RestaurantsPage() {
                   <td className="px-4 py-2 text-muted-foreground">{r.province?.nameEn ?? '—'}</td>
                   <td className="px-4 py-2 text-muted-foreground">{r.district?.nameEn ?? '—'}</td>
                   <td className="px-4 py-2 text-muted-foreground">
-                    {r.businessTypes.map((b) => b.businessType.nameEn).join(', ') || '—'}
+                    {r.businessTypes.length === 0
+                      ? '—'
+                      : r.businessTypes
+                          .slice(0, 2)
+                          .map((b) => b.businessType.nameEn)
+                          .join(', ')}
+                    {r.businessTypes.length > 2 && (
+                      <span className="text-xs"> +{r.businessTypes.length - 2}</span>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">{r.phone}</td>
                   <td className="px-4 py-2">
