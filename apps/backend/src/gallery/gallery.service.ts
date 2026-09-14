@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CreateGalleryPhotoDto, ModerateGalleryPhotoDto } from './dto/gallery-photo.dto';
 import type { GalleryAlbumValue } from '../common/gallery';
 import type { ModerationStatusValue } from '../common/moderation';
+import { pageOffset } from '../common/pagination';
+import { Prisma, type AmbienceSubCategory } from '../../generated/prisma/client';
 
 const photoInclude = {
   dish: { select: { id: true, nameEn: true, isMostOrdered: true, menuCategory: true } },
@@ -12,12 +14,28 @@ const photoInclude = {
 export class GalleryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(restaurantId: string, album?: GalleryAlbumValue) {
-    return this.prisma.db.galleryPhoto.findMany({
-      where: { restaurantId, album, moderationStatus: { not: 'HIDDEN' } },
-      include: photoInclude,
-      orderBy: { createdAt: 'desc' },
-    });
+  async list(
+    restaurantId: string,
+    album?: GalleryAlbumValue,
+    filters?: { mostOrdered?: boolean; menuCategoryId?: string; ambienceSubCategory?: AmbienceSubCategory },
+    pageParam?: number,
+  ) {
+    const where: Prisma.GalleryPhotoWhereInput = {
+      restaurantId,
+      album,
+      moderationStatus: { not: 'HIDDEN' },
+      ambienceSubCategory: filters?.ambienceSubCategory,
+      dish:
+        filters?.mostOrdered || filters?.menuCategoryId
+          ? { isMostOrdered: filters?.mostOrdered || undefined, menuCategoryId: filters?.menuCategoryId }
+          : undefined,
+    };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.galleryPhoto.findMany({ where, include: photoInclude, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.db.galleryPhoto.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
   }
 
   async create(restaurantId: string, dto: CreateGalleryPhotoDto) {
@@ -54,12 +72,20 @@ export class GalleryService {
 
   // ── Admin moderation ─────────────────────────────────────────────────
 
-  adminList(status?: ModerationStatusValue) {
-    return this.prisma.db.galleryPhoto.findMany({
-      where: { moderationStatus: status },
-      include: { ...photoInclude, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  async adminList(status?: ModerationStatusValue, pageParam?: number) {
+    const where = { moderationStatus: status };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.galleryPhoto.findMany({
+        where,
+        include: { ...photoInclude, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.db.galleryPhoto.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
   }
 
   async moderate(id: string, dto: ModerateGalleryPhotoDto) {

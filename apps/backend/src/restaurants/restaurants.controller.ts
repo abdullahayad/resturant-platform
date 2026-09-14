@@ -112,6 +112,18 @@ export class RestaurantsController {
     return this.restaurants.list(query);
   }
 
+  // Full, unpaginated - for the "pick a restaurant" dropdowns elsewhere in
+  // the admin portal (Advertising's grant-placement picker, Feature Flags'
+  // and Notifications' targeting pickers), which need every match at once
+  // rather than a page of them. Must stay above the ':id' route below, or
+  // NestJS would treat "picker" as an :id value. Declared before that route
+  // so this always wins.
+  @UseGuards(AdminAuthGuard)
+  @Get('picker')
+  picker(@Query('status') status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') {
+    return this.restaurants.picker(status);
+  }
+
   @UseGuards(AdminAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {

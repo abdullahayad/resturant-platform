@@ -16,6 +16,7 @@ describe('GalleryService', () => {
           create: jest.fn(),
           update: jest.fn(),
           delete: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         dish: {
           findUnique: jest.fn(),
@@ -65,8 +66,8 @@ describe('GalleryService', () => {
   });
 
   describe('list', () => {
-    it('excludes hidden photos from a restaurant\'s own list', () => {
-      service.list('r1', 'FOOD');
+    it('excludes hidden photos from a restaurant\'s own list', async () => {
+      await service.list('r1', 'FOOD');
 
       expect(prisma.db.galleryPhoto.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

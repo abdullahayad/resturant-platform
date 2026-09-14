@@ -12,7 +12,12 @@ export class GalleryController {
   @UseGuards(PartnerAuthGuard)
   @Get()
   list(@Req() req: { user: PartnerJwtPayload }, @Query() query: ListGalleryQuery) {
-    return this.gallery.list(req.user.sub, query.album);
+    return this.gallery.list(
+      req.user.sub,
+      query.album,
+      { mostOrdered: query.mostOrdered, menuCategoryId: query.menuCategoryId, ambienceSubCategory: query.ambienceSubCategory },
+      query.page,
+    );
   }
 
   @UseGuards(ApprovedPartnerGuard)

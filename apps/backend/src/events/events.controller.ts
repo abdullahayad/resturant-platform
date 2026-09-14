@@ -41,6 +41,16 @@ export class EventsController {
     return this.events.listReservations(req.user.sub);
   }
 
+  // Lightweight count for the sidebar's "pending reservations" badge - a
+  // plain count() instead of fetching every reservation just to filter it
+  // client-side, so the badge stays accurate no matter how many
+  // reservations a restaurant has accumulated.
+  @UseGuards(ManagerOrOwnerGuard)
+  @Get('restaurants/me/reservations/pending-count')
+  pendingReservationsCount(@Req() req: { user: PartnerJwtPayload }) {
+    return this.events.pendingReservationsCount(req.user.sub);
+  }
+
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('restaurants/me/reservations/:id')
   updateReservation(

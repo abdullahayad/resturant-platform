@@ -14,6 +14,7 @@ import type { ModeratePublishDto } from './dto/update-restaurant-status.dto';
 import { EmailService } from '../email/email.service';
 import { PushService } from '../push/push.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
+import { pageOffset } from '../common/pagination';
 
 const restaurantListSelect = {
   id: true,
@@ -178,7 +179,7 @@ export class RestaurantsService {
     }
   }
 
-  list(filters: {
+  async list(filters: {
     status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
     publishStatus?: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
     provinceId?: string;
@@ -186,30 +187,44 @@ export class RestaurantsService {
     businessTypeId?: string;
     foodCategoryId?: string;
     search?: string;
+    page?: number;
   }) {
     const search = filters.search?.trim();
+    const where: Prisma.RestaurantWhereInput = {
+      status: filters.status,
+      publishStatus: filters.publishStatus,
+      provinceId: filters.provinceId,
+      districtId: filters.districtId,
+      businessTypes: filters.businessTypeId
+        ? { some: { businessTypeId: filters.businessTypeId } }
+        : undefined,
+      foodCategories: filters.foodCategoryId
+        ? { some: { foodCategoryId: filters.foodCategoryId } }
+        : undefined,
+      OR: search
+        ? [
+            { nameEn: { contains: search, mode: 'insensitive' } },
+            { nameAr: { contains: search, mode: 'insensitive' } },
+            { codeNumber: { contains: search, mode: 'insensitive' } },
+            { ownerEmail: { contains: search, mode: 'insensitive' } },
+          ]
+        : undefined,
+    };
+
+    const { page, skip, take } = pageOffset(filters.page);
+    const [items, total] = await Promise.all([
+      this.prisma.db.restaurant.findMany({ where, orderBy: { createdAt: 'desc' }, select: restaurantListSelect, skip, take }),
+      this.prisma.db.restaurant.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
+  }
+
+  // Full, unpaginated - see RestaurantsController.picker for why this stays
+  // separate from list() above.
+  picker(status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') {
     return this.prisma.db.restaurant.findMany({
-      where: {
-        status: filters.status,
-        publishStatus: filters.publishStatus,
-        provinceId: filters.provinceId,
-        districtId: filters.districtId,
-        businessTypes: filters.businessTypeId
-          ? { some: { businessTypeId: filters.businessTypeId } }
-          : undefined,
-        foodCategories: filters.foodCategoryId
-          ? { some: { foodCategoryId: filters.foodCategoryId } }
-          : undefined,
-        OR: search
-          ? [
-              { nameEn: { contains: search, mode: 'insensitive' } },
-              { nameAr: { contains: search, mode: 'insensitive' } },
-              { codeNumber: { contains: search, mode: 'insensitive' } },
-              { ownerEmail: { contains: search, mode: 'insensitive' } },
-            ]
-          : undefined,
-      },
-      orderBy: { createdAt: 'desc' },
+      where: { status },
+      orderBy: { nameEn: 'asc' },
       select: restaurantListSelect,
     });
   }

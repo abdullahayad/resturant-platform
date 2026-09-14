@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { PromotionsService } from './promotions.service';
 import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
+import { PageQueryDto } from '../common/pagination';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 @Controller('restaurants/me/promotions')
@@ -11,8 +12,17 @@ export class RestaurantPromotionsController {
 
   @UseGuards(PartnerAuthGuard)
   @Get()
-  list(@Req() req: { user: PartnerJwtPayload }) {
-    return this.promotions.list(req.user.sub);
+  list(@Req() req: { user: PartnerJwtPayload }, @Query() query: PageQueryDto) {
+    return this.promotions.list(req.user.sub, query.page);
+  }
+
+  // Lightweight count for the sidebar's "rejected promotions" badge - see
+  // the equivalent reservations/events count for why this exists as its
+  // own endpoint instead of reusing the (now paginated) list above.
+  @UseGuards(PartnerAuthGuard)
+  @Get('rejected-count')
+  rejectedCount(@Req() req: { user: PartnerJwtPayload }) {
+    return this.promotions.rejectedCount(req.user.sub);
   }
 
   @UseGuards(ApprovedPartnerGuard)

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import type { CreateNotificationDto } from './dto/notification.dto';
+import { pageOffset } from '../common/pagination';
 
 @Injectable()
 export class NotificationsService {
@@ -128,12 +129,25 @@ export class NotificationsService {
 
   // ── Restaurant-facing ──────────────────────────────────────────────────
 
-  listForRestaurant(restaurantId: string) {
-    return this.prisma.db.notificationRecipient.findMany({
-      where: { restaurantId },
-      include: { notification: true },
-      orderBy: { notification: { createdAt: 'desc' } },
-    });
+  async listForRestaurant(restaurantId: string, pageParam?: number) {
+    const where = { restaurantId };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.notificationRecipient.findMany({
+        where,
+        include: { notification: true },
+        orderBy: { notification: { createdAt: 'desc' } },
+        skip,
+        take,
+      }),
+      this.prisma.db.notificationRecipient.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
+  }
+
+  async unreadCount(restaurantId: string) {
+    const count = await this.prisma.db.notificationRecipient.count({ where: { restaurantId, readAt: null } });
+    return { count };
   }
 
   async markRead(restaurantId: string, notificationId: string) {

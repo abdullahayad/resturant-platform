@@ -11,7 +11,7 @@ export class AdminPromotionsController {
 
   @Get()
   list(@Query() query: ListPromotionsQuery) {
-    return this.promotions.adminList(query.status);
+    return this.promotions.adminList(query.status, query.page);
   }
 
   @Patch(':id/moderate')

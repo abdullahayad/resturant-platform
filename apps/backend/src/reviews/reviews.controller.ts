@@ -1,8 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { ReviewsService } from './reviews.service';
-import { CreateReviewDto, ReplyToReviewDto } from './dto/review.dto';
+import { CreateReviewDto, MyReviewsQuery, NewReviewsCountQuery, ReplyToReviewDto } from './dto/review.dto';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { StorageService } from '../uploads/storage.service';
@@ -51,14 +51,22 @@ export class ReviewsController {
 
   @UseGuards(PartnerAuthGuard)
   @Get('me/reviews')
-  mine(@Req() req: { user: PartnerJwtPayload }) {
-    return this.reviews.listForRestaurant(req.user.sub);
+  mine(@Req() req: { user: PartnerJwtPayload }, @Query() query: MyReviewsQuery) {
+    return this.reviews.listForRestaurant(req.user.sub, query.page, query.rating);
   }
 
   @UseGuards(PartnerAuthGuard)
   @Get('me/reviews/summary')
   summary(@Req() req: { user: PartnerJwtPayload }) {
     return this.reviews.summary(req.user.sub);
+  }
+
+  // Lightweight count for the sidebar's "new reviews" badge - see
+  // ReviewsService.newCount for why "new" needs a client-supplied "since".
+  @UseGuards(PartnerAuthGuard)
+  @Get('me/reviews/new-count')
+  newCount(@Req() req: { user: PartnerJwtPayload }, @Query() query: NewReviewsCountQuery) {
+    return this.reviews.newCount(req.user.sub, new Date(query.since));
   }
 
   @UseGuards(ApprovedPartnerGuard)

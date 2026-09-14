@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreatePromotionDto, ModeratePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
+import { pageOffset } from '../common/pagination';
 
 const promotionInclude = {
   dishes: { include: { dish: { select: { id: true, nameEn: true, nameAr: true, price: true } } } },
@@ -11,12 +12,19 @@ const promotionInclude = {
 export class PromotionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(restaurantId: string) {
-    return this.prisma.db.promotion.findMany({
-      where: { restaurantId },
-      include: promotionInclude,
-      orderBy: { createdAt: 'desc' },
-    });
+  async list(restaurantId: string, pageParam?: number) {
+    const where = { restaurantId };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.promotion.findMany({ where, include: promotionInclude, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.db.promotion.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
+  }
+
+  async rejectedCount(restaurantId: string) {
+    const count = await this.prisma.db.promotion.count({ where: { restaurantId, status: 'REJECTED' } });
+    return { count };
   }
 
   async create(restaurantId: string, dto: CreatePromotionDto) {
@@ -143,15 +151,23 @@ export class PromotionsService {
 
   // ── Admin moderation ─────────────────────────────────────────────────
 
-  adminList(status?: 'PENDING' | 'APPROVED' | 'REJECTED') {
-    return this.prisma.db.promotion.findMany({
-      where: { status },
-      include: {
-        ...promotionInclude,
-        restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  async adminList(status?: 'PENDING' | 'APPROVED' | 'REJECTED', pageParam?: number) {
+    const where = { status };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.promotion.findMany({
+        where,
+        include: {
+          ...promotionInclude,
+          restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.db.promotion.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
   }
 
   async moderate(adminId: string, id: string, dto: ModeratePromotionDto) {

@@ -10,7 +10,7 @@ export class AdminReviewsController {
 
   @Get()
   list(@Query() query: ListReviewsQuery) {
-    return this.reviews.listAll(query.status);
+    return this.reviews.listAll(query.status, query.page);
   }
 
   @Patch(':id/moderate')

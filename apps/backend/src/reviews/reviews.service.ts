@@ -4,6 +4,7 @@ import { PushService } from '../push/push.service';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { CreateReviewDto, ModerateReviewDto } from './dto/review.dto';
 import type { ModerationStatusValue } from '../common/moderation';
+import { pageOffset } from '../common/pagination';
 
 const withReplyAndPhotos = {
   reply: true,
@@ -73,12 +74,28 @@ export class ReviewsService {
     return this.prisma.db.review.findUnique({ where: { id: review.id }, include: withReplyAndPhotos });
   }
 
-  listForRestaurant(restaurantId: string) {
-    return this.prisma.db.review.findMany({
-      where: { restaurantId },
-      include: withReplyAndPhotos,
-      orderBy: { createdAt: 'desc' },
-    });
+  async listForRestaurant(restaurantId: string, pageParam?: number, rating?: number) {
+    // moderationStatus exclusion moved here from a client-side filter in
+    // CustomerReviewsScreen - same behavior, just now applied before
+    // pagination instead of after fetching everything.
+    const where = { restaurantId, moderationStatus: { not: 'HIDDEN' as const }, rating };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.review.findMany({ where, include: withReplyAndPhotos, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.db.review.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
+  }
+
+  // Lightweight count for the sidebar's "new reviews" badge - see the
+  // equivalent reservations/promotions/announcements counts for why this
+  // exists as its own endpoint instead of reusing the (now paginated) list
+  // above. "New" has no server-side concept of its own (unlike unread
+  // announcements) - the app tracks when the owner last opened this screen
+  // locally and asks "how many since then".
+  async newCount(restaurantId: string, since: Date) {
+    const count = await this.prisma.db.review.count({ where: { restaurantId, createdAt: { gt: since } } });
+    return { count };
   }
 
   async summary(restaurantId: string) {
@@ -235,15 +252,23 @@ export class ReviewsService {
     }
   }
 
-  listAll(status?: ModerationStatusValue) {
-    return this.prisma.db.review.findMany({
-      where: status ? { moderationStatus: status } : undefined,
-      include: {
-        ...withReplyAndPhotos,
-        restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listAll(status?: ModerationStatusValue, pageParam?: number) {
+    const where = status ? { moderationStatus: status } : undefined;
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.review.findMany({
+        where,
+        include: {
+          ...withReplyAndPhotos,
+          restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.db.review.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
   }
 
   async moderate(id: string, dto: ModerateReviewDto) {

@@ -1,5 +1,6 @@
 import { IsBoolean, IsIn, IsNumber, IsOptional, IsPositive, IsString, IsUrl, IsUUID, Max, MaxLength } from 'class-validator';
 import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
+import { PageQueryDto } from '../../common/pagination';
 
 const MAX_PRICE = 100_000_000;
 
@@ -36,7 +37,7 @@ export class ModerateDishDto {
   status: ModerationStatusValue;
 }
 
-export class ListDishesQuery {
+export class ListDishesQuery extends PageQueryDto {
   @IsOptional()
   @IsIn(MODERATION_STATUSES)
   status?: ModerationStatusValue;

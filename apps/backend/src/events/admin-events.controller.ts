@@ -10,7 +10,7 @@ export class AdminEventsController {
 
   @Get()
   list(@Query() query: ListEventsQuery) {
-    return this.events.adminList(query.status);
+    return this.events.adminList(query.status, query.page, query.search, query.sort);
   }
 
   @Patch(':id/moderate')

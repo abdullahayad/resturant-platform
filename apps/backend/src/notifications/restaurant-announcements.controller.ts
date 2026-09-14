@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { ReplyToAnnouncementDto } from './dto/notification.dto';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
+import { PageQueryDto } from '../common/pagination';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 @UseGuards(PartnerAuthGuard)
@@ -10,8 +11,16 @@ export class RestaurantAnnouncementsController {
   constructor(private readonly notifications: NotificationsService) {}
 
   @Get()
-  list(@Req() req: { user: PartnerJwtPayload }) {
-    return this.notifications.listForRestaurant(req.user.sub);
+  list(@Req() req: { user: PartnerJwtPayload }, @Query() query: PageQueryDto) {
+    return this.notifications.listForRestaurant(req.user.sub, query.page);
+  }
+
+  // Lightweight count for the sidebar's "unread announcements" badge - see
+  // the equivalent reservations/promotions counts for why this exists as
+  // its own endpoint instead of reusing the (now paginated) list above.
+  @Get('unread-count')
+  unreadCount(@Req() req: { user: PartnerJwtPayload }) {
+    return this.notifications.unreadCount(req.user.sub);
   }
 
   @Patch(':id/read')

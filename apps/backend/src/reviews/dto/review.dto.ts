@@ -1,5 +1,7 @@
-import { ArrayMaxSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, registerDecorator, type ValidationOptions } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, registerDecorator, type ValidationOptions } from 'class-validator';
+import { Type } from 'class-transformer';
 import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
+import { PageQueryDto } from '../../common/pagination';
 
 // Bounds a public, unauthenticated write — same reasoning as every other
 // gated field on this endpoint (see security review).
@@ -93,8 +95,22 @@ export class ModerateReviewDto {
   status: ModerationStatusValue;
 }
 
-export class ListReviewsQuery {
+export class ListReviewsQuery extends PageQueryDto {
   @IsOptional()
   @IsIn(MODERATION_STATUSES)
   status?: ModerationStatusValue;
+}
+
+export class MyReviewsQuery extends PageQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating?: number;
+}
+
+export class NewReviewsCountQuery {
+  @IsDateString()
+  since: string;
 }

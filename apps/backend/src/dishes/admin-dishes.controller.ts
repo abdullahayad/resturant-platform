@@ -10,7 +10,7 @@ export class AdminDishesController {
 
   @Get()
   list(@Query() query: ListDishesQuery) {
-    return this.dishes.adminList(query.status);
+    return this.dishes.adminList(query.status, query.page);
   }
 
   @Patch(':id/moderate')

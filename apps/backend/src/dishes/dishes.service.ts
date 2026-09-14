@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateDishDto, ModerateDishDto, UpdateDishDto } from './dto/dish.dto';
 import type { ModerationStatusValue } from '../common/moderation';
+import { pageOffset } from '../common/pagination';
 
 const dishInclude = { menuCategory: true } as const;
 
@@ -9,12 +10,23 @@ const dishInclude = { menuCategory: true } as const;
 export class DishesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Full, unpaginated - see DishesController.list for why this stays as-is.
   list(restaurantId: string) {
     return this.prisma.db.dish.findMany({
       where: { restaurantId, isActive: true, moderationStatus: { not: 'HIDDEN' } },
       include: dishInclude,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async browse(restaurantId: string, pageParam?: number) {
+    const where = { restaurantId, isActive: true, moderationStatus: { not: 'HIDDEN' as const } };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.dish.findMany({ where, include: dishInclude, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.db.dish.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
   }
 
   create(restaurantId: string, dto: CreateDishDto) {
@@ -48,12 +60,20 @@ export class DishesService {
 
   // ── Admin moderation ─────────────────────────────────────────────────
 
-  adminList(status?: ModerationStatusValue) {
-    return this.prisma.db.dish.findMany({
-      where: { isActive: true, moderationStatus: status },
-      include: { ...dishInclude, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  async adminList(status?: ModerationStatusValue, pageParam?: number) {
+    const where = { isActive: true, moderationStatus: status };
+    const { page, skip, take } = pageOffset(pageParam);
+    const [items, total] = await Promise.all([
+      this.prisma.db.dish.findMany({
+        where,
+        include: { ...dishInclude, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.db.dish.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
   }
 
   async moderate(id: string, dto: ModerateDishDto) {

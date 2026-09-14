@@ -10,7 +10,7 @@ export class AdminGalleryController {
 
   @Get()
   list(@Query() query: ListGalleryPhotosQuery) {
-    return this.gallery.adminList(query.status);
+    return this.gallery.adminList(query.status, query.page);
   }
 
   @Patch(':id/moderate')

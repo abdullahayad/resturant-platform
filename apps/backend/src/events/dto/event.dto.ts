@@ -15,6 +15,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
+import { PageQueryDto } from '../../common/pagination';
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const MAX_PRICE = 100_000_000;
@@ -149,8 +150,20 @@ export class ModerateEventDto {
   status: ModerationStatusValue;
 }
 
-export class ListEventsQuery {
+export class ListEventsQuery extends PageQueryDto {
   @IsOptional()
   @IsIn(MODERATION_STATUSES)
   status?: ModerationStatusValue;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
+
+  // Content Moderation wants moderation-queue order (createdAt); Event
+  // Bookings wants busiest-first so admin can see at a glance which events
+  // are generating real demand - same endpoint, two different consumers.
+  @IsOptional()
+  @IsIn(['createdAt', 'reservationCount'])
+  sort?: 'createdAt' | 'reservationCount';
 }

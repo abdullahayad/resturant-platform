@@ -6,6 +6,8 @@ import type { CreateEventDto, ModerateEventDto, UpdateEventDto } from './dto/eve
 import type { CreateReservationDto, UpdateReservationStatusDto } from './dto/reservation.dto';
 import type { ModerationStatusValue } from '../common/moderation';
 import { normalizePhone } from '../common/phone';
+import { pageOffset } from '../common/pagination';
+import { Prisma } from '../../generated/prisma/client';
 
 const eventSelect = {
   id: true,
@@ -274,6 +276,11 @@ export class EventsService {
     return reservations.map((r, i) => ({ ...r, guestTier: tiersByPhone.get(phones[i]) ?? null }));
   }
 
+  async pendingReservationsCount(restaurantId: string) {
+    const count = await this.prisma.db.chefTableBooking.count({ where: { restaurantId, status: 'PENDING' } });
+    return { count };
+  }
+
   async updateReservationStatus(restaurantId: string, id: string, dto: UpdateReservationStatusDto) {
     const booking = await this.prisma.db.chefTableBooking.findUnique({ where: { id } });
     if (!booking || booking.restaurantId !== restaurantId) throw new NotFoundException('Reservation not found');
@@ -288,18 +295,44 @@ export class EventsService {
 
   // ── Admin moderation ─────────────────────────────────────────────────
 
-  adminList(status?: ModerationStatusValue) {
-    return this.prisma.db.restaurantEvent.findMany({
-      where: { moderationStatus: status },
-      select: {
-        ...eventSelect,
-        restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
-        // Only active-statused bookings count as "real" demand — a cancelled
-        // request shouldn't inflate what admin sees as a busy event.
-        _count: { select: { reservations: { where: { status: { in: [...ACTIVE_STATUSES] } } } } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  async adminList(status?: ModerationStatusValue, pageParam?: number, search?: string, sort?: 'createdAt' | 'reservationCount') {
+    const s = search?.trim();
+    const where: Prisma.RestaurantEventWhereInput = {
+      moderationStatus: status,
+      OR: s
+        ? [
+            { titleEn: { contains: s, mode: 'insensitive' } },
+            { titleAr: { contains: s, mode: 'insensitive' } },
+            { restaurant: { nameEn: { contains: s, mode: 'insensitive' } } },
+            { restaurant: { codeNumber: { contains: s, mode: 'insensitive' } } },
+          ]
+        : undefined,
+    };
+    const { page, skip, take } = pageOffset(pageParam);
+    // Note: this orderBy counts ALL reservations regardless of status —
+    // Prisma's relation-count ordering can't apply the same active-statuses
+    // filter the _count select below does, so "busiest first" is close to
+    // but not exactly "most active reservations first" once paginated.
+    const orderBy: Prisma.RestaurantEventOrderByWithRelationInput[] =
+      sort === 'reservationCount' ? [{ reservations: { _count: 'desc' } }, { createdAt: 'desc' }] : [{ createdAt: 'desc' }];
+
+    const [items, total] = await Promise.all([
+      this.prisma.db.restaurantEvent.findMany({
+        where,
+        select: {
+          ...eventSelect,
+          restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
+          // Only active-statused bookings count as "real" demand — a cancelled
+          // request shouldn't inflate what admin sees as a busy event.
+          _count: { select: { reservations: { where: { status: { in: [...ACTIVE_STATUSES] } } } } },
+        },
+        orderBy,
+        skip,
+        take,
+      }),
+      this.prisma.db.restaurantEvent.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
   }
 
   async adminEventReservations(eventId: string) {

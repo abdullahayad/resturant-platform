@@ -14,6 +14,7 @@ describe('DishesService', () => {
           findMany: jest.fn(),
           findUnique: jest.fn(),
           update: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
       },
     };
@@ -56,16 +57,16 @@ describe('DishesService', () => {
   });
 
   describe('adminList', () => {
-    it('passes the requested moderation status through to the query', () => {
-      service.adminList('FLAGGED');
+    it('passes the requested moderation status through to the query', async () => {
+      await service.adminList('FLAGGED');
 
       expect(prisma.db.dish.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { isActive: true, moderationStatus: 'FLAGGED' } }),
       );
     });
 
-    it('omits the moderation-status filter (returns all statuses) when none is given', () => {
-      service.adminList();
+    it('omits the moderation-status filter (returns all statuses) when none is given', async () => {
+      await service.adminList();
 
       expect(prisma.db.dish.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { isActive: true, moderationStatus: undefined } }),

@@ -1,4 +1,5 @@
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { PageQueryDto } from '../../common/pagination';
 
 export class RejectRestaurantDto {
   @IsOptional()
@@ -17,7 +18,7 @@ export class ModeratePublishDto {
   rejectionReason?: string;
 }
 
-export class ListRestaurantsQuery {
+export class ListRestaurantsQuery extends PageQueryDto {
   @IsOptional()
   @IsIn(['PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED'])
   status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';

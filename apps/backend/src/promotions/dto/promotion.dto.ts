@@ -16,6 +16,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+import { PageQueryDto } from '../../common/pagination';
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const DISCOUNT_TYPES = ['PERCENTAGE', 'FIXED_AMOUNT'] as const;
@@ -185,7 +186,7 @@ export class ModeratePromotionDto {
 
 const PROMOTION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 
-export class ListPromotionsQuery {
+export class ListPromotionsQuery extends PageQueryDto {
   @IsOptional()
   @IsIn(PROMOTION_STATUSES)
   status?: (typeof PROMOTION_STATUSES)[number];
