@@ -149,8 +149,11 @@ export function MenuManagementScreen() {
     if (editingId === id) resetForm();
   };
 
-  const renderDish = ({ item: dish }: { item: Dish }) => (
+  const renderDish = ({ item: dish, index }: { item: Dish; index: number }) => (
     <View style={styles.dishCard}>
+      <View style={styles.srNoBadge}>
+        <Text style={styles.srNoText}>{index + 1}</Text>
+      </View>
       {dish.photoUrl ? (
         <Image source={{ uri: dish.photoUrl }} style={styles.dishImage} />
       ) : (
@@ -309,6 +312,20 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.card,
     overflow: 'hidden',
   },
+  srNoBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 1,
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 5,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  srNoText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   dishImage: { width: '100%', height: 120, backgroundColor: colors.secondary },
   dishBody: { padding: 12, gap: 4 },
   dishName: { color: colors.foreground, fontSize: 14, fontWeight: '600' },
