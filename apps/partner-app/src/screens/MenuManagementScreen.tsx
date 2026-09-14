@@ -14,6 +14,7 @@ import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
 import { localizedName } from '../lib/localizedName';
 import { useLanguage } from '../i18n/LanguageContext';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { api, type Dish, type MasterDataItem } from '../lib/api';
 
 const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as string | null, photoUrl: '', isMostOrdered: false };
@@ -30,7 +31,6 @@ export function MenuManagementScreen() {
   const { width } = useWindowDimensions();
   const numColumns = Math.max(1, Math.floor(width / (CARD_WIDTH + CARD_GAP)));
 
-  const [dishes, setDishes] = useState<Dish[]>([]);
   const [categories, setCategories] = useState<MasterDataItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -42,16 +42,19 @@ export function MenuManagementScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const loadAll = useCallback(() => {
-    Promise.all([api.myDishes(token), api.menuCategories()])
-      .then(([d, c]) => {
-        setDishes(d);
-        setCategories(c);
-      })
-      .catch(() => setLoadError(t('common:networkError')));
-  }, [token, t]);
+  const fetchPage = useCallback((page: number) => api.browseDishes(token, page), [token]);
+  const { items: dishes, setItems: setDishes, loading, loadingMore, error, reload, loadMore } =
+    usePaginatedList(fetchPage);
 
-  useEffect(loadAll, [loadAll]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
+  useEffect(() => {
+    api.menuCategories().then(setCategories).catch(() => setLoadError(t('common:networkError')));
+  }, [t]);
+  useEffect(() => {
+    if (error) setLoadError(t('common:networkError'));
+  }, [error, t]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -197,6 +200,9 @@ export function MenuManagementScreen() {
       numColumns={numColumns}
       columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
       contentContainerStyle={styles.container}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.4}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.primary} /> : null}
       ListHeaderComponent={
         <View style={styles.headerGroup}>
           <Text style={styles.title}>{t('title')}</Text>
@@ -270,7 +276,7 @@ export function MenuManagementScreen() {
           </View>
         </View>
       }
-      ListEmptyComponent={!loadError ? <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} /> : null}
+      ListEmptyComponent={!loadError && !loading ? <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} /> : null}
     />
   );
 }
@@ -304,6 +310,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   secondaryButton: { borderWidth: 1, borderColor: colors.border },
   secondaryButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 13 },
   gridRow: { gap: CARD_GAP, marginBottom: CARD_GAP },
+  footerSpinner: { paddingVertical: 16 },
   dishCard: {
     width: CARD_WIDTH,
     borderRadius: 14,

@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next';
 import { Percent } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
@@ -58,7 +59,6 @@ export function PromotionsScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('promotions');
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [promotions, setPromotions] = useState<PromotionItem[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -66,16 +66,29 @@ export function PromotionsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const loadAll = useCallback(() => {
-    Promise.all([api.myPromotions(token), api.myDishes(token)])
-      .then(([mine, myDishes]) => {
-        setPromotions(mine);
-        setDishes(myDishes);
-      })
-      .catch(() => setLoadError(t('common:networkError')));
-  }, [token, t]);
+  const fetchPage = useCallback((page: number) => api.myPromotions(token, page), [token]);
+  const {
+    items: promotions,
+    setItems: setPromotions,
+    loading,
+    loadingMore,
+    error,
+    reload,
+    loadMore,
+    hasMore,
+  } = usePaginatedList(fetchPage);
 
-  useEffect(loadAll, [loadAll]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
+  useEffect(() => {
+    // The specific-dishes picker below needs every dish at once, unlike the
+    // (paginated) promotions list above - api.myDishes stays unpaginated.
+    api.myDishes(token).then(setDishes).catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
+  useEffect(() => {
+    if (error) setLoadError(t('common:networkError'));
+  }, [error, t]);
 
   const submit = async () => {
     setFormError(null);
@@ -195,7 +208,12 @@ export function PromotionsScreen() {
             </View>
           </View>
         ))}
-        {promotions.length === 0 && !loadError && <EmptyState icon={Percent} message={t('noPromotionsYet')} />}
+        {!loading && promotions.length === 0 && !loadError && <EmptyState icon={Percent} message={t('noPromotionsYet')} />}
+        {hasMore && (
+          <Pressable style={styles.loadMoreButton} onPress={loadMore} disabled={loadingMore}>
+            {loadingMore ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.loadMoreText}>{t('common:loadMore')}</Text>}
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.formCard}>
@@ -306,6 +324,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   row: { flexDirection: 'row', gap: 12 },
 
   list: { gap: 12 },
+  loadMoreButton: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 20 },
+  loadMoreText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
   card: {
     borderRadius: 14,
     borderWidth: 1,

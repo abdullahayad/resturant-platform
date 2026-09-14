@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { FormField } from '../components/FormField';
 import { StarRating } from '../components/StarRating';
 import { EmptyState } from '../components/EmptyState';
@@ -27,7 +28,6 @@ export function CustomerReviewsScreen() {
   const { t } = useTranslation('reviews');
   const tier = useBreakpoint();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
@@ -40,24 +40,32 @@ export function CustomerReviewsScreen() {
   const [suggestingId, setSuggestingId] = useState<string | null>(null);
   const [suggestErrors, setSuggestErrors] = useState<Record<string, string>>({});
 
-  const load = useCallback(() => {
-    Promise.all([api.myReviews(token), api.reviewsSummary(token)])
-      .then(([r, s]) => {
-        setReviews(r);
-        setSummary(s);
-      })
+  // The star filter now runs server-side (the backend already excludes
+  // HIDDEN reviews too, a filter that used to happen client-side) - it's
+  // in fetchPage's deps so picking a star re-runs reload() with the new
+  // filter, starting back at page 1.
+  const fetchPage = useCallback(
+    (page: number) => api.myReviews(token, page, starFilter ?? undefined),
+    [token, starFilter],
+  );
+  const { items: visibleReviews, setItems: setReviews, loadingMore, error, reload, loadMore } =
+    usePaginatedList(fetchPage);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+  useEffect(() => {
+    api
+      .reviewsSummary(token)
+      .then(setSummary)
       .catch(() => setLoadError(t('common:networkError')));
   }, [token, t]);
-
-  useEffect(load, [load]);
+  useEffect(() => {
+    if (error) setLoadError(t('common:networkError'));
+  }, [error, t]);
   useEffect(() => {
     setReviewsLastSeen(new Date().toISOString());
   }, []);
-
-  const visibleReviews = useMemo(() => {
-    const list = reviews.filter((r) => r.moderationStatus !== 'HIDDEN');
-    return starFilter ? list.filter((r) => r.rating === starFilter) : list;
-  }, [reviews, starFilter]);
 
   const submitReply = async (reviewId: string) => {
     const text = replyDrafts[reviewId]?.trim();
@@ -177,6 +185,9 @@ export function CustomerReviewsScreen() {
       renderItem={renderReview}
       ItemSeparatorComponent={() => <View style={styles.reviewSeparator} />}
       contentContainerStyle={styles.container}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.4}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.primary} /> : null}
       ListHeaderComponent={
         <View style={styles.headerGroup}>
           <Text style={styles.title}>{t('title')}</Text>
@@ -282,6 +293,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 24, maxWidth: 900 },
   headerGroup: { gap: 20 },
   reviewSeparator: { height: 12 },
+  footerSpinner: { paddingVertical: 16 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
 

@@ -21,8 +21,8 @@ export function AnnouncementBanner({ active, onView }: AnnouncementBannerProps) 
 
   useEffect(() => {
     api
-      .announcements(token)
-      .then((list) => setUnreadCount(list.filter((a) => !a.readAt).length))
+      .unreadAnnouncementsCount(token)
+      .then(({ count }) => setUnreadCount(count))
       .catch(() => {});
   }, [token, active]);
 

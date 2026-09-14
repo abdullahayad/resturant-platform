@@ -34,6 +34,13 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   unauthorizedHandler = handler;
 }
 
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface MasterDataItem {
   id: string;
   nameEn: string;
@@ -451,6 +458,18 @@ async function send<T>(
   return data;
 }
 
+// Builds a "?a=1&b=2" query string from an object, skipping any key whose
+// value is undefined, null, or an empty string.
+function qsFrom(params: Record<string, string | number | undefined | null>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue;
+    search.set(key, String(value));
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : '';
+}
+
 export const api = {
   businessTypes: () => get<MasterDataItem[]>('/master-data/business-types'),
   foodCategories: () => get<MasterDataItem[]>('/master-data/food-categories'),
@@ -538,7 +557,12 @@ export const api = {
     send<Story>('POST', '/restaurants/me/stories', token, { mediaUrl, mediaType, caption }),
 
   menuCategories: () => get<MasterDataItem[]>('/master-data/menu-categories'),
+  // Full, unpaginated - other screens (Photo Gallery's dish picker,
+  // Promotions' specific-dishes picker) need every dish at once. Menu
+  // Management's own browsing view uses browseDishes() instead.
   myDishes: (token: string) => get<Dish[]>('/restaurants/me/dishes', token),
+  browseDishes: (token: string, page?: number) =>
+    get<Paginated<Dish>>(`/restaurants/me/dishes/browse${qsFrom({ page })}`, token),
   createDish: (token: string, payload: DishPayload) =>
     send<Dish>('POST', '/restaurants/me/dishes', token, payload),
   updateDish: (token: string, id: string, payload: Partial<DishPayload>) =>
@@ -546,8 +570,25 @@ export const api = {
   deleteDish: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/dishes/${id}`, token),
 
-  gallery: (token: string, album?: GalleryAlbum) =>
-    get<GalleryPhoto[]>(`/restaurants/me/gallery${album ? `?album=${album}` : ''}`, token),
+  // Fetches one tab's slice at a time (paginated) rather than every photo
+  // at once - mostOrdered/menuCategoryId only apply within the FOOD album,
+  // ambienceSubCategory only within AMBIENCE.
+  gallery: (
+    token: string,
+    album?: GalleryAlbum,
+    filters?: { mostOrdered?: boolean; menuCategoryId?: string; ambienceSubCategory?: AmbienceSubCategory },
+    page?: number,
+  ) =>
+    get<Paginated<GalleryPhoto>>(
+      `/restaurants/me/gallery${qsFrom({
+        album,
+        mostOrdered: filters?.mostOrdered ? 'true' : undefined,
+        menuCategoryId: filters?.menuCategoryId,
+        ambienceSubCategory: filters?.ambienceSubCategory,
+        page,
+      })}`,
+      token,
+    ),
   addGalleryPhoto: (token: string, payload: CreateGalleryPhotoPayload) =>
     send<GalleryPhoto>('POST', '/restaurants/me/gallery', token, payload),
   deleteGalleryPhoto: (token: string, id: string) =>
@@ -566,7 +607,10 @@ export const api = {
       payload,
     ),
 
-  myReviews: (token: string) => get<Review[]>('/restaurants/me/reviews', token),
+  myReviews: (token: string, page?: number, rating?: number) =>
+    get<Paginated<Review>>(`/restaurants/me/reviews${qsFrom({ page, rating })}`, token),
+  newReviewsCount: (token: string, since: string) =>
+    get<{ count: number }>(`/restaurants/me/reviews/new-count${qsFrom({ since })}`, token),
   reviewsSummary: (token: string) => get<ReviewSummary>('/restaurants/me/reviews/summary', token),
   replyToReview: (token: string, reviewId: string, text: string) =>
     send<Review>('POST', `/restaurants/me/reviews/${reviewId}/reply`, token, { text }),
@@ -603,7 +647,9 @@ export const api = {
   cancelFeaturedRequest: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/featured/${id}`, token),
 
-  announcements: (token: string) => get<Announcement[]>('/restaurants/me/announcements', token),
+  announcements: (token: string, page?: number) =>
+    get<Paginated<Announcement>>(`/restaurants/me/announcements${qsFrom({ page })}`, token),
+  unreadAnnouncementsCount: (token: string) => get<{ count: number }>('/restaurants/me/announcements/unread-count', token),
   markAnnouncementRead: (token: string, id: string) =>
     send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/read`, token),
   markAnnouncementAcknowledged: (token: string, id: string) =>
@@ -611,7 +657,9 @@ export const api = {
   replyToAnnouncement: (token: string, id: string, text: string) =>
     send<Announcement>('PATCH', `/restaurants/me/announcements/${id}/reply`, token, { text }),
 
-  myPromotions: (token: string) => get<PromotionItem[]>('/restaurants/me/promotions', token),
+  myPromotions: (token: string, page?: number) =>
+    get<Paginated<PromotionItem>>(`/restaurants/me/promotions${qsFrom({ page })}`, token),
+  rejectedPromotionsCount: (token: string) => get<{ count: number }>('/restaurants/me/promotions/rejected-count', token),
   createPromotion: (token: string, payload: PromotionPayload) =>
     send<PromotionItem>('POST', '/restaurants/me/promotions', token, payload),
   updatePromotion: (token: string, id: string, payload: Partial<PromotionPayload> & { isActive?: boolean }) =>
@@ -619,7 +667,10 @@ export const api = {
   deletePromotion: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/promotions/${id}`, token),
 
+  // Full, unpaginated - the calendar view needs every reservation to show
+  // accurate day counts across a month, not just a page of them.
   myReservations: (token: string) => get<ReservationItem[]>('/restaurants/me/reservations', token),
+  pendingReservationsCount: (token: string) => get<{ count: number }>('/restaurants/me/reservations/pending-count', token),
   updateReservationStatus: (token: string, id: string, status: ReservationStatus) =>
     send<ReservationItem>('PATCH', `/restaurants/me/reservations/${id}`, token, { status }),
 

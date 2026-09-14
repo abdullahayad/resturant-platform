@@ -9,6 +9,7 @@ import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { resizeForUpload } from '../lib/resizeImage';
 import { localizedName } from '../lib/localizedName';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -43,7 +44,6 @@ export function PhotoGalleryScreen() {
     { key: 'OTHER', label: t('ambienceTabs.other') },
   ];
 
-  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -55,16 +55,46 @@ export function PhotoGalleryScreen() {
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAll = useCallback(() => {
-    Promise.all([api.gallery(token), api.myDishes(token)])
-      .then(([p, d]) => {
-        setPhotos(p);
-        setDishes(d);
-      })
-      .catch(() => setLoadError(t('common:networkError')));
-  }, [token, t]);
+  // Fetches exactly the current tab's slice (paginated), refetching from
+  // page 1 whenever the album or one of its sub-filters changes - replaced
+  // fetching every photo once and slicing it client-side into 4 tabs at
+  // once, which stopped showing a tab's real content once a restaurant had
+  // enough photos that it wasn't all on the first fetch.
+  const fetchPage = useCallback(
+    (page: number) =>
+      api.gallery(
+        token,
+        album,
+        {
+          mostOrdered: album === 'FOOD' && foodTab === 'MOST_ORDERED',
+          menuCategoryId: album === 'FOOD' && foodTab !== 'ALL' && foodTab !== 'MOST_ORDERED' ? foodTab : undefined,
+          ambienceSubCategory: album === 'AMBIENCE' ? ambienceTab : undefined,
+        },
+        page,
+      ),
+    [token, album, foodTab, ambienceTab],
+  );
+  const {
+    items: activeList,
+    setItems: setPhotos,
+    loading,
+    loadingMore,
+    error: photosError,
+    reload,
+    loadMore,
+  } = usePaginatedList(fetchPage);
 
-  useEffect(loadAll, [loadAll]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
+  useEffect(() => {
+    // The "add to dish" picker and the food-category tabs both need every
+    // dish at once, unlike the (paginated) photo list above.
+    api.myDishes(token).then(setDishes).catch(() => setLoadError(t('common:networkError')));
+  }, [token, t]);
+  useEffect(() => {
+    if (photosError) setLoadError(t('common:networkError'));
+  }, [photosError, t]);
 
   const foodCategoryTabs = useMemo(() => {
     const seen = new Map<string, { label: string; sortOrder: number }>();
@@ -77,20 +107,6 @@ export function PhotoGalleryScreen() {
       (a, b) => a.sortOrder - b.sortOrder,
     );
   }, [dishes, language]);
-
-  const foodPhotos = useMemo(() => {
-    const list = photos.filter((p) => p.album === 'FOOD');
-    if (foodTab === 'ALL') return list;
-    if (foodTab === 'MOST_ORDERED') return list.filter((p) => p.dish?.isMostOrdered);
-    return list.filter((p) => p.dish?.menuCategory?.id === foodTab);
-  }, [photos, foodTab]);
-
-  const menuPhotos = useMemo(() => photos.filter((p) => p.album === 'MENU'), [photos]);
-  const ambiencePhotos = useMemo(
-    () => photos.filter((p) => p.album === 'AMBIENCE' && p.ambienceSubCategory === ambienceTab),
-    [photos, ambienceTab],
-  );
-  const reviewPhotos = useMemo(() => photos.filter((p) => p.album === 'REVIEW'), [photos]);
 
   const addPhoto = async () => {
     setError(null);
@@ -124,7 +140,7 @@ export function PhotoGalleryScreen() {
         dishId: album === 'FOOD' ? (selectedDishId ?? undefined) : undefined,
         ambienceSubCategory: album === 'AMBIENCE' ? ambienceTab : undefined,
       });
-      loadAll();
+      reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('uploadFailed'));
     } finally {
@@ -137,9 +153,6 @@ export function PhotoGalleryScreen() {
     await api.deleteGalleryPhoto(token, id);
     setPhotos((prev) => prev.filter((p) => p.id !== id));
   };
-
-  const activeList =
-    album === 'FOOD' ? foodPhotos : album === 'MENU' ? menuPhotos : album === 'AMBIENCE' ? ambiencePhotos : reviewPhotos;
 
   const renderPhoto = ({ item: photo }: { item: GalleryPhoto }) => (
     <View style={styles.photoCard}>
@@ -161,6 +174,9 @@ export function PhotoGalleryScreen() {
       numColumns={numColumns}
       columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
       contentContainerStyle={styles.container}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.4}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.primary} /> : null}
       ListHeaderComponent={
         <View style={styles.headerGroup}>
           <Text style={styles.title}>{t('title')}</Text>
@@ -231,7 +247,7 @@ export function PhotoGalleryScreen() {
         </View>
       }
       ListEmptyComponent={
-        !localPreview ? (
+        !localPreview && !loading ? (
           <EmptyState icon={ImageOff} message={album === 'REVIEW' ? t('noReviewPhotosYet') : t('noPhotosYet')} />
         ) : null
       }
@@ -255,6 +271,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
   gridRow: { gap: CARD_GAP, marginBottom: CARD_GAP },
+  footerSpinner: { paddingVertical: 16 },
   photoCard: {
     position: 'relative',
     width: CARD_WIDTH,

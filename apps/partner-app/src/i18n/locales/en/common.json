@@ -28,6 +28,7 @@
   "networkError": "Could not reach the server. Check your connection and try again.",
   "wakingUpServer": "Still loading — the server may be waking up, this can take up to a minute.",
   "soon": "Soon",
+  "loadMore": "Load more",
   "introTaglineWord1": "Pick",
   "introTaglineWord2": "Better",
   "introTaglineWord3": "Today",

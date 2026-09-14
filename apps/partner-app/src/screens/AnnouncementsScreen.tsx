@@ -6,6 +6,7 @@ import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Announcement, type RestaurantDetail } from '../lib/api';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { radii } from '../theme/tokens';
@@ -48,33 +49,37 @@ function AnnouncementsSection() {
   const { colors } = useTheme();
   const { t } = useTranslation('announcements');
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const markedRead = useRef(false);
+  // Ids already sent to markAnnouncementRead - dedupes across re-renders and
+  // across pages, since loadMore appends a new batch that may itself have
+  // unread items needing the same treatment as the first page did.
+  const markedIds = useRef<Set<string>>(new Set());
 
-  const load = useCallback(() => {
-    markedRead.current = false;
-    api.announcements(token).then(setAnnouncements).catch(() => setAnnouncements([]));
-  }, [token]);
+  const fetchPage = useCallback((page: number) => api.announcements(token, page), [token]);
+  const { items: announcements, setItems: setAnnouncements, loading, loadingMore, reload, loadMore, hasMore } =
+    usePaginatedList(fetchPage);
 
-  useEffect(load, [load]);
-
-  // Visiting this screen counts as having seen whatever's currently unread —
-  // runs once per fresh load, not on every local state update below.
   useEffect(() => {
-    if (!announcements || markedRead.current) return;
-    markedRead.current = true;
-    const unread = announcements.filter((a) => !a.readAt);
-    if (unread.length === 0) return;
-    unread.forEach((a) => {
+    reload();
+  }, [reload]);
+
+  // Visiting this screen counts as having seen whatever's currently loaded
+  // and unread - re-runs as loadMore brings in further pages, so each newly
+  // loaded batch gets the same treatment the first page did.
+  useEffect(() => {
+    const toMark = announcements.filter((a) => !a.readAt && !markedIds.current.has(a.id));
+    if (toMark.length === 0) return;
+    toMark.forEach((a) => markedIds.current.add(a.id));
+    toMark.forEach((a) => {
       api.markAnnouncementRead(token, a.notification.id).catch(() => {});
     });
+    const toMarkIds = new Set(toMark.map((a) => a.id));
     setAnnouncements((prev) =>
-      prev ? prev.map((a) => (a.readAt ? a : { ...a, readAt: new Date().toISOString() })) : prev,
+      prev.map((a) => (toMarkIds.has(a.id) ? { ...a, readAt: new Date().toISOString() } : a)),
     );
-  }, [announcements, token]);
+  }, [announcements, token, setAnnouncements]);
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -89,9 +94,7 @@ function AnnouncementsSection() {
     setBusyId(notificationId);
     try {
       const updated = await api.markAnnouncementAcknowledged(token, notificationId);
-      setAnnouncements((prev) =>
-        prev ? prev.map((a) => (a.notification.id === notificationId ? updated : a)) : prev,
-      );
+      setAnnouncements((prev) => prev.map((a) => (a.notification.id === notificationId ? updated : a)));
     } finally {
       setBusyId(null);
     }
@@ -103,9 +106,7 @@ function AnnouncementsSection() {
     setBusyId(notificationId);
     try {
       const updated = await api.replyToAnnouncement(token, notificationId, text);
-      setAnnouncements((prev) =>
-        prev ? prev.map((a) => (a.notification.id === notificationId ? updated : a)) : prev,
-      );
+      setAnnouncements((prev) => prev.map((a) => (a.notification.id === notificationId ? updated : a)));
       setReplyDrafts((prev) => {
         const next = { ...prev };
         delete next[notificationId];
@@ -120,7 +121,7 @@ function AnnouncementsSection() {
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('announcementsSectionTitle')}</Text>
 
-      {announcements === null ? (
+      {loading ? (
         <LoadingState />
       ) : announcements.length === 0 ? (
         <EmptyState icon={Inbox} message={t('noAnnouncementsYet')} />
@@ -213,6 +214,11 @@ function AnnouncementsSection() {
             );
           })}
         </View>
+      )}
+      {hasMore && (
+        <Pressable style={styles.loadMoreButton} onPress={loadMore} disabled={loadingMore}>
+          {loadingMore ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.loadMoreText}>{t('common:loadMore')}</Text>}
+        </Pressable>
       )}
     </View>
   );
@@ -421,6 +427,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.card,
     overflow: 'hidden',
   },
+  loadMoreButton: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 20 },
+  loadMoreText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
