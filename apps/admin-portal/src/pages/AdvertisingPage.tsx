@@ -59,7 +59,7 @@ export function AdvertisingPage() {
 
   useEffect(load, [filter])
   useEffect(() => {
-    api.restaurants({ status: 'APPROVED' }).then(setRestaurants).catch(() => {})
+    api.restaurantsPicker('APPROVED').then(setRestaurants).catch(() => {})
   }, [])
 
   const approve = async (id: string) => {

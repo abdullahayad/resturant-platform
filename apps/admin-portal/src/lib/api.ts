@@ -6,6 +6,13 @@ import { auth, type AdminProfile } from './auth'
 // own local database.
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000') + '/v1'
 
+export interface Paginated<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 export type RestaurantStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
 export type PublishStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -405,6 +412,19 @@ async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, body?:
   return handle<T>(res)
 }
 
+// Builds a "?a=1&b=2" query string from an object, skipping any key whose
+// value is undefined, null, or an empty string — used by every paginated
+// list call below so each one doesn't have to hand-build its own params.
+function qsFrom(params: Record<string, string | number | undefined | null>): string {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue
+    search.set(key, String(value))
+  }
+  const qs = search.toString()
+  return qs ? `?${qs}` : ''
+}
+
 export const api = {
   async login(email: string, password: string): Promise<{ accessToken: string; admin: AdminProfile }> {
     const res = await fetch(`${API_BASE_URL}/auth/admin/login`, {
@@ -425,6 +445,7 @@ export const api = {
     businessTypeId?: string
     foodCategoryId?: string
     search?: string
+    page?: number
   }) => {
     const params = new URLSearchParams()
     if (filters?.status) params.set('status', filters.status)
@@ -434,9 +455,14 @@ export const api = {
     if (filters?.businessTypeId) params.set('businessTypeId', filters.businessTypeId)
     if (filters?.foodCategoryId) params.set('foodCategoryId', filters.foodCategoryId)
     if (filters?.search) params.set('search', filters.search)
+    if (filters?.page) params.set('page', String(filters.page))
     const qs = params.toString()
-    return get<RestaurantListItem[]>(`/restaurants${qs ? `?${qs}` : ''}`)
+    return get<Paginated<RestaurantListItem>>(`/restaurants${qs ? `?${qs}` : ''}`)
   },
+  // Full, unpaginated - for "pick a restaurant" dropdowns (Advertising's
+  // grant-placement picker, Feature Flags' and Notifications' targeting
+  // pickers), unlike the (now paginated) restaurants() browsing list above.
+  restaurantsPicker: (status?: RestaurantStatus) => get<RestaurantListItem[]>(`/restaurants/picker${qsFrom({ status })}`),
   restaurant: (id: string) => get<RestaurantDetail>(`/restaurants/${id}`),
   approve: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/approve`),
   reject: (id: string, reason?: string) =>
@@ -449,22 +475,27 @@ export const api = {
   moderatePublish: (id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/publish-moderate`, { status, rejectionReason }),
 
-  moderatableDishes: (status?: ModerationStatus) =>
-    get<ModeratableDishItem[]>(`/admin/dishes${status ? `?status=${status}` : ''}`),
+  moderatableDishes: (status?: ModerationStatus, page?: number) =>
+    get<Paginated<ModeratableDishItem>>(`/admin/dishes${qsFrom({ status, page })}`),
   moderateDish: (id: string, status: ModerationStatus) =>
     send<ModeratableDishItem>('PATCH', `/admin/dishes/${id}/moderate`, { status }),
 
-  moderatableGalleryPhotos: (status?: ModerationStatus) =>
-    get<ModeratableGalleryPhotoItem[]>(`/admin/gallery-photos${status ? `?status=${status}` : ''}`),
+  moderatableGalleryPhotos: (status?: ModerationStatus, page?: number) =>
+    get<Paginated<ModeratableGalleryPhotoItem>>(`/admin/gallery-photos${qsFrom({ status, page })}`),
   moderateGalleryPhoto: (id: string, status: ModerationStatus) =>
     send<ModeratableGalleryPhotoItem>('PATCH', `/admin/gallery-photos/${id}/moderate`, { status }),
 
-  moderatableEvents: (status?: ModerationStatus) =>
-    get<ModeratableEventItem[]>(`/admin/events${status ? `?status=${status}` : ''}`),
+  moderatableEvents: (status?: ModerationStatus, page?: number) =>
+    get<Paginated<ModeratableEventItem>>(`/admin/events${qsFrom({ status, page })}`),
   moderateEvent: (id: string, status: ModerationStatus) =>
     send<ModeratableEventItem>('PATCH', `/admin/events/${id}/moderate`, { status }),
 
-  adminEvents: () => get<AdminEventItem[]>('/admin/events'),
+  // Busiest-first, with optional search across title/restaurant - a
+  // different view onto the same /admin/events endpoint moderatableEvents
+  // above uses (see events.service.ts's adminList for why one endpoint
+  // supports both).
+  adminEvents: (search?: string, page?: number) =>
+    get<Paginated<AdminEventItem>>(`/admin/events${qsFrom({ search, page, sort: 'reservationCount' })}`),
   adminEventReservations: (id: string) => get<AdminEventReservationItem[]>(`/admin/events/${id}/reservations`),
 
   masterData: (kind: MasterDataKind) => get<MasterDataItemFull[]>(`/master-data/admin/${kind}`),
@@ -488,7 +519,7 @@ export const api = {
     send<District>('PATCH', `/master-data/admin/districts/${id}`, payload),
   deleteDistrict: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/districts/${id}`),
 
-  reviews: (status?: ModerationStatus) => get<ReviewItem[]>(`/reviews${status ? `?status=${status}` : ''}`),
+  reviews: (status?: ModerationStatus, page?: number) => get<Paginated<ReviewItem>>(`/reviews${qsFrom({ status, page })}`),
   moderateReview: (id: string, status: ModerationStatus) =>
     send<ReviewItem>('PATCH', `/reviews/${id}/moderate`, { status }),
 
@@ -499,8 +530,8 @@ export const api = {
   updateAdminUser: (id: string, payload: Partial<Pick<AdminUserItem, 'fullName' | 'role' | 'isActive'>>) =>
     send<AdminUserItem>('PATCH', `/admin-users/${id}`, payload),
 
-  promotions: (status?: PromotionStatus) =>
-    get<PromotionItem[]>(`/admin/promotions${status ? `?status=${status}` : ''}`),
+  promotions: (status?: PromotionStatus, page?: number) =>
+    get<Paginated<PromotionItem>>(`/admin/promotions${qsFrom({ status, page })}`),
   moderatePromotion: (id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>
     send<PromotionItem>('PATCH', `/admin/promotions/${id}/moderate`, { status, rejectionReason }),
 

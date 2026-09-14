@@ -4,6 +4,9 @@ import { api, UnauthorizedError, type ModerationStatus } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { FilterTabs } from '@/components/FilterTabs'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
+import { Pager } from '@/components/Pager'
+
+const PAGE_SIZE = 20
 
 type ContentType = 'dish' | 'photo' | 'event'
 
@@ -43,6 +46,14 @@ export function ContentModerationPage() {
   const [statusFilter, setStatusFilter] = useState<ModerationStatus | 'ALL'>('FLAGGED')
   const [typeFilter, setTypeFilter] = useState<ContentType | 'ALL'>('ALL')
   const [items, setItems] = useState<FeedItem[]>([])
+  // This feed merges 3 independently-paginated sources (dishes/photos/
+  // events), each fetched at the same shared `page` and up to PAGE_SIZE
+  // items. `total` is the largest of the 3 sources' totals, so the pager
+  // keeps advancing until every source is exhausted — the type filter below
+  // only narrows what's displayed from whatever page is currently loaded,
+  // it doesn't change how many pages there are.
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -50,8 +61,15 @@ export function ContentModerationPage() {
   const load = () => {
     setLoading(true)
     const status = statusFilter === 'ALL' ? undefined : statusFilter
-    Promise.all([api.moderatableDishes(status), api.moderatableGalleryPhotos(status), api.moderatableEvents(status)])
-      .then(([dishes, photos, events]) => {
+    Promise.all([
+      api.moderatableDishes(status, page),
+      api.moderatableGalleryPhotos(status, page),
+      api.moderatableEvents(status, page),
+    ])
+      .then(([dishesRes, photosRes, eventsRes]) => {
+        const dishes = dishesRes.items
+        const photos = photosRes.items
+        const events = eventsRes.items
         const merged: FeedItem[] = [
           ...dishes.map((d) => ({
             id: d.id,
@@ -85,6 +103,7 @@ export function ContentModerationPage() {
           })),
         ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         setItems(merged)
+        setTotal(Math.max(dishesRes.total, photosRes.total, eventsRes.total))
       })
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
@@ -93,7 +112,7 @@ export function ContentModerationPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [statusFilter])
+  useEffect(load, [statusFilter, page])
 
   const moderate = async (item: FeedItem, status: ModerationStatus) => {
     setBusyId(item.id)
@@ -118,7 +137,14 @@ export function ContentModerationPage() {
         </p>
       </div>
 
-      <FilterTabs options={statusFilters} active={statusFilter} onChange={setStatusFilter} />
+      <FilterTabs
+        options={statusFilters}
+        active={statusFilter}
+        onChange={(v) => {
+          setStatusFilter(v)
+          setPage(1)
+        }}
+      />
 
       <div className="flex flex-wrap gap-2">
         {typeFilters.map((f) => (
@@ -184,6 +210,8 @@ export function ContentModerationPage() {
           </div>
         )}
       </div>
+
+      <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }

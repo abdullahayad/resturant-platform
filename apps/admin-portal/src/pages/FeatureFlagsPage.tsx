@@ -75,7 +75,7 @@ export function FeatureFlagsPage() {
   useEffect(load, [])
   useEffect(() => {
     api.provinces().then(setProvinces).catch(() => {})
-    api.restaurants({ status: 'APPROVED' }).then(setRestaurants).catch(() => {})
+    api.restaurantsPicker('APPROVED').then(setRestaurants).catch(() => {})
   }, [])
 
   const toggleDefault = async (flag: FeatureFlagItem) => {

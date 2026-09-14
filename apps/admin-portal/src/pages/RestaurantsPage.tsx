@@ -13,6 +13,7 @@ import { downloadCsv } from '@/lib/csv'
 import { Switch } from '@/components/Switch'
 import { FilterTabs } from '@/components/FilterTabs'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
+import { Pager } from '@/components/Pager'
 
 const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -46,6 +47,9 @@ export function RestaurantsPage() {
   const [foodCategories, setFoodCategories] = useState<MasterDataItemFull[]>([])
 
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -63,19 +67,29 @@ export function RestaurantsPage() {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
     return () => clearTimeout(timer)
   }, [search])
+  // A new search term always starts back at page 1 — the other filters
+  // reset page themselves in their own onChange handlers below, avoiding a
+  // duplicate fetch that a shared "reset on any filter change" effect
+  // would otherwise cause alongside this one.
+  useEffect(() => setPage(1), [debouncedSearch])
+
+  const currentFilters = () => ({
+    status: filter === 'ALL' ? undefined : filter,
+    provinceId: provinceId === ALL ? undefined : provinceId,
+    districtId: districtId === ALL ? undefined : districtId,
+    businessTypeId: businessTypeId === ALL ? undefined : businessTypeId,
+    foodCategoryId: foodCategoryId === ALL ? undefined : foodCategoryId,
+    search: debouncedSearch || undefined,
+  })
 
   const load = () => {
     setLoading(true)
     api
-      .restaurants({
-        status: filter === 'ALL' ? undefined : filter,
-        provinceId: provinceId === ALL ? undefined : provinceId,
-        districtId: districtId === ALL ? undefined : districtId,
-        businessTypeId: businessTypeId === ALL ? undefined : businessTypeId,
-        foodCategoryId: foodCategoryId === ALL ? undefined : foodCategoryId,
-        search: debouncedSearch || undefined,
+      .restaurants({ ...currentFilters(), page })
+      .then((res) => {
+        setRestaurants(res.items)
+        setTotal(res.total)
       })
-      .then(setRestaurants)
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
@@ -83,16 +97,24 @@ export function RestaurantsPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [filter, provinceId, districtId, businessTypeId, foodCategoryId, debouncedSearch])
+  useEffect(load, [filter, provinceId, districtId, businessTypeId, foodCategoryId, debouncedSearch, page])
 
   const selectedProvince = provinces.find((p) => p.id === provinceId)
 
-  // Exports exactly what's currently on screen — respects whatever
-  // status/city/category/search filters are applied at the time.
-  const exportCsv = () => {
+  // Exports every restaurant matching the current filters, not just the
+  // page on screen — walks every page at the API's page size since the
+  // list itself is now paginated.
+  const exportCsv = async () => {
+    const filters = currentFilters()
+    const all: RestaurantListItem[] = []
+    for (let p = 1; ; p++) {
+      const res = await api.restaurants({ ...filters, page: p })
+      all.push(...res.items)
+      if (all.length >= res.total || res.items.length === 0) break
+    }
     downloadCsv(
       `restaurants-${new Date().toISOString().slice(0, 10)}.csv`,
-      restaurants.map((r) => ({
+      all.map((r) => ({
         codeNumber: r.codeNumber,
         nameEn: r.nameEn,
         nameAr: r.nameAr,
@@ -178,14 +200,21 @@ export function RestaurantsPage() {
         </div>
         <button
           onClick={exportCsv}
-          disabled={restaurants.length === 0}
+          disabled={total === 0}
           className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground hover:bg-secondary disabled:opacity-50"
         >
-          Export CSV ({restaurants.length})
+          Export CSV ({total})
         </button>
       </div>
 
-      <FilterTabs options={statusFilters} active={filter} onChange={setFilter} />
+      <FilterTabs
+        options={statusFilters}
+        active={filter}
+        onChange={(v) => {
+          setFilter(v)
+          setPage(1)
+        }}
+      />
 
       <div className="flex flex-wrap gap-3">
         <input
@@ -202,6 +231,7 @@ export function RestaurantsPage() {
           onChange={(e) => {
             setProvinceId(e.target.value)
             setDistrictId(ALL)
+            setPage(1)
           }}
           className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
         >
@@ -213,7 +243,10 @@ export function RestaurantsPage() {
 
         <select
           value={districtId}
-          onChange={(e) => setDistrictId(e.target.value)}
+          onChange={(e) => {
+            setDistrictId(e.target.value)
+            setPage(1)
+          }}
           disabled={!selectedProvince}
           className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50"
         >
@@ -225,7 +258,10 @@ export function RestaurantsPage() {
 
         <select
           value={businessTypeId}
-          onChange={(e) => setBusinessTypeId(e.target.value)}
+          onChange={(e) => {
+            setBusinessTypeId(e.target.value)
+            setPage(1)
+          }}
           className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
         >
           <option value={ALL}>All Business Types</option>
@@ -236,7 +272,10 @@ export function RestaurantsPage() {
 
         <select
           value={foodCategoryId}
-          onChange={(e) => setFoodCategoryId(e.target.value)}
+          onChange={(e) => {
+            setFoodCategoryId(e.target.value)
+            setPage(1)
+          }}
           className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
         >
           <option value={ALL}>All Categories</option>
@@ -253,6 +292,7 @@ export function RestaurantsPage() {
               setBusinessTypeId(ALL)
               setFoodCategoryId(ALL)
               setSearch('')
+              setPage(1)
             }}
             className="rounded-lg px-3 py-1.5 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
@@ -286,7 +326,7 @@ export function RestaurantsPage() {
                   onClick={() => toggleExpand(r.id)}
                   className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/50"
                 >
-                  <td className="px-4 py-2 text-muted-foreground">{i + 1}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{r.codeNumber}</td>
                   <td className="px-4 py-2 font-semibold">
                     {r.nameEn} <span className="font-normal text-muted-foreground">· {r.nameAr}</span>
@@ -387,6 +427,8 @@ export function RestaurantsPage() {
           </tbody>
         </table>
       </div>
+
+      <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }

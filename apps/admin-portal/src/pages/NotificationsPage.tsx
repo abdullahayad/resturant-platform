@@ -53,7 +53,7 @@ export function NotificationsPage() {
   useEffect(() => {
     api.provinces().then(setProvinces).catch(() => {})
     api.masterData('business-types').then(setBusinessTypes).catch(() => {})
-    api.restaurants().then(setRestaurants).catch(() => {})
+    api.restaurantsPicker().then(setRestaurants).catch(() => {})
   }, [])
 
   const submit = async () => {

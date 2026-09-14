@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type PromotionItem, type PromotionStatus } from '@/lib/api'
 import { FilterTabs } from '@/components/FilterTabs'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
+import { Pager } from '@/components/Pager'
+
+const PAGE_SIZE = 20
 
 const filters: { key: PromotionStatus | 'ALL'; label: string }[] = [
   { key: 'PENDING', label: 'Pending' },
@@ -42,6 +45,8 @@ export function PromotionsPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<PromotionStatus | 'ALL'>('PENDING')
   const [promotions, setPromotions] = useState<PromotionItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -51,8 +56,11 @@ export function PromotionsPage() {
   const load = () => {
     setLoading(true)
     api
-      .promotions(filter === 'ALL' ? undefined : filter)
-      .then(setPromotions)
+      .promotions(filter === 'ALL' ? undefined : filter, page)
+      .then((res) => {
+        setPromotions(res.items)
+        setTotal(res.total)
+      })
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
@@ -60,7 +68,7 @@ export function PromotionsPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [filter])
+  useEffect(load, [filter, page])
 
   const approve = async (id: string) => {
     setBusyId(id)
@@ -91,7 +99,14 @@ export function PromotionsPage() {
         <p className="text-sm text-muted-foreground">Approve or reject restaurant-submitted discounts before they go live.</p>
       </div>
 
-      <FilterTabs options={filters} active={filter} onChange={setFilter} />
+      <FilterTabs
+        options={filters}
+        active={filter}
+        onChange={(v) => {
+          setFilter(v)
+          setPage(1)
+        }}
+      />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
@@ -175,6 +190,8 @@ export function PromotionsPage() {
           </div>
         )}
       </div>
+
+      <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }

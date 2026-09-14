@@ -19,8 +19,8 @@ export function AdminLayout() {
   // works through the queue.
   useEffect(() => {
     Promise.all([
-      api.restaurants({ status: 'PENDING_REVIEW' }).then((r) => r.length).catch(() => 0),
-      api.restaurants({ publishStatus: 'PENDING' }).then((r) => r.length).catch(() => 0),
+      api.restaurants({ status: 'PENDING_REVIEW' }).then((r) => r.total).catch(() => 0),
+      api.restaurants({ publishStatus: 'PENDING' }).then((r) => r.total).catch(() => 0),
     ]).then(([signup, review]) => setApprovalsBadge(signup + review))
   }, [location.pathname])
 

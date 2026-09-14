@@ -38,7 +38,7 @@ export function DashboardPage() {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
       })
-    api.promotions('PENDING').then((list) => setPromotionsPending(list.length)).catch(() => {})
+    api.promotions('PENDING').then((res) => setPromotionsPending(res.total)).catch(() => {})
     api.featured('PENDING').then((list) => setFeaturedPending(list.length)).catch(() => {})
   }, [])
 

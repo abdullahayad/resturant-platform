@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type RestaurantListItem } from '@/lib/api'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
+import { Pager } from '@/components/Pager'
+
+const PAGE_SIZE = 20
 
 function RequestRow({
   r,
@@ -43,6 +46,8 @@ function RequestRow({
 function SignupApprovalSection() {
   const navigate = useNavigate()
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -50,8 +55,11 @@ function SignupApprovalSection() {
   const load = () => {
     setLoading(true)
     api
-      .restaurants({ status: 'PENDING_REVIEW' })
-      .then(setRestaurants)
+      .restaurants({ status: 'PENDING_REVIEW', page })
+      .then((res) => {
+        setRestaurants(res.items)
+        setTotal(res.total)
+      })
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
@@ -59,14 +67,14 @@ function SignupApprovalSection() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [page])
 
   const act = async (id: string, action: 'approve' | 'reject') => {
     setBusyId(id)
     try {
       if (action === 'approve') await api.approve(id)
       else await api.reject(id, 'Does not meet listing requirements')
-      setRestaurants((prev) => prev.filter((r) => r.id !== id))
+      load()
     } catch {
       setError('Action failed, try again.')
     } finally {
@@ -77,7 +85,7 @@ function SignupApprovalSection() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-semibold">Signup Approval ({restaurants.length})</h2>
+        <h2 className="text-base font-semibold">Signup Approval ({total})</h2>
         <p className="text-sm text-muted-foreground">
           Requests from new restaurants registering on the platform.
         </p>
@@ -118,6 +126,8 @@ function SignupApprovalSection() {
           </RequestRow>
         ))}
       </div>
+
+      <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }
@@ -125,14 +135,19 @@ function SignupApprovalSection() {
 function ReviewApprovalSection() {
   const navigate = useNavigate()
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
     api
-      .restaurants({ publishStatus: 'PENDING' })
-      .then(setRestaurants)
+      .restaurants({ publishStatus: 'PENDING', page })
+      .then((res) => {
+        setRestaurants(res.items)
+        setTotal(res.total)
+      })
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
@@ -140,12 +155,12 @@ function ReviewApprovalSection() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [page])
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-semibold">Review Approval ({restaurants.length})</h2>
+        <h2 className="text-base font-semibold">Review Approval ({total})</h2>
         <p className="text-sm text-muted-foreground">
           Requests from restaurants that submitted their profile for the one-time go-live review.
         </p>
@@ -178,6 +193,8 @@ function ReviewApprovalSection() {
           </RequestRow>
         ))}
       </div>
+
+      <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }

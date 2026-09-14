@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   api,
@@ -8,6 +8,9 @@ import {
   type ReservationStatus,
 } from '@/lib/api'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
+import { Pager } from '@/components/Pager'
+
+const PAGE_SIZE = 20
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -90,37 +93,38 @@ function BookingsPanel({ eventId }: { eventId: string }) {
 export function EventBookingsPage() {
   const navigate = useNavigate()
   const [events, setEvents] = useState<AdminEventItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  // Debounce the search box so we're not firing a request on every keystroke.
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+  useEffect(() => setPage(1), [debouncedSearch])
+
+  useEffect(() => {
+    setLoading(true)
+    // Busiest events first — that's the whole point of this page: see at a
+    // glance which events are actually generating demand. Search and sort
+    // both happen server-side now that this list is paginated.
     api
-      .adminEvents()
-      .then(setEvents)
+      .adminEvents(debouncedSearch || undefined, page)
+      .then((res) => {
+        setEvents(res.items)
+        setTotal(res.total)
+      })
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
       })
       .finally(() => setLoading(false))
-  }, [navigate])
-
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    const filtered = q
-      ? events.filter(
-          (e) =>
-            e.titleEn.toLowerCase().includes(q) ||
-            e.titleAr.includes(q) ||
-            e.restaurant.nameEn.toLowerCase().includes(q) ||
-            e.restaurant.codeNumber.toLowerCase().includes(q),
-        )
-      : events
-    // Busiest events first — that's the whole point of this page: see at a
-    // glance which events are actually generating demand.
-    return [...filtered].sort((a, b) => b._count.reservations - a._count.reservations)
-  }, [events, search])
+  }, [navigate, debouncedSearch, page])
 
   return (
     <div className="space-y-4">
@@ -142,7 +146,7 @@ export function EventBookingsPage() {
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
       <div className="space-y-3">
-        {visible.map((e) => {
+        {events.map((e) => {
           const isExpanded = expandedId === e.id
           const count = e._count.reservations
           return (
@@ -185,12 +189,14 @@ export function EventBookingsPage() {
             </div>
           )
         })}
-        {!loading && visible.length === 0 && !error && (
+        {!loading && events.length === 0 && !error && (
           <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
             {search ? 'No events match your search.' : 'No events yet.'}
           </div>
         )}
       </div>
+
+      <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
     </div>
   )
 }
