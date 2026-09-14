@@ -22,7 +22,7 @@ const categoryIcons: Record<string, LucideIcon> = {
 };
 
 export function CustomerReviewsScreen() {
-  const { token } = useAuth();
+  const { token, enabledKeys } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('reviews');
   const tier = useBreakpoint();
@@ -33,6 +33,12 @@ export function CustomerReviewsScreen() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [starFilter, setStarFilter] = useState<number | null>(null);
+  const canSuggestReplies = enabledKeys.includes('aiReviewReplies');
+  // Tracks which drafts came from "Suggest a reply" and haven't been hand-
+  // edited since, so the hint disappears the moment the owner starts typing.
+  const [aiDraftIds, setAiDraftIds] = useState<Set<string>>(new Set());
+  const [suggestingId, setSuggestingId] = useState<string | null>(null);
+  const [suggestErrors, setSuggestErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(() => {
     Promise.all([api.myReviews(token), api.reviewsSummary(token)])
@@ -61,9 +67,39 @@ export function CustomerReviewsScreen() {
       const updated = await api.replyToReview(token, reviewId, text);
       setReviews((prev) => prev.map((r) => (r.id === reviewId ? updated : r)));
       setReplyDrafts((prev) => ({ ...prev, [reviewId]: '' }));
+      setAiDraftIds((prev) => {
+        if (!prev.has(reviewId)) return prev;
+        const next = new Set(prev);
+        next.delete(reviewId);
+        return next;
+      });
     } finally {
       setSubmittingId(null);
     }
+  };
+
+  const suggestReply = async (reviewId: string) => {
+    setSuggestingId(reviewId);
+    setSuggestErrors((prev) => ({ ...prev, [reviewId]: '' }));
+    try {
+      const { suggestion } = await api.suggestReviewReply(token, reviewId);
+      setReplyDrafts((prev) => ({ ...prev, [reviewId]: suggestion }));
+      setAiDraftIds((prev) => new Set(prev).add(reviewId));
+    } catch {
+      setSuggestErrors((prev) => ({ ...prev, [reviewId]: t('suggestFailed') }));
+    } finally {
+      setSuggestingId(null);
+    }
+  };
+
+  const editReplyDraft = (reviewId: string, text: string) => {
+    setReplyDrafts((prev) => ({ ...prev, [reviewId]: text }));
+    setAiDraftIds((prev) => {
+      if (!prev.has(reviewId)) return prev;
+      const next = new Set(prev);
+      next.delete(reviewId);
+      return next;
+    });
   };
 
   const renderReview = ({ item: review }: { item: Review }) => (
@@ -92,12 +128,32 @@ export function CustomerReviewsScreen() {
         </View>
       ) : (
         <View style={styles.replyForm}>
+          {canSuggestReplies && (
+            <Pressable
+              style={[styles.button, styles.secondaryButton, styles.suggestButton]}
+              onPress={() => suggestReply(review.id)}
+              disabled={suggestingId === review.id}
+            >
+              {suggestingId === review.id ? (
+                <ActivityIndicator color={colors.foreground} />
+              ) : (
+                <>
+                  <Sparkles size={14} color={colors.foreground} />
+                  <Text style={styles.secondaryButtonText}>{t('suggestReply')}</Text>
+                </>
+              )}
+            </Pressable>
+          )}
+          {!!suggestErrors[review.id] && <Text style={styles.error}>{suggestErrors[review.id]}</Text>}
           <FormField
             label={t('replyLabel')}
             value={replyDrafts[review.id] ?? ''}
-            onChangeText={(v) => setReplyDrafts((prev) => ({ ...prev, [review.id]: v }))}
+            onChangeText={(v) => editReplyDraft(review.id, v)}
             placeholder={t('replyPlaceholder')}
           />
+          {aiDraftIds.has(review.id) && !!replyDrafts[review.id] && (
+            <Text style={styles.aiDraftHint}>{t('aiDraftHint')}</Text>
+          )}
           <Pressable
             style={[styles.button, styles.primaryButton]}
             onPress={() => submitReply(review.id)}
@@ -352,4 +408,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   button: { borderRadius: 10, paddingVertical: 10, alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 16 },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 13 },
+  secondaryButton: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.secondary },
+  secondaryButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 13 },
+  suggestButton: { flexDirection: 'row', gap: 6 },
+  aiDraftHint: { fontSize: 11, color: colors.mutedForeground, fontStyle: 'italic' },
 });

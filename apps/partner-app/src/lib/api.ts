@@ -570,6 +570,8 @@ export const api = {
   reviewsSummary: (token: string) => get<ReviewSummary>('/restaurants/me/reviews/summary', token),
   replyToReview: (token: string, reviewId: string, text: string) =>
     send<Review>('POST', `/restaurants/me/reviews/${reviewId}/reply`, token, { text }),
+  suggestReviewReply: (token: string, reviewId: string) =>
+    send<{ suggestion: string }>('POST', `/restaurants/me/reviews/${reviewId}/suggest-reply`, token),
 
   changePassword: (token: string, currentPassword: string, newPassword: string) =>
     send<{ success: boolean; accessToken: string }>('PATCH', '/restaurants/me/password', token, {

@@ -66,4 +66,10 @@ export class ReviewsController {
   reply(@Req() req: { user: PartnerJwtPayload }, @Param('id') reviewId: string, @Body() dto: ReplyToReviewDto) {
     return this.reviews.reply(req.user.sub, reviewId, dto.text);
   }
+
+  @UseGuards(ApprovedPartnerGuard)
+  @Post('me/reviews/:id/suggest-reply')
+  suggestReply(@Req() req: { user: PartnerJwtPayload }, @Param('id') reviewId: string) {
+    return this.reviews.suggestReply(req.user.sub, reviewId);
+  }
 }

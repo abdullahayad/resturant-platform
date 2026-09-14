@@ -16,5 +16,8 @@
   "replyLabel": "Reply publicly",
   "replyPlaceholder": "Thank you for your feedback…",
   "postReply": "Post Reply",
+  "suggestReply": "Suggest a reply",
+  "aiDraftHint": "AI-suggested — review and edit before posting",
+  "suggestFailed": "Could not generate a suggestion right now",
   "noReviewsMatchFilter": "No reviews match this filter."
 }

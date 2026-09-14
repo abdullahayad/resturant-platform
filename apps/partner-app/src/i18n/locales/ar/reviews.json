@@ -19,5 +19,8 @@
   "replyLabel": "الرد علناً",
   "replyPlaceholder": "شكراً لملاحظاتك…",
   "postReply": "نشر الرد",
+  "suggestReply": "اقترح رداً",
+  "aiDraftHint": "اقتراح بالذكاء الاصطناعي — راجعه وعدّله قبل النشر",
+  "suggestFailed": "تعذّر إنشاء اقتراح الآن",
   "noReviewsMatchFilter": "لا توجد تقييمات تطابق هذا الفلتر."
 }

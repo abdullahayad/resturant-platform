@@ -298,6 +298,13 @@ model Restaurant {
   // switches it on later.
   statsVisible Boolean @default(false)
 
+  // Daily cap on AI review-reply suggestions (see ReviewsService.suggestReply)
+  // - resets whenever aiSuggestionCountDate is no longer today, checked and
+  // incremented atomically in one UPDATE so two simultaneous requests can't
+  // both slip in under the cap.
+  aiSuggestionCount     Int       @default(0)
+  aiSuggestionCountDate DateTime?
+
   // Chef Management: kitchen crew headcount + one representative photo.
   // Individual chef/sous chef profiles live in ChefProfile.
   crewCount    Int?

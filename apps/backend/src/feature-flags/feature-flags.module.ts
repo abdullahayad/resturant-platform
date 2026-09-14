@@ -6,5 +6,6 @@ import { FeatureFlagsService } from './feature-flags.service';
 @Module({
   controllers: [RestaurantFeatureFlagsController, AdminFeatureFlagsController],
   providers: [FeatureFlagsService],
+  exports: [FeatureFlagsService],
 })
 export class FeatureFlagsModule {}

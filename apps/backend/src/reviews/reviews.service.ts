@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
+import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { CreateReviewDto, ModerateReviewDto } from './dto/review.dto';
 import type { ModerationStatusValue } from '../common/moderation';
 
@@ -9,11 +10,20 @@ const withReplyAndPhotos = {
   photos: { select: { id: true, url: true, moderationStatus: true } },
 } as const;
 
+// How many AI reply-suggestion calls a restaurant can make in one day -
+// this is the app's first paid external API call, so it's capped to keep a
+// bug or a stuck retry loop from quietly running up a bill.
+const DAILY_SUGGESTION_CAP = 30;
+
 @Injectable()
 export class ReviewsService {
+  private readonly logger = new Logger(ReviewsService.name);
+  private readonly anthropicKey = process.env.ANTHROPIC_API_KEY;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushService,
+    private readonly featureFlags: FeatureFlagsService,
   ) {}
 
   async createForRestaurant(restaurantId: string, dto: CreateReviewDto) {
@@ -145,6 +155,84 @@ export class ReviewsService {
       update: { text },
     });
     return this.prisma.db.review.findUnique({ where: { id: reviewId }, include: withReplyAndPhotos });
+  }
+
+  // Drafts a reply with AI for the owner to edit and send themselves - never
+  // posts anything on its own. Gated server-side by the "aiReviewReplies"
+  // feature flag (not just hidden in the app UI, unlike most flags here)
+  // because a call here costs real money, so it must not be reachable just
+  // by calling the endpoint directly while the flag is off for a restaurant.
+  async suggestReply(restaurantId: string, reviewId: string): Promise<{ suggestion: string }> {
+    const enabledKeys = await this.featureFlags.resolveEnabledKeys(restaurantId);
+    if (!enabledKeys.includes('aiReviewReplies')) {
+      throw new ForbiddenException('AI reply suggestions are not enabled for this restaurant');
+    }
+
+    const review = await this.prisma.db.review.findUnique({
+      where: { id: reviewId },
+      select: { restaurantId: true, rating: true, text: true },
+    });
+    if (!review || review.restaurantId !== restaurantId) throw new NotFoundException('Review not found');
+
+    // Atomic check-and-increment: only matches (and bumps the count) when
+    // today's count is still under the cap, or it's a new day. If neither
+    // holds, the UPDATE matches zero rows and rows comes back empty - the
+    // row-level lock during this single statement is what actually prevents
+    // two simultaneous requests from both slipping in as the 30th call.
+    const rows = await this.prisma.db.$queryRaw<{ aiSuggestionCount: number }[]>`
+      UPDATE restaurants
+      SET "aiSuggestionCount" = CASE WHEN "aiSuggestionCountDate"::date = CURRENT_DATE THEN "aiSuggestionCount" + 1 ELSE 1 END,
+          "aiSuggestionCountDate" = CURRENT_TIMESTAMP
+      WHERE id = ${restaurantId}
+        AND ("aiSuggestionCountDate"::date IS DISTINCT FROM CURRENT_DATE OR "aiSuggestionCount" < ${DAILY_SUGGESTION_CAP})
+      RETURNING "aiSuggestionCount"
+    `;
+    if (rows.length === 0) {
+      throw new BadRequestException(`Daily limit of ${DAILY_SUGGESTION_CAP} AI suggestions reached - try again tomorrow`);
+    }
+
+    if (!this.anthropicKey) {
+      this.logger.warn('ANTHROPIC_API_KEY is not set - cannot generate a suggestion.');
+      throw new BadRequestException('AI reply suggestions are not configured yet');
+    }
+
+    const prompt = [
+      'You are helping a restaurant owner write a short reply to a customer review on a food delivery/discovery app.',
+      `Star rating: ${review.rating}/5.`,
+      review.text ? `Review text: "${review.text}"` : 'The customer left no written text, only a star rating.',
+      'Write ONE reply, under 60 words, warm and professional.',
+      'If the rating is low, be empathetic and apologetic without making specific promises (no refunds, discounts, or guarantees - that is the owner\'s decision, not yours to offer).',
+      'Reply in the same language as the review text (Arabic or English); if there is no text, reply in English.',
+      'Output only the reply text itself, nothing else - no quotes, no labels.',
+    ].join('\n');
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': this.anthropicKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 200,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      if (!res.ok) {
+        this.logger.error(`Anthropic suggest-reply failed: ${res.status} ${await res.text()}`);
+        throw new BadRequestException('Could not generate a suggestion right now');
+      }
+      const data = (await res.json()) as { content?: { text?: string }[] };
+      const suggestion = data.content?.[0]?.text?.trim();
+      if (!suggestion) throw new BadRequestException('Could not generate a suggestion right now');
+      return { suggestion };
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      this.logger.error(`Anthropic suggest-reply threw: ${err instanceof Error ? err.message : err}`);
+      throw new BadRequestException('Could not generate a suggestion right now');
+    }
   }
 
   listAll(status?: ModerationStatusValue) {
