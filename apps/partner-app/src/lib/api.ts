@@ -16,12 +16,39 @@ export const API_BASE_URL = 'https://restuarant-portal-liqeta-app.onrender.com/v
 // error status (the server answered, just not successfully). A 401 isn't
 // reported here — it's an expected, already-handled case (see
 // setUnauthorizedHandler below), not a bug worth an alert.
-function reportRequestFailure(kind: 'network' | 'http_status', method: string, path: string, detail: unknown) {
+function reportRequestFailure(kind: 'network' | 'http_status' | 'timeout', method: string, path: string, detail: unknown) {
   Sentry.captureException(detail instanceof Error ? detail : new Error(String(detail)), {
     tags: { request_failure_kind: kind },
     extra: { method, path },
   });
 }
+
+// Requests could hang forever with no error at all - most commonly when the
+// device's network interface changes mid-request (WiFi to cellular, or
+// switching between WiFi networks while moving around). The OS drops the
+// old connection but fetch() never rejects on its own, so the screen was
+// stuck on its loading state indefinitely with no way to recover short of
+// restarting the app. 60s matches the longest wait the app already tells
+// users to expect during a legitimate cold-start wake-up (see the
+// wakingUpServer copy), so this only ever fires on a connection that's
+// truly stuck, not a slow-but-working one.
+const REQUEST_TIMEOUT_MS = 60_000;
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// File uploads move real bytes over the network (unlike the plain JSON
+// calls above) and can legitimately take longer on a weak connection, even
+// after resizeForUpload's compression - a bit more headroom than the
+// default before treating it as stuck.
+const UPLOAD_TIMEOUT_MS = 90_000;
 
 // A stale or expired login token makes every authenticated request fail with
 // 401, which screens were previously showing as a generic "Could not reach
@@ -409,11 +436,11 @@ export interface InviteStaffPayload {
 async function get<T>(path: string, token?: string): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
   } catch (err) {
-    reportRequestFailure('network', 'GET', path, err);
+    reportRequestFailure(err instanceof Error && err.name === 'AbortError' ? 'timeout' : 'network', 'GET', path, err);
     throw err;
   }
   if (!res.ok) {
@@ -436,13 +463,13 @@ async function send<T>(
 ): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
       method,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (err) {
-    reportRequestFailure('network', method, path, err);
+    reportRequestFailure(err instanceof Error && err.name === 'AbortError' ? 'timeout' : 'network', method, path, err);
     throw err;
   }
   const data = await res.json();
@@ -542,13 +569,23 @@ export const api = {
     // file:/content: URIs alike.
     const blob = await (await fetch(file.uri)).blob();
     form.append('file', blob, file.name);
-    const res = await fetch(`${API_BASE_URL}/uploads`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(
+        `${API_BASE_URL}/uploads`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
+        UPLOAD_TIMEOUT_MS,
+      );
+    } catch (err) {
+      reportRequestFailure(err instanceof Error && err.name === 'AbortError' ? 'timeout' : 'network', 'POST', '/uploads', err);
+      throw err;
+    }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    if (!res.ok) {
+      const err = new Error(data.message || 'Upload failed');
+      if (res.status !== 401) reportRequestFailure('http_status', 'POST', '/uploads', err);
+      throw err;
+    }
     return data;
   },
 
