@@ -155,15 +155,25 @@ export function PhotoGalleryScreen() {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // Reloads afterward rather than patching local state directly - the
-  // previous cover this just unset might not even be on the currently
-  // loaded page (pages load 20 at a time), so a full refetch of this tab is
-  // what actually keeps the "exactly one cover" ordering correct on screen.
+  // Patches the toggled photo (and un-marks whatever else was cover) in
+  // place, deliberately *not* reload()ing - the backend sorts the cover
+  // first, so reloading here would resort the whole grid the instant a
+  // star is tapped, moving that photo to slot #1 mid-interaction. That
+  // made it look like the wrong photo got starred (it was always "whatever
+  // just became slot #1") when picking a cover among several photos. The
+  // real reorder still happens next time this tab is opened/refetched -
+  // just not while the owner is actively comparing photos.
   const toggleCover = async (photo: GalleryPhoto) => {
     setTogglingCoverId(photo.id);
     try {
-      await api.setGalleryCover(token, photo.id, !photo.isCover);
-      reload();
+      const next = !photo.isCover;
+      await api.setGalleryCover(token, photo.id, next);
+      setPhotos((prev) =>
+        prev.map((p) => {
+          if (p.id === photo.id) return { ...p, isCover: next };
+          return next && p.isCover ? { ...p, isCover: false } : p;
+        }),
+      );
     } finally {
       setTogglingCoverId(null);
     }
