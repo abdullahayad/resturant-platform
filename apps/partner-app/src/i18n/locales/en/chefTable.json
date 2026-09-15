@@ -6,6 +6,7 @@
   "visible": "Visible",
   "hidden": "Hidden",
   "capacity": "Capacity: {{count}} guests",
+  "bookedOfCapacity": "{{booked}} of {{capacity}} guests booked",
   "delete": "Delete",
   "edit": "Edit",
   "noEventsYet": "No events yet.",

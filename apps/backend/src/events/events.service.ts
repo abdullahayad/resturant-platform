@@ -53,12 +53,43 @@ export class EventsService {
     private readonly loyalty: LoyaltyService,
   ) {}
 
-  list(restaurantId: string) {
-    return this.prisma.db.restaurantEvent.findMany({
+  async list(restaurantId: string) {
+    const events = await this.prisma.db.restaurantEvent.findMany({
       where: { restaurantId, moderationStatus: { not: 'HIDDEN' } },
       select: eventSelect,
       orderBy: { createdAt: 'desc' },
     });
+
+    // Live capacity, only for events that actually have a capacity set - a
+    // recurring event's capacity resets every occurrence (a Friday-night
+    // event isn't "full forever" once 12 people have ever booked it across
+    // every week), so this counts against the next upcoming occurrence
+    // specifically, not an all-time total that would never reset.
+    return Promise.all(
+      events.map(async (event) => {
+        if (event.capacity == null) return { ...event, bookedCount: null, capacityDate: null };
+        const capacityDate = this.nextOccurrenceDate(event);
+        const bookedCount = capacityDate ? await this.reservedCount(event.id, capacityDate) : null;
+        return { ...event, bookedCount, capacityDate };
+      }),
+    );
+  }
+
+  // The date live capacity is measured against: a one-off event's own date,
+  // or the next date matching a recurring event's day-of-week (today counts
+  // if today is that day, so a same-day capacity badge still reflects
+  // today's bookings rather than jumping ahead to next week).
+  private nextOccurrenceDate(event: { isRecurring: boolean; eventDate: Date | null; recurringDayOfWeek: number | null }): string | null {
+    if (!event.isRecurring) {
+      return event.eventDate ? event.eventDate.toISOString() : null;
+    }
+    if (event.recurringDayOfWeek == null) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = (event.recurringDayOfWeek - today.getDay() + 7) % 7;
+    const next = new Date(today);
+    next.setDate(today.getDate() + diff);
+    return next.toISOString();
   }
 
   // Public: what a future customer-facing view would show — active events

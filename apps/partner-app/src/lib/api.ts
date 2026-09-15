@@ -350,6 +350,12 @@ export interface RestaurantEventItem {
   isActive: boolean;
   createdAt: string;
   eventType: EventTypeItem;
+  // Guests currently booked against capacity's next occurrence - null for
+  // events with no capacity set (unlimited) or with no upcoming occurrence
+  // date to measure against. capacityDate is the date bookedCount reflects
+  // (the event's own date, or a recurring event's next matching weekday).
+  bookedCount: number | null;
+  capacityDate: string | null;
 }
 
 export interface EventPayload {

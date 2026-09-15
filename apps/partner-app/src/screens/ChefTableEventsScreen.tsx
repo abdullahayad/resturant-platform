@@ -226,7 +226,23 @@ export function ChefTableEventsScreen() {
             </View>
             <Text style={styles.eventSchedule}>{formatSchedule(event, t)}</Text>
             {event.price && <Text style={styles.eventPrice}>{Number(event.price).toLocaleString()} IQD</Text>}
-            {event.capacity != null && <Text style={styles.eventPrice}>{t('capacity', { count: event.capacity })}</Text>}
+            {event.capacity != null && (
+              event.bookedCount != null ? (
+                <View style={styles.capacityBlock}>
+                  <Text style={styles.eventPrice}>{t('bookedOfCapacity', { booked: event.bookedCount, capacity: event.capacity })}</Text>
+                  <View style={styles.capacityTrack}>
+                    <View
+                      style={[
+                        styles.capacityFill,
+                        { width: `${Math.min(100, Math.round((event.bookedCount / event.capacity) * 100))}%` },
+                      ]}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.eventPrice}>{t('capacity', { count: event.capacity })}</Text>
+              )
+            )}
             {event.descriptionEn && <Text style={styles.eventDescription}>{event.descriptionEn}</Text>}
             <View style={styles.cardActions}>
               <Pressable onPress={() => startEdit(event)} disabled={busyId === event.id}>
@@ -374,6 +390,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   eventType: { color: colors.mutedForeground, fontSize: 12, marginTop: 2 },
   eventSchedule: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   eventPrice: { color: colors.foreground, fontSize: 12 },
+  capacityBlock: { gap: 4 },
+  capacityTrack: { height: 6, borderRadius: 3, backgroundColor: colors.secondary, overflow: 'hidden' },
+  capacityFill: { height: '100%', backgroundColor: colors.primary },
   eventDescription: { color: colors.mutedForeground, fontSize: 12 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   badgeActive: { backgroundColor: colors.successTint15 },

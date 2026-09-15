@@ -164,14 +164,31 @@ describe('EventsService', () => {
   });
 
   describe('list', () => {
-    it('excludes hidden events from the restaurant\'s own list', () => {
-      service.list(restaurantId);
+    it('excludes hidden events from the restaurant\'s own list', async () => {
+      prisma.db.restaurantEvent.findMany.mockResolvedValueOnce([]);
+
+      await service.list(restaurantId);
 
       expect(prisma.db.restaurantEvent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ moderationStatus: { not: 'HIDDEN' } }),
         }),
       );
+    });
+
+    it('adds a live bookedCount, scoped to the next occurrence, only for events with a capacity set', async () => {
+      prisma.db.restaurantEvent.findMany.mockResolvedValueOnce([
+        { id: 'e1', capacity: 12, isRecurring: false, eventDate: new Date('2026-10-03'), recurringDayOfWeek: null },
+        { id: 'e2', capacity: null, isRecurring: false, eventDate: new Date('2026-10-03'), recurringDayOfWeek: null },
+      ]);
+      prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([{ partySize: 5 }, { partySize: 3 }]);
+
+      const result = await service.list(restaurantId);
+
+      expect(result[0]).toEqual(expect.objectContaining({ id: 'e1', bookedCount: 8 }));
+      expect(result[1]).toEqual(expect.objectContaining({ id: 'e2', bookedCount: null, capacityDate: null }));
+      // Only the capacity-having event should have triggered a bookings lookup.
+      expect(prisma.db.chefTableBooking.findMany).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -6,6 +6,7 @@
   "visible": "ظاهر",
   "hidden": "مخفي",
   "capacity": "السعة: {{count}} ضيوف",
+  "bookedOfCapacity": "تم حجز {{booked}} من أصل {{capacity}} ضيف",
   "delete": "حذف",
   "edit": "تعديل",
   "noEventsYet": "لا توجد فعاليات بعد.",
