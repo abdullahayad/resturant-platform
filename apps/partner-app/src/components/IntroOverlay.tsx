@@ -176,8 +176,12 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   // Brand wordmark stays fixed left-to-right regardless of app language — without this,
-  // flexDirection:'row' auto-mirrors under RTL and reorders the pieces.
-  row: { flexDirection: 'row', alignItems: 'center', direction: 'ltr' },
+  // flexDirection:'row' auto-mirrors under RTL and reorders the pieces. `direction` is a
+  // real Yoga layout property RN honors on native even though it's outside RN's official
+  // style typings (hence the native-only guard: React Native Web's style validator flags
+  // it as invalid and doesn't apply it the same way anyway - web's fix is the
+  // `displayIndices` reversal above instead).
+  row: { flexDirection: 'row', alignItems: 'center', ...(Platform.OS !== 'web' ? { direction: 'ltr' as const } : null) },
   // The tagline is ordinary text, not a fixed logo asset — it's left free to mirror under RTL
   // (Arabic words cascade in from the right, matching how the language is actually read).
   taglineRow: { flexDirection: 'row', marginTop: 14, gap: 8 },
