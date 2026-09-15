@@ -14,6 +14,8 @@
   "experiencePlaceholder": "مثال: 12",
   "awards": "الجوائز",
   "addAwardPlaceholder": "إضافة جائزة",
+  "signatureDishes": "أطباق مميزة",
+  "signatureDishesHint": "اختر من قائمة الطعام — تظهر في ملف هذا الشيف بمجرد إطلاق تطبيق العملاء.",
   "add": "إضافة",
   "remove": "إزالة",
   "removeProfile": "إزالة الملف الشخصي",

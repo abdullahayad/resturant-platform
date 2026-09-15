@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -37,4 +38,13 @@ export class UpsertChefProfileDto {
   @IsString({ each: true })
   @MaxLength(200, { each: true })
   awards?: string[];
+
+  // Dishes from the restaurant's own menu this chef is known for - e.g.
+  // Head Chef -> "Lamb Quzi, Grilled Kebab". Omitted (undefined) leaves the
+  // existing set untouched; an empty array clears it.
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID('4', { each: true })
+  signatureDishIds?: string[];
 }

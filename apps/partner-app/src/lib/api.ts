@@ -249,6 +249,7 @@ export interface ChefProfile {
   speciality: string | null;
   yearsExperience: number | null;
   awards: string[];
+  signatureDishes: { dish: { id: string; nameEn: string; nameAr: string; photoUrl: string | null } }[];
 }
 
 export interface ChefManagementState {
@@ -264,6 +265,9 @@ export interface ChefProfilePayload {
   speciality?: string;
   yearsExperience?: number;
   awards?: string[];
+  // Omit to leave the existing signature dishes untouched; pass [] to
+  // clear them, or a list of dish ids to replace the whole set.
+  signatureDishIds?: string[];
 }
 
 export type FeaturedStatus = 'PENDING' | 'APPROVED' | 'REJECTED';

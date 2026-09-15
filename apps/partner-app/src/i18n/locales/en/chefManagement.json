@@ -14,6 +14,8 @@
   "experiencePlaceholder": "e.g. 12",
   "awards": "Awards",
   "addAwardPlaceholder": "Add an award",
+  "signatureDishes": "Signature Dishes",
+  "signatureDishesHint": "Pick from your menu — shown on this chef's profile once the customer app launches.",
   "add": "Add",
   "remove": "Remove",
   "removeProfile": "Remove profile",

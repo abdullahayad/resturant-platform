@@ -5,10 +5,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { ChipSelect } from '../components/ChipSelect';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
-import { api, type ChefProfile, type ChefRoleSlug } from '../lib/api';
+import { api, type ChefProfile, type ChefRoleSlug, type Dish } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
 
 interface ChefFormState {
@@ -18,9 +19,18 @@ interface ChefFormState {
   yearsExperience: string;
   awards: string[];
   newAward: string;
+  signatureDishIds: string[];
 }
 
-const emptyForm: ChefFormState = { name: '', photoUrl: '', speciality: '', yearsExperience: '', awards: [], newAward: '' };
+const emptyForm: ChefFormState = {
+  name: '',
+  photoUrl: '',
+  speciality: '',
+  yearsExperience: '',
+  awards: [],
+  newAward: '',
+  signatureDishIds: [],
+};
 
 function formFromProfile(profile: ChefProfile | null): ChefFormState {
   if (!profile) return emptyForm;
@@ -31,6 +41,7 @@ function formFromProfile(profile: ChefProfile | null): ChefFormState {
     yearsExperience: profile.yearsExperience != null ? String(profile.yearsExperience) : '',
     awards: profile.awards,
     newAward: '',
+    signatureDishIds: profile.signatureDishes.map((sd) => sd.dish.id),
   };
 }
 
@@ -64,6 +75,7 @@ function ChefCard({
   onRemove,
   saving,
   hasProfile,
+  dishes,
 }: {
   title: string;
   role: ChefRoleSlug;
@@ -73,6 +85,7 @@ function ChefCard({
   onRemove: () => void;
   saving: boolean;
   hasProfile: boolean;
+  dishes: Dish[];
 }) {
   const { token } = useAuth();
   const { colors } = useTheme();
@@ -160,6 +173,23 @@ function ChefCard({
         </View>
       </View>
 
+      <View style={styles.awardsSection}>
+        <Text style={styles.fieldLabel}>{t('signatureDishes')}</Text>
+        <Text style={styles.hint}>{t('signatureDishesHint')}</Text>
+        <ChipSelect
+          options={dishes.map((d) => ({ id: d.id, label: d.nameEn }))}
+          selectedIds={form.signatureDishIds}
+          onToggle={(id) =>
+            setForm((f) => ({
+              ...f,
+              signatureDishIds: f.signatureDishIds.includes(id)
+                ? f.signatureDishIds.filter((d) => d !== id)
+                : [...f.signatureDishIds, id],
+            }))
+          }
+        />
+      </View>
+
       <View style={styles.cardActions}>
         <Pressable style={[styles.button, styles.primaryButton]} onPress={onSave} disabled={saving || !form.name.trim()}>
           {saving ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('save')}</Text>}
@@ -183,6 +213,7 @@ export function ChefManagementScreen() {
   const [sousChef, setSousChef] = useState<ChefProfile | null>(null);
   const [headForm, setHeadForm] = useState<ChefFormState>(emptyForm);
   const [sousForm, setSousForm] = useState<ChefFormState>(emptyForm);
+  const [dishes, setDishes] = useState<Dish[]>([]);
   const [crewCount, setCrewCount] = useState('');
   const [crewPhotoUrl, setCrewPhotoUrl] = useState('');
   const [savingHead, setSavingHead] = useState(false);
@@ -207,6 +238,11 @@ export function ChefManagementScreen() {
   }, [token, t]);
 
   useEffect(load, [load]);
+  useEffect(() => {
+    // The signature-dish picker needs every dish at once, same as Photo
+    // Gallery's and Promotions' pickers.
+    api.myDishes(token).then(setDishes).catch(() => setError(t('common:networkError')));
+  }, [token, t]);
 
   const saveProfile = async (role: ChefRoleSlug, form: ChefFormState, setSaving: (v: boolean) => void) => {
     setError(null);
@@ -222,6 +258,7 @@ export function ChefManagementScreen() {
         speciality: form.speciality.trim() || undefined,
         yearsExperience: form.yearsExperience ? Number(form.yearsExperience) : undefined,
         awards: form.awards,
+        signatureDishIds: form.signatureDishIds,
       });
       load();
     } catch (err) {
@@ -279,6 +316,7 @@ export function ChefManagementScreen() {
           onRemove={() => removeProfile('chef')}
           saving={savingHead}
           hasProfile={!!headChef}
+          dishes={dishes}
         />
         <ChefCard
           title={t('sousChef')}
@@ -289,6 +327,7 @@ export function ChefManagementScreen() {
           onRemove={() => removeProfile('sous-chef')}
           saving={savingSous}
           hasProfile={!!sousChef}
+          dishes={dishes}
         />
       </View>
 
@@ -323,6 +362,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   subtitle: { fontSize: 14, color: colors.mutedForeground },
   error: { color: colors.destructive, fontSize: 13 },
   fieldLabel: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
+  hint: { fontSize: 12, color: colors.mutedForeground },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   card: {
     width: 340,

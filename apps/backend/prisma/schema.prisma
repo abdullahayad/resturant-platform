@@ -424,10 +424,11 @@ model Dish {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  restaurant    Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  menuCategory  MenuCategory?   @relation(fields: [menuCategoryId], references: [id])
-  galleryPhotos GalleryPhoto[]
-  promotions    PromotionDish[]
+  restaurant       Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuCategory     MenuCategory?       @relation(fields: [menuCategoryId], references: [id])
+  galleryPhotos    GalleryPhoto[]
+  promotions       PromotionDish[]
+  chefSignatures   ChefSignatureDish[]
 
   @@index([restaurantId])
   @@index([menuCategoryId])
@@ -509,10 +510,28 @@ model ChefProfile {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant      Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  signatureDishes ChefSignatureDish[]
 
   @@unique([restaurantId, role])
   @@map("chef_profiles")
+}
+
+// A chef's hand-picked dishes from the restaurant's own menu (e.g. "Head
+// Chef -> Lamb Quzi, Grilled Kebab") - same explicit join-table shape as
+// PromotionDish below, for the same reason: a chef can have several
+// signature dishes and (in principle) a dish could be credited to more
+// than one chef.
+model ChefSignatureDish {
+  id            String @id @default(uuid())
+  chefProfileId String
+  dishId        String
+
+  chefProfile ChefProfile @relation(fields: [chefProfileId], references: [id], onDelete: Cascade)
+  dish        Dish        @relation(fields: [dishId], references: [id], onDelete: Cascade)
+
+  @@unique([chefProfileId, dishId])
+  @@map("chef_signature_dishes")
 }
 
 // ────────────────────────────────────────────────────────────────────────────
