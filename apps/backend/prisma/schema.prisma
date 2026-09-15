@@ -275,6 +275,16 @@ model Restaurant {
   districtId String?
   latitude   Decimal? @db.Decimal(9, 6)
   longitude  Decimal? @db.Decimal(9, 6)
+  // Kept in sync with latitude/longitude by a DB trigger (see the
+  // add_restaurant_geography migration), not written to directly anywhere
+  // in application code - Prisma has no native geography scalar, so this
+  // is Unsupported and only reachable via $queryRaw. Exists now, ahead of
+  // any "restaurants near me" feature, specifically so that feature can
+  // use a real spatial (GiST) index from day one instead of the app
+  // fetching every restaurant and computing distance in JS - retrofitting
+  // this after restaurants have accumulated would mean a real migration
+  // instead of just turning a search feature on.
+  location   Unsupported("geography(Point, 4326)")?
 
   // Auth (owner account created at sign-up)
   ownerEmail        String    @unique
@@ -569,6 +579,15 @@ model ChefTableBooking {
   reservationDate      DateTime
   status               BookingStatus @default(PENDING)
   notes                String?
+  // Client-generated, one per genuine booking attempt (not per HTTP
+  // request) - lets createReservation recognize a resubmission (e.g. a
+  // customer double-tapping "Book" after the app looked like it hung) and
+  // hand back the original booking instead of creating a second one.
+  // Globally unique rather than scoped per-event: a client-generated UUID
+  // colliding by chance is practically impossible, so a flat unique
+  // constraint is simpler than a composite one for the same guarantee.
+  idempotencyKey       String        @unique
+
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 

@@ -409,6 +409,7 @@ async function main() {
             partySize: 6,
             reservationDate: buffetEvent.eventDate!,
             status: 'CONFIRMED',
+            idempotencyKey: randomUUID(),
           },
           {
             restaurantId: demoRestaurant.id,
@@ -419,6 +420,7 @@ async function main() {
             partySize: 4,
             reservationDate: buffetEvent.eventDate!,
             status: 'PENDING',
+            idempotencyKey: randomUUID(),
           },
           {
             restaurantId: demoRestaurant.id,
@@ -430,6 +432,7 @@ async function main() {
             reservationDate: chefEvent.eventDate!,
             status: 'PENDING',
             notes: 'Anniversary dinner, window seat if possible.',
+            idempotencyKey: randomUUID(),
           },
         ],
       });

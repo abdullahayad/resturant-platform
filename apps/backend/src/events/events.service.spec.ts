@@ -4,6 +4,7 @@ import { EventsService } from './events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { Prisma } from '../../generated/prisma/client';
 
 describe('EventsService', () => {
   let service: EventsService;
@@ -48,6 +49,7 @@ describe('EventsService', () => {
           delete: jest.fn(),
         },
         chefTableBooking: {
+          findUnique: jest.fn(),
           findMany: jest.fn(),
           create: jest.fn(),
         },
@@ -137,6 +139,7 @@ describe('EventsService', () => {
 
       await expect(
         service.createReservation(restaurantId, eventId, {
+          idempotencyKey: 'key-1',
           guestName: 'Ali',
           guestPhone: '0770',
           partySize: 2, // would push to 6, over the 5 capacity
@@ -152,6 +155,7 @@ describe('EventsService', () => {
       prisma.db.chefTableBooking.create.mockResolvedValueOnce({ id: 'booking1' });
 
       const result = await service.createReservation(restaurantId, eventId, {
+        idempotencyKey: 'key-2',
         guestName: 'Ali',
         guestPhone: '0770',
         partySize: 3,
@@ -160,6 +164,48 @@ describe('EventsService', () => {
 
       expect(result).toEqual({ id: 'booking1' });
       expect(prisma.db.chefTableBooking.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns the existing booking instead of creating a duplicate when the same idempotency key resubmits', async () => {
+      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({ id: 'booking1', idempotencyKey: 'key-3' });
+
+      const result = await service.createReservation(restaurantId, eventId, {
+        idempotencyKey: 'key-3',
+        guestName: 'Ali',
+        guestPhone: '0770',
+        partySize: 3,
+        reservationDate: '2026-09-10',
+      });
+
+      expect(result).toEqual({ id: 'booking1', idempotencyKey: 'key-3' });
+      // Never even looked at the event or capacity - the resubmission
+      // short-circuits before any of that.
+      expect(prisma.db.restaurantEvent.findUnique).not.toHaveBeenCalled();
+      expect(prisma.db.chefTableBooking.create).not.toHaveBeenCalled();
+    });
+
+    it('hands back the winning row when two simultaneous requests race on the same key', async () => {
+      prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableOneOffEvent);
+      prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([]);
+      prisma.db.chefTableBooking.create.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed on the fields: (`idempotencyKey`)', {
+          code: 'P2002',
+          clientVersion: '7.9.1',
+        }),
+      );
+      prisma.db.chefTableBooking.findUnique
+        .mockResolvedValueOnce(null) // pre-check: no existing booking yet
+        .mockResolvedValueOnce({ id: 'winner' }); // after losing the race, fetch what the other request created
+
+      const result = await service.createReservation(restaurantId, eventId, {
+        idempotencyKey: 'key-4',
+        guestName: 'Ali',
+        guestPhone: '0770',
+        partySize: 1,
+        reservationDate: '2026-09-10',
+      });
+
+      expect(result).toEqual({ id: 'winner' });
     });
   });
 

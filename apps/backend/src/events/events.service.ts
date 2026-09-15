@@ -248,39 +248,69 @@ export class EventsService {
   }
 
   async createReservation(restaurantId: string, eventId: string, dto: CreateReservationDto) {
+    // Idempotency: a resubmission of the same booking attempt (e.g. a
+    // customer double-tapping "Book" after the app looked like it hung)
+    // reuses the same key, so this hands back the original booking instead
+    // of creating - and re-notifying the restaurant about - a duplicate.
+    // Checked first, before even looking up the event, since a
+    // resubmission needs none of that.
+    const alreadyBooked = await this.prisma.db.chefTableBooking.findUnique({
+      where: { idempotencyKey: dto.idempotencyKey },
+      select: reservationSelect,
+    });
+    if (alreadyBooked) return alreadyBooked;
+
     const event = await this.findBookableEvent(restaurantId, eventId);
     this.assertValidOccurrence(event, dto.reservationDate);
 
-    const reservation = await this.prisma.db.$transaction(
-      async (tx) => {
-        if (event.capacity != null) {
-          const { start, end } = this.dayBounds(dto.reservationDate);
-          const existing = await tx.chefTableBooking.findMany({
-            where: { eventId, status: { in: [...ACTIVE_STATUSES] }, reservationDate: { gte: start, lt: end } },
-            select: { partySize: true },
-          });
-          const reserved = existing.reduce((sum, r) => sum + r.partySize, 0);
-          if (reserved + dto.partySize > event.capacity) {
-            throw new BadRequestException('This event is fully booked for that date');
+    let reservation;
+    try {
+      reservation = await this.prisma.db.$transaction(
+        async (tx) => {
+          if (event.capacity != null) {
+            const { start, end } = this.dayBounds(dto.reservationDate);
+            const existing = await tx.chefTableBooking.findMany({
+              where: { eventId, status: { in: [...ACTIVE_STATUSES] }, reservationDate: { gte: start, lt: end } },
+              select: { partySize: true },
+            });
+            const reserved = existing.reduce((sum, r) => sum + r.partySize, 0);
+            if (reserved + dto.partySize > event.capacity) {
+              throw new BadRequestException('This event is fully booked for that date');
+            }
           }
-        }
 
-        return tx.chefTableBooking.create({
-          data: {
-            restaurantId,
-            eventId,
-            guestName: dto.guestName,
-            guestPhone: dto.guestPhone,
-            guestPhoneNormalized: normalizePhone(dto.guestPhone),
-            partySize: dto.partySize,
-            reservationDate: new Date(dto.reservationDate),
-            notes: dto.notes,
-          },
+          return tx.chefTableBooking.create({
+            data: {
+              restaurantId,
+              eventId,
+              guestName: dto.guestName,
+              guestPhone: dto.guestPhone,
+              guestPhoneNormalized: normalizePhone(dto.guestPhone),
+              partySize: dto.partySize,
+              reservationDate: new Date(dto.reservationDate),
+              notes: dto.notes,
+              idempotencyKey: dto.idempotencyKey,
+            },
+            select: reservationSelect,
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      );
+    } catch (err) {
+      // Two near-simultaneous requests carrying the *same* key (a real
+      // double-tap firing two parallel requests, not a sequential retry)
+      // can both pass the check above and race to insert - the unique
+      // constraint lets exactly one win, and the loser hands back the
+      // winner's row instead of surfacing a raw database error.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const winner = await this.prisma.db.chefTableBooking.findUnique({
+          where: { idempotencyKey: dto.idempotencyKey },
           select: reservationSelect,
         });
-      },
-      { isolationLevel: 'Serializable' },
-    );
+        if (winner) return winner;
+      }
+      throw err;
+    }
 
     if (event.restaurant.notifyNewBooking) {
       this.push

@@ -1,6 +1,13 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateReservationDto {
+  // Client-generated once per genuine booking attempt (not regenerated on
+  // a retry/double-tap of the *same* attempt) - lets the server recognize
+  // a resubmission and return the original booking instead of creating a
+  // second one. See ChefTableBooking.idempotencyKey.
+  @IsUUID()
+  idempotencyKey: string;
+
   @IsString()
   @MaxLength(100)
   guestName: string;

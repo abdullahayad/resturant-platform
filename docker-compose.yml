@@ -2,7 +2,12 @@ name: restaurant-platform
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # postgis/postgis instead of the plain postgres image - same Postgres 16
+    # underneath, just with the PostGIS extension available for spatial
+    # queries (e.g. future "restaurants near me" search). Fully compatible
+    # with data written under the plain image; nothing about the data
+    # files themselves changes by adding extension binaries.
+    image: postgis/postgis:16-3.4-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: restaurant
