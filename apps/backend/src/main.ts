@@ -65,7 +65,14 @@ async function bootstrap() {
     app.use('/docs', helmet({ contentSecurityPolicy: false }));
   }
 
-  app.enableCors({ origin: allowedOrigins });
+  // maxAge lets the browser cache a preflight's "yes, this is allowed"
+  // answer instead of re-asking with a separate OPTIONS round-trip before
+  // every single authenticated request - each browser clamps this to its
+  // own ceiling regardless (Chromium: 2h, Firefox: 24h), so 7200s is
+  // honored as-is everywhere rather than silently getting cut down further
+  // in one of them. Web-only: native app requests aren't subject to CORS
+  // preflights at all, so this has no effect there.
+  app.enableCors({ origin: allowedOrigins, maxAge: 7200 });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
 
   if (swaggerEnabled) {
