@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, u
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { ImageOff } from 'lucide-react-native';
+import { ImageOff, Star } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
@@ -54,6 +54,7 @@ export function PhotoGalleryScreen() {
   const [uploading, setUploading] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [togglingCoverId, setTogglingCoverId] = useState<string | null>(null);
 
   // Fetches exactly the current tab's slice (paginated), refetching from
   // page 1 whenever the album or one of its sub-filters changes - replaced
@@ -154,9 +155,37 @@ export function PhotoGalleryScreen() {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
   };
 
+  // Reloads afterward rather than patching local state directly - the
+  // previous cover this just unset might not even be on the currently
+  // loaded page (pages load 20 at a time), so a full refetch of this tab is
+  // what actually keeps the "exactly one cover" ordering correct on screen.
+  const toggleCover = async (photo: GalleryPhoto) => {
+    setTogglingCoverId(photo.id);
+    try {
+      await api.setGalleryCover(token, photo.id, !photo.isCover);
+      reload();
+    } finally {
+      setTogglingCoverId(null);
+    }
+  };
+
   const renderPhoto = ({ item: photo }: { item: GalleryPhoto }) => (
     <View style={styles.photoCard}>
       <Image source={{ uri: photo.url }} style={styles.photoImage} />
+      {album !== 'REVIEW' && (
+        <Pressable
+          onPress={() => toggleCover(photo)}
+          disabled={togglingCoverId === photo.id}
+          style={styles.coverButton}
+          hitSlop={8}
+        >
+          <Star
+            size={16}
+            color={colors.primary}
+            fill={photo.isCover ? colors.primary : 'transparent'}
+          />
+        </Pressable>
+      )}
       {photo.dish && <Text style={styles.photoCaption}>{photo.dish.nameEn}</Text>}
       {photo.album === 'REVIEW' && photo.caption && <Text style={styles.photoCaption}>{photo.caption}</Text>}
       <Pressable onPress={() => removePhoto(photo.id)}>
@@ -297,4 +326,15 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   photoCaption: { fontSize: 12, color: colors.foreground },
   removeLink: { fontSize: 12, color: colors.destructive },
+  coverButton: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

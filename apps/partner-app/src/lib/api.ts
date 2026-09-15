@@ -201,6 +201,7 @@ export interface GalleryPhoto {
   caption: string | null;
   ambienceSubCategory: AmbienceSubCategory | null;
   dish: { id: string; nameEn: string; isMostOrdered: boolean; menuCategory: MasterDataItem | null } | null;
+  isCover: boolean;
 }
 
 export interface CreateGalleryPhotoPayload {
@@ -636,6 +637,8 @@ export const api = {
     send<GalleryPhoto>('POST', '/restaurants/me/gallery', token, payload),
   deleteGalleryPhoto: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/gallery/${id}`, token),
+  setGalleryCover: (token: string, id: string, cover: boolean) =>
+    send<GalleryPhoto>('PATCH', `/restaurants/me/gallery/${id}/cover`, token, { cover }),
 
   chefs: (token: string) => get<ChefManagementState>('/restaurants/me/chefs', token),
   upsertChef: (token: string, role: ChefRoleSlug, payload: ChefProfilePayload) =>

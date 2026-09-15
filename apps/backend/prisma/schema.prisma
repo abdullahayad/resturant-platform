@@ -444,6 +444,13 @@ model GalleryPhoto {
   reviewId            String?
   url                 String
   caption             String?
+  // At most one true per (restaurantId, album) - enforced in
+  // GalleryService.setCover via a transaction, not a DB constraint, since a
+  // partial unique index isn't expressible in Prisma's schema DSL. Shown
+  // first within its album (see list()'s orderBy) - the owner's own pick of
+  // their best shot, independent of whenever a public customer-facing app
+  // exists to also show it there.
+  isCover             Boolean              @default(false)
   moderationStatus    ModerationStatus     @default(VISIBLE)
   createdAt           DateTime             @default(now())
 

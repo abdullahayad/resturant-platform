@@ -62,6 +62,11 @@ export class ModerateGalleryPhotoDto {
   status: ModerationStatusValue;
 }
 
+export class SetGalleryCoverDto {
+  @IsBoolean()
+  cover: boolean;
+}
+
 export class ListGalleryPhotosQuery extends PageQueryDto {
   @IsOptional()
   @IsIn(MODERATION_STATUSES)

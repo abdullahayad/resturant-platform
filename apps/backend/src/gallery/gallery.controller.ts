@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { GalleryService } from './gallery.service';
-import { CreateGalleryPhotoDto, ListGalleryQuery } from './dto/gallery-photo.dto';
+import { CreateGalleryPhotoDto, ListGalleryQuery, SetGalleryCoverDto } from './dto/gallery-photo.dto';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -30,5 +30,11 @@ export class GalleryController {
   @Delete(':id')
   remove(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
     return this.gallery.remove(req.user.sub, id);
+  }
+
+  @UseGuards(ApprovedPartnerGuard)
+  @Patch(':id/cover')
+  setCover(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: SetGalleryCoverDto) {
+    return this.gallery.setCover(req.user.sub, id, dto.cover);
   }
 }

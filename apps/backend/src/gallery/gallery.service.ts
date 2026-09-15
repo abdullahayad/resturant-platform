@@ -32,7 +32,13 @@ export class GalleryService {
     };
     const { page, skip, take } = pageOffset(pageParam);
     const [items, total] = await Promise.all([
-      this.prisma.db.galleryPhoto.findMany({ where, include: photoInclude, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.db.galleryPhoto.findMany({
+        where,
+        include: photoInclude,
+        orderBy: [{ isCover: 'desc' }, { createdAt: 'desc' }],
+        skip,
+        take,
+      }),
       this.prisma.db.galleryPhoto.count({ where }),
     ]);
     return { items, total, page, pageSize: take };
@@ -68,6 +74,28 @@ export class GalleryService {
     if (!photo || photo.restaurantId !== restaurantId) throw new NotFoundException('Photo not found');
     await this.prisma.db.galleryPhoto.delete({ where: { id } });
     return { id };
+  }
+
+  // Toggles cover on/off - setting a new cover atomically clears any other
+  // cover in the same (restaurant, album), which is what actually keeps
+  // "at most one cover per album" true, since that's not something a DB
+  // constraint enforces here (see the isCover field comment in schema.prisma).
+  async setCover(restaurantId: string, id: string, cover: boolean) {
+    const photo = await this.prisma.db.galleryPhoto.findUnique({
+      where: { id },
+      select: { restaurantId: true, album: true },
+    });
+    if (!photo || photo.restaurantId !== restaurantId) throw new NotFoundException('Photo not found');
+
+    return this.prisma.db.$transaction(async (tx) => {
+      if (cover) {
+        await tx.galleryPhoto.updateMany({
+          where: { restaurantId, album: photo.album, isCover: true },
+          data: { isCover: false },
+        });
+      }
+      return tx.galleryPhoto.update({ where: { id }, data: { isCover: cover }, include: photoInclude });
+    });
   }
 
   // ── Admin moderation ─────────────────────────────────────────────────
