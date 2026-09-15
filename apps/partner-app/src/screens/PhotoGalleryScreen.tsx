@@ -163,17 +163,25 @@ export function PhotoGalleryScreen() {
   // just became slot #1") when picking a cover among several photos. The
   // real reorder still happens next time this tab is opened/refetched -
   // just not while the owner is actively comparing photos.
+  //
+  // The star flips *before* the request goes out (optimistic), not after
+  // it resolves - waiting for the network round-trip first was the visible
+  // lag between tapping and the star actually appearing. On failure this
+  // re-syncs from the server instead of trying to hand-compute an undo.
   const toggleCover = async (photo: GalleryPhoto) => {
+    const next = !photo.isCover;
     setTogglingCoverId(photo.id);
+    setPhotos((prev) =>
+      prev.map((p) => {
+        if (p.id === photo.id) return { ...p, isCover: next };
+        return next && p.isCover ? { ...p, isCover: false } : p;
+      }),
+    );
     try {
-      const next = !photo.isCover;
       await api.setGalleryCover(token, photo.id, next);
-      setPhotos((prev) =>
-        prev.map((p) => {
-          if (p.id === photo.id) return { ...p, isCover: next };
-          return next && p.isCover ? { ...p, isCover: false } : p;
-        }),
-      );
+    } catch {
+      setError(t('common:networkError'));
+      reload();
     } finally {
       setTogglingCoverId(null);
     }
