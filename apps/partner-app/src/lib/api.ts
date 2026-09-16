@@ -697,7 +697,7 @@ export const api = {
   myFeatureFlags: (token: string) => get<string[]>('/restaurants/me/feature-flags', token),
 
   myAnalytics: (token: string) => get<RestaurantAnalytics>('/restaurants/me/analytics', token),
-  myActivity: (token: string) => get<ActivityItem[]>('/restaurants/me/activity', token),
+  myActivity: (token: string, page?: number) => get<Paginated<ActivityItem>>(`/restaurants/me/activity${qsFrom({ page })}`, token),
   requestFeatured: (token: string, payload: RequestFeaturedPayload) =>
     send<FeaturedPlacementItem>('POST', '/restaurants/me/featured', token, payload),
   cancelFeaturedRequest: (token: string, id: string) =>

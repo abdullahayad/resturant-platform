@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Star, CalendarClock, Megaphone, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
@@ -9,6 +9,7 @@ import { LoadingState } from '../components/LoadingState';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { relativeTimeParts } from '../lib/relativeTime';
 import { api, type ActivityItem, type ReservationItem, type ReviewSummary } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
@@ -56,16 +57,28 @@ export function OverviewDashboardScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [reservations, setReservations] = useState<ReservationItem[] | null>(null);
-  const [activity, setActivity] = useState<ActivityItem[] | null>(null);
   const [statsVisible, setStatsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const fetchActivityPage = useCallback((page: number) => api.myActivity(token, page), [token]);
+  const {
+    items: activity,
+    loading: activityLoading,
+    loadingMore: activityLoadingMore,
+    reload: reloadActivity,
+    loadMore: loadMoreActivity,
+    hasMore: hasMoreActivity,
+  } = usePaginatedList(fetchActivityPage);
+
+  useEffect(() => {
+    reloadActivity();
+  }, [reloadActivity]);
 
   useEffect(() => {
     setLoading(true);
     const fetches = [
       api.reviewsSummary(token).then(setSummary).catch(() => {}),
       api.me(token).then((profile) => setStatsVisible(profile.statsVisible)).catch(() => {}),
-      api.myActivity(token).then(setActivity).catch(() => {}),
     ];
     // Chef Table & Events (and its reservations) is Manager/Owner-only —
     // a Menu Editor would just get a 403 here.
@@ -110,7 +123,9 @@ export function OverviewDashboardScreen() {
 
           <Text style={styles.sectionHeading}>{t('activityHeading')}</Text>
           <View style={styles.activityCard}>
-            {activity && activity.length > 0 ? (
+            {activityLoading ? (
+              <LoadingState />
+            ) : activity.length > 0 ? (
               activity.map((item, i) => (
                 <View key={`${item.type}-${item.id}`}>
                   {i > 0 && <View style={styles.activityDivider} />}
@@ -121,6 +136,15 @@ export function OverviewDashboardScreen() {
               <EmptyState icon={CalendarClock} message={t('activityEmpty')} />
             )}
           </View>
+          {hasMoreActivity && (
+            <Pressable style={styles.loadMoreButton} onPress={loadMoreActivity} disabled={activityLoadingMore}>
+              {activityLoadingMore ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Text style={styles.loadMoreText}>{t('common:loadMore')}</Text>
+              )}
+            </Pressable>
+          )}
         </>
       )}
     </ScrollView>
@@ -154,4 +178,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   activityText: { fontSize: 13, color: colors.foreground, fontWeight: '600' },
   activityTime: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
+  loadMoreButton: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 20, marginTop: 8 },
+  loadMoreText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
 });
