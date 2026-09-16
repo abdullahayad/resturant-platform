@@ -9,5 +9,6 @@ import { LoyaltyModule } from '../loyalty/loyalty.module';
   imports: [PushModule, LoyaltyModule],
   controllers: [EventsController, AdminEventsController],
   providers: [EventsService],
+  exports: [EventsService],
 })
 export class EventsModule {}

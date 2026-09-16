@@ -17,6 +17,7 @@ import enAnnouncements from './locales/en/announcements.json';
 import enSettings from './locales/en/settings.json';
 import enPlaceholder from './locales/en/placeholder.json';
 import enAnalytics from './locales/en/analytics.json';
+import enPreview from './locales/en/preview.json';
 
 import arCommon from './locales/ar/common.json';
 import arNav from './locales/ar/nav.json';
@@ -34,6 +35,7 @@ import arAnnouncements from './locales/ar/announcements.json';
 import arSettings from './locales/ar/settings.json';
 import arPlaceholder from './locales/ar/placeholder.json';
 import arAnalytics from './locales/ar/analytics.json';
+import arPreview from './locales/ar/preview.json';
 
 export const defaultNS = 'common';
 
@@ -61,6 +63,7 @@ i18next.use(initReactI18next).init({
       settings: enSettings,
       placeholder: enPlaceholder,
       analytics: enAnalytics,
+      preview: enPreview,
     },
     ar: {
       common: arCommon,
@@ -79,6 +82,7 @@ i18next.use(initReactI18next).init({
       settings: arSettings,
       placeholder: arPlaceholder,
       analytics: arAnalytics,
+      preview: arPreview,
     },
   },
 });

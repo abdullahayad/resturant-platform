@@ -4,6 +4,7 @@
     "locationFailed": "Could not get your location."
   },
   "title": "Profile & Info",
+  "previewAsCustomer": "Preview as Customer",
   "sections": {
     "general": "General Information",
     "location": "Location & Map",

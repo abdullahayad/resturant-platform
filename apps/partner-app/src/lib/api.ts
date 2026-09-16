@@ -410,6 +410,52 @@ export interface RestaurantAnalytics {
   };
 }
 
+// What a customer would actually see today if a public listing existed -
+// each section already filtered server-side to public-visible-only, so this
+// screen never needs its own moderation-status checks.
+export interface RestaurantPreview {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  codeNumber: string;
+  phone: string;
+  logoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  crewCount: number | null;
+  crewPhotoUrl: string | null;
+  province: MasterDataItem | null;
+  district: MasterDataItem | null;
+  businessTypes: { businessType: MasterDataItem }[];
+  foodCategories: { foodCategory: MasterDataItem }[];
+  facilities: { facility: MasterDataItem }[];
+  openingHours: OpeningHoursDay[];
+  dishes: Dish[];
+  galleryPhotos: { id: string; album: GalleryAlbum; url: string; caption: string | null; ambienceSubCategory: AmbienceSubCategory | null; isCover: boolean }[];
+  chefProfiles: ChefProfile[];
+  // A trimmed shape, not RestaurantEventItem - the public events list has no
+  // bookedCount/capacityDate (that's live capacity for the owner's own
+  // dashboard, not something a customer preview shows).
+  events: {
+    id: string;
+    eventTypeId: string;
+    titleEn: string;
+    titleAr: string;
+    descriptionEn: string | null;
+    descriptionAr: string | null;
+    photoUrl: string | null;
+    price: string | null;
+    capacity: number | null;
+    isRecurring: boolean;
+    eventDate: string | null;
+    recurringDayOfWeek: number | null;
+    recurringTime: string | null;
+    eventType: EventTypeItem;
+  }[];
+  overallAverage: number | null;
+  totalReviews: number;
+}
+
 export type ActivityItem =
   | { type: 'review'; id: string; createdAt: string; reviewerName: string; rating: number }
   | { type: 'reservation'; id: string; createdAt: string; guestName: string; partySize: number; eventTitleEn: string }
@@ -698,6 +744,7 @@ export const api = {
 
   myAnalytics: (token: string) => get<RestaurantAnalytics>('/restaurants/me/analytics', token),
   myActivity: (token: string, page?: number) => get<Paginated<ActivityItem>>(`/restaurants/me/activity${qsFrom({ page })}`, token),
+  myPreview: (token: string) => get<RestaurantPreview>('/restaurants/me/preview', token),
   requestFeatured: (token: string, payload: RequestFeaturedPayload) =>
     send<FeaturedPlacementItem>('POST', '/restaurants/me/featured', token, payload),
   cancelFeaturedRequest: (token: string, id: string) =>

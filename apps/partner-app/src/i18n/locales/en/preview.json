@@ -1,0 +1,27 @@
+{
+  "title": "Preview as Customer",
+  "subtitle": "This is what a customer will see once the customer app launches.",
+  "noRatingsYet": "No ratings yet",
+  "ratingsCount_one": "{{count}} rating",
+  "ratingsCount_other": "{{count}} ratings",
+  "sections": {
+    "about": "About",
+    "hours": "Opening Hours",
+    "menu": "Menu",
+    "gallery": "Photos",
+    "chefs": "Our Kitchen Team",
+    "events": "Chef Table & Events"
+  },
+  "closed": "Closed",
+  "noDishesYet": "No dishes added yet.",
+  "noPhotosYet": "No photos added yet.",
+  "noChefsYet": "No chef profiles added yet.",
+  "noEventsYet": "No upcoming events.",
+  "mostOrdered": "Most Ordered",
+  "crewOf_one": "Plus a kitchen crew of {{count}}",
+  "crewOf_other": "Plus a kitchen crew of {{count}}",
+  "yearsExperience_one": "{{count}} year of experience",
+  "yearsExperience_other": "{{count}} years of experience",
+  "upToGuests": "Up to {{count}} guests",
+  "loadFailed": "Could not load preview"
+}

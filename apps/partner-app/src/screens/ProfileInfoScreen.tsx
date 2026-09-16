@@ -10,6 +10,7 @@ import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { MapPinPicker } from '../components/MapPinPicker';
 import { LoadingState } from '../components/LoadingState';
+import { RestaurantPreviewModal } from '../components/RestaurantPreviewModal';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
 import { localizedName } from '../lib/localizedName';
@@ -55,6 +56,7 @@ export function ProfileInfoScreen() {
   const [localStoryPreview, setLocalStoryPreview] = useState<string | null>(null);
   const [savingHours, setSavingHours] = useState(false);
   const [hoursMessage, setHoursMessage] = useState<string | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   const loadAll = useCallback(() => {
     Promise.all([
@@ -191,9 +193,15 @@ export function ProfileInfoScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{t('title')}</Text>
-      {loadError && <Text style={styles.error}>{loadError}</Text>}
+    <>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{t('title')}</Text>
+          <Pressable style={[styles.button, styles.secondaryButton]} onPress={() => setPreviewVisible(true)}>
+            <Text style={styles.secondaryButtonText}>{t('previewAsCustomer')}</Text>
+          </Pressable>
+        </View>
+        {loadError && <Text style={styles.error}>{loadError}</Text>}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('sections.general')}</Text>
@@ -362,12 +370,15 @@ export function ProfileInfoScreen() {
           )}
         </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+      <RestaurantPreviewModal visible={previewVisible} onClose={() => setPreviewVisible(false)} />
+    </>
   );
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { padding: 4, gap: 20, maxWidth: 640 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
   section: {
