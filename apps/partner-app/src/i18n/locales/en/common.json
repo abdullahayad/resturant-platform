@@ -33,6 +33,15 @@
   "introTaglineWord2": "Better",
   "introTaglineWord3": "Today",
   "lastUpdated": "Last updated {{date}}",
+  "timeAgo": {
+    "justNow": "just now",
+    "minutes_one": "{{count}}m ago",
+    "minutes_other": "{{count}}m ago",
+    "hours_one": "{{count}}h ago",
+    "hours_other": "{{count}}h ago",
+    "days_one": "{{count}}d ago",
+    "days_other": "{{count}}d ago"
+  },
   "announcementBanner": {
     "unread_one": "You have a new announcement from the platform team.",
     "unread_other": "You have {{count}} new announcements from the platform team.",

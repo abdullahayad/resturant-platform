@@ -13,5 +13,12 @@
   "notAvailableYet": "Not available yet",
   "pendingConfirmation": "{{count}} pending confirmation",
   "fromReviews_one": "from {{count}} review",
-  "fromReviews_other": "from {{count}} reviews"
+  "fromReviews_other": "from {{count}} reviews",
+  "activityHeading": "Recent Activity",
+  "activityEmpty": "Nothing here yet — new reviews, reservations, and announcements will show up here.",
+  "activity": {
+    "review": "New {{rating}}★ review from {{name}}",
+    "reservation": "New reservation request from {{name}} for {{event}}",
+    "announcement": "New announcement: {{title}}"
+  }
 }

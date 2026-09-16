@@ -16,5 +16,12 @@
   "fromReviews_two": "من تقييمين",
   "fromReviews_few": "من {{count}} تقييمات",
   "fromReviews_many": "من {{count}} تقييمًا",
-  "fromReviews_other": "من {{count}} تقييم"
+  "fromReviews_other": "من {{count}} تقييم",
+  "activityHeading": "النشاط الأخير",
+  "activityEmpty": "لا يوجد شيء هنا بعد — ستظهر التقييمات والحجوزات والإعلانات الجديدة هنا.",
+  "activity": {
+    "review": "تقييم جديد {{rating}}★ من {{name}}",
+    "reservation": "طلب حجز جديد من {{name}} لفعالية {{event}}",
+    "announcement": "إعلان جديد: {{title}}"
+  }
 }

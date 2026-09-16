@@ -410,6 +410,11 @@ export interface RestaurantAnalytics {
   };
 }
 
+export type ActivityItem =
+  | { type: 'review'; id: string; createdAt: string; reviewerName: string; rating: number }
+  | { type: 'reservation'; id: string; createdAt: string; guestName: string; partySize: number; eventTitleEn: string }
+  | { type: 'announcement'; id: string; createdAt: string; titleEn: string; titleAr: string };
+
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 
 export interface ReservationItem {
@@ -692,6 +697,7 @@ export const api = {
   myFeatureFlags: (token: string) => get<string[]>('/restaurants/me/feature-flags', token),
 
   myAnalytics: (token: string) => get<RestaurantAnalytics>('/restaurants/me/analytics', token),
+  myActivity: (token: string) => get<ActivityItem[]>('/restaurants/me/activity', token),
   requestFeatured: (token: string, payload: RequestFeaturedPayload) =>
     send<FeaturedPlacementItem>('POST', '/restaurants/me/featured', token, payload),
   cancelFeaturedRequest: (token: string, id: string) =>
