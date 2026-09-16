@@ -18,5 +18,27 @@
   "noDishesYet": "No dishes yet.",
   "validation": "Fill in both names and a valid price, then choose a category and a photo.",
   "photoUploadFailed": "Photo upload failed",
-  "saveFailed": "Save failed"
+  "saveFailed": "Save failed",
+  "bulkPrice": {
+    "openButton": "Bulk Price Update",
+    "title": "Bulk Price Update",
+    "subtitle": "Adjust prices across your whole menu, or just the dishes you pick — review the change before you apply it.",
+    "adjustmentType": "Adjustment type",
+    "percentage": "Percentage",
+    "fixedAmount": "Fixed amount (IQD)",
+    "increase": "Increase",
+    "decrease": "Decrease",
+    "percentagePlaceholder": "e.g. 10",
+    "fixedAmountPlaceholder": "e.g. 500",
+    "scope": "Apply to",
+    "allDishes": "All dishes",
+    "selectedDishes": "Selected dishes",
+    "selectDishesHint": "Pick which dishes to adjust",
+    "preview": "Preview",
+    "noChange": "Enter an amount to see a preview.",
+    "apply_one": "Apply to {{count}} Dish",
+    "apply_other": "Apply to {{count}} Dishes",
+    "applyFailed": "Could not update prices",
+    "loadFailed": "Could not load your dishes"
+  }
 }

@@ -18,5 +18,31 @@
   "noDishesYet": "لا توجد أطباق بعد.",
   "validation": "أدخل الاسمين وسعراً صحيحاً، ثم اختر الفئة والصورة.",
   "photoUploadFailed": "فشل رفع الصورة",
-  "saveFailed": "فشل الحفظ"
+  "saveFailed": "فشل الحفظ",
+  "bulkPrice": {
+    "openButton": "تعديل الأسعار بالجملة",
+    "title": "تعديل الأسعار بالجملة",
+    "subtitle": "عدّل الأسعار في كامل قائمتك، أو فقط الأطباق التي تختارها — راجع التغيير قبل تطبيقه.",
+    "adjustmentType": "نوع التعديل",
+    "percentage": "نسبة مئوية",
+    "fixedAmount": "مبلغ ثابت (دينار عراقي)",
+    "increase": "زيادة",
+    "decrease": "تخفيض",
+    "percentagePlaceholder": "مثلاً 10",
+    "fixedAmountPlaceholder": "مثلاً 500",
+    "scope": "تطبيق على",
+    "allDishes": "كل الأطباق",
+    "selectedDishes": "أطباق محددة",
+    "selectDishesHint": "اختر الأطباق المراد تعديلها",
+    "preview": "معاينة",
+    "noChange": "أدخل قيمة لعرض المعاينة.",
+    "apply_zero": "تطبيق",
+    "apply_one": "تطبيق على طبق واحد",
+    "apply_two": "تطبيق على طبقين",
+    "apply_few": "تطبيق على {{count}} أطباق",
+    "apply_many": "تطبيق على {{count}} طبقًا",
+    "apply_other": "تطبيق على {{count}} طبق",
+    "applyFailed": "تعذر تحديث الأسعار",
+    "loadFailed": "تعذر تحميل أطباقك"
+  }
 }

@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { CreateDishDto, ModerateDishDto, UpdateDishDto } from './dto/dish.dto';
+import { MAX_PRICE, type BulkUpdatePricesDto, type CreateDishDto, type ModerateDishDto, type PriceAdjustmentType, type UpdateDishDto } from './dto/dish.dto';
 import type { ModerationStatusValue } from '../common/moderation';
 import { pageOffset } from '../common/pagination';
 
 const dishInclude = { menuCategory: true } as const;
+
+// Rounded to 2 decimals (Decimal(10,2) in the schema) and clamped to a
+// sane range - never let a steep-enough percentage or fixed decrease push
+// a price to zero or below, and never past the same cap CreateDishDto
+// already enforces on a single dish.
+function computeAdjustedPrice(currentPrice: number, type: PriceAdjustmentType, value: number): number {
+  const raw = type === 'PERCENTAGE' ? currentPrice * (1 + value / 100) : currentPrice + value;
+  const rounded = Math.round(raw * 100) / 100;
+  return Math.min(MAX_PRICE, Math.max(1, rounded));
+}
 
 @Injectable()
 export class DishesService {
@@ -49,6 +59,37 @@ export class DishesService {
     await this.ensureOwned(restaurantId, dishId);
     await this.prisma.db.dish.update({ where: { id: dishId }, data: { isActive: false } });
     return { id: dishId };
+  }
+
+  // Applies a percentage or fixed-amount adjustment across either every
+  // active dish or a specific subset - the frontend shows its own
+  // before/after preview from the dishes it already has loaded, but the
+  // actual new prices are always computed here from the current DB values,
+  // not trusted from that preview (two staff editing at once, or a stale
+  // screen, shouldn't be able to push a preview-computed price that no
+  // longer matches reality).
+  async bulkUpdatePrices(restaurantId: string, dto: BulkUpdatePricesDto) {
+    if (dto.dishIds) {
+      const owned = await this.prisma.db.dish.count({ where: { id: { in: dto.dishIds }, restaurantId } });
+      if (owned !== dto.dishIds.length) {
+        throw new BadRequestException('One or more selected dishes do not belong to this restaurant');
+      }
+    }
+
+    const where = dto.dishIds ? { id: { in: dto.dishIds }, restaurantId } : { restaurantId, isActive: true };
+    const dishes = await this.prisma.db.dish.findMany({ where, select: { id: true, price: true } });
+
+    return this.prisma.db.$transaction((tx) =>
+      Promise.all(
+        dishes.map((dish) =>
+          tx.dish.update({
+            where: { id: dish.id },
+            data: { price: computeAdjustedPrice(Number(dish.price), dto.type, dto.value) },
+            include: dishInclude,
+          }),
+        ),
+      ),
+    );
   }
 
   private async ensureOwned(restaurantId: string, dishId: string) {

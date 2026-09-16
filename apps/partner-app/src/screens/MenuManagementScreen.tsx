@@ -8,6 +8,7 @@ import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
+import { BulkPriceUpdateModal } from '../components/BulkPriceUpdateModal';
 import { UtensilsCrossed } from 'lucide-react-native';
 import { radii, cardShadow } from '../theme/tokens';
 import { useAuth } from '../lib/AuthContext';
@@ -41,6 +42,7 @@ export function MenuManagementScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [bulkPriceVisible, setBulkPriceVisible] = useState(false);
 
   const fetchPage = useCallback((page: number) => api.browseDishes(token, page), [token]);
   const { items: dishes, setItems: setDishes, loading, loadingMore, error, reload, loadMore } =
@@ -145,6 +147,11 @@ export function MenuManagementScreen() {
     }
   };
 
+  const handleBulkPricesApplied = (updated: Dish[]) => {
+    const updatedById = new Map(updated.map((d) => [d.id, d]));
+    setDishes((prev) => prev.map((d) => updatedById.get(d.id) ?? d));
+  };
+
   const remove = async (id: string) => {
     await api.deleteDish(token, id);
     setDishes((prev) => prev.filter((d) => d.id !== id));
@@ -192,6 +199,7 @@ export function MenuManagementScreen() {
   );
 
   return (
+    <>
     <FlatList
       key={numColumns}
       data={dishes}
@@ -205,7 +213,12 @@ export function MenuManagementScreen() {
       ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.primary} /> : null}
       ListHeaderComponent={
         <View style={styles.headerGroup}>
-          <Text style={styles.title}>{t('title')}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{t('title')}</Text>
+            <Pressable style={[styles.button, styles.secondaryButton]} onPress={() => setBulkPriceVisible(true)}>
+              <Text style={styles.secondaryButtonText}>{t('bulkPrice.openButton')}</Text>
+            </Pressable>
+          </View>
           {loadError && <Text style={styles.error}>{loadError}</Text>}
 
           <View style={styles.formCard}>
@@ -278,12 +291,19 @@ export function MenuManagementScreen() {
       }
       ListEmptyComponent={!loadError && !loading ? <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} /> : null}
     />
+    <BulkPriceUpdateModal
+      visible={bulkPriceVisible}
+      onClose={() => setBulkPriceVisible(false)}
+      onApplied={handleBulkPricesApplied}
+    />
+    </>
   );
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { gap: 20, paddingBottom: 24 },
   headerGroup: { gap: 20 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
   formCard: {

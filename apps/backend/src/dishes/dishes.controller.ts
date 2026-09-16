@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { DishesService } from './dishes.service';
-import { CreateDishDto, UpdateDishDto } from './dto/dish.dto';
+import { BulkUpdatePricesDto, CreateDishDto, UpdateDishDto } from './dto/dish.dto';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { PageQueryDto } from '../common/pagination';
@@ -30,6 +30,14 @@ export class DishesController {
   @Post()
   create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreateDishDto) {
     return this.dishes.create(req.user.sub, dto);
+  }
+
+  // Declared before the :id route below so "bulk-price" isn't swallowed as
+  // a dish id.
+  @UseGuards(ApprovedPartnerGuard)
+  @Patch('bulk-price')
+  bulkUpdatePrices(@Req() req: { user: PartnerJwtPayload }, @Body() dto: BulkUpdatePricesDto) {
+    return this.dishes.bulkUpdatePrices(req.user.sub, dto);
   }
 
   @UseGuards(ApprovedPartnerGuard)

@@ -191,6 +191,16 @@ export interface DishPayload {
   isMostOrdered?: boolean;
 }
 
+export type PriceAdjustmentType = 'PERCENTAGE' | 'FIXED_AMOUNT';
+
+export interface BulkUpdateDishPricesPayload {
+  type: PriceAdjustmentType;
+  // Signed - positive raises prices, negative lowers them.
+  value: number;
+  // Omit to apply to every active dish; provide ids to apply to only those.
+  dishIds?: string[];
+}
+
 export type GalleryAlbum = 'FOOD' | 'MENU' | 'AMBIENCE' | 'REVIEW';
 export type AmbienceSubCategory = 'OUTDOOR' | 'INDOOR' | 'OTHER';
 
@@ -668,6 +678,8 @@ export const api = {
     send<Dish>('PATCH', `/restaurants/me/dishes/${id}`, token, payload),
   deleteDish: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/dishes/${id}`, token),
+  bulkUpdateDishPrices: (token: string, payload: BulkUpdateDishPricesPayload) =>
+    send<Dish[]>('PATCH', '/restaurants/me/dishes/bulk-price', token, payload),
 
   // Fetches one tab's slice at a time (paginated) rather than every photo
   // at once - mostOrdered/menuCategoryId only apply within the FOOD album,
