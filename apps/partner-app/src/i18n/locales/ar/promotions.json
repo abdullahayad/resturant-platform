@@ -45,6 +45,18 @@
     "dateRange": "حدد تاريخ بدء وانتهاء."
   },
   "createFailed": "تعذر إنشاء العرض الترويجي",
+  "summary": {
+    "title": "سجل العروض الترويجية",
+    "total": "إجمالي ما تم إنشاؤه",
+    "activeNow": "نشط الآن",
+    "approved": "موافق عليه",
+    "rejected": "مرفوض",
+    "pending": "قيد المراجعة",
+    "byDiscountType": "نسبة مئوية مقابل مبلغ ثابت",
+    "percentageCount": "{{count}} نسبة مئوية",
+    "fixedAmountCount": "{{count}} مبلغ ثابت",
+    "loadFailed": "تعذر تحميل سجل العروض الترويجية"
+  },
   "status": {
     "PENDING": "قيد الانتظار",
     "APPROVED": "موافق عليه",

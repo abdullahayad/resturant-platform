@@ -330,6 +330,17 @@ export interface PromotionItem {
   dishes: { dish: { id: string; nameEn: string; nameAr: string } }[];
 }
 
+// Bookkeeping only, not real performance stats - there's no customer app
+// yet to track views/clicks/redemptions, so this is scoped to what's
+// actually knowable today: how many promotions this restaurant has run and
+// how they've fared in review.
+export interface PromotionsSummary {
+  total: number;
+  byStatus: { PENDING: number; APPROVED: number; REJECTED: number };
+  activeNow: number;
+  byDiscountType: { PERCENTAGE: number; FIXED_AMOUNT: number };
+}
+
 export interface PromotionPayload {
   titleEn: string;
   titleAr: string;
@@ -797,6 +808,7 @@ export const api = {
   myPromotions: (token: string, page?: number) =>
     get<Paginated<PromotionItem>>(`/restaurants/me/promotions${qsFrom({ page })}`, token),
   rejectedPromotionsCount: (token: string) => get<{ count: number }>('/restaurants/me/promotions/rejected-count', token),
+  promotionsSummary: (token: string) => get<PromotionsSummary>('/restaurants/me/promotions/summary', token),
   createPromotion: (token: string, payload: PromotionPayload) =>
     send<PromotionItem>('POST', '/restaurants/me/promotions', token, payload),
   updatePromotion: (token: string, id: string, payload: Partial<PromotionPayload> & { isActive?: boolean }) =>

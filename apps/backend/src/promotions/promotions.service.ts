@@ -27,6 +27,28 @@ export class PromotionsService {
     return { count };
   }
 
+  // Bookkeeping only - no view/click/redemption tracking exists anywhere
+  // for promotions (there's no customer app yet to generate that), so this
+  // is deliberately scoped to what's actually knowable today: how many
+  // promotions this restaurant has run and how they've fared in review.
+  async summary(restaurantId: string) {
+    const [total, pending, approved, rejected, activeNow, percentage, fixedAmount] = await Promise.all([
+      this.prisma.db.promotion.count({ where: { restaurantId } }),
+      this.prisma.db.promotion.count({ where: { restaurantId, status: 'PENDING' } }),
+      this.prisma.db.promotion.count({ where: { restaurantId, status: 'APPROVED' } }),
+      this.prisma.db.promotion.count({ where: { restaurantId, status: 'REJECTED' } }),
+      this.prisma.db.promotion.count({ where: { restaurantId, status: 'APPROVED', isActive: true } }),
+      this.prisma.db.promotion.count({ where: { restaurantId, discountType: 'PERCENTAGE' } }),
+      this.prisma.db.promotion.count({ where: { restaurantId, discountType: 'FIXED_AMOUNT' } }),
+    ]);
+    return {
+      total,
+      byStatus: { PENDING: pending, APPROVED: approved, REJECTED: rejected },
+      activeNow,
+      byDiscountType: { PERCENTAGE: percentage, FIXED_AMOUNT: fixedAmount },
+    };
+  }
+
   async create(restaurantId: string, dto: CreatePromotionDto) {
     this.assertDiscountValue(dto.discountType, dto.discountValue);
     if (dto.scope === 'SPECIFIC_DISHES') {

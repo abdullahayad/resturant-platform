@@ -25,6 +25,12 @@ export class RestaurantPromotionsController {
     return this.promotions.rejectedCount(req.user.sub);
   }
 
+  @UseGuards(PartnerAuthGuard)
+  @Get('summary')
+  summary(@Req() req: { user: PartnerJwtPayload }) {
+    return this.promotions.summary(req.user.sub);
+  }
+
   @UseGuards(ApprovedPartnerGuard)
   @Post()
   create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreatePromotionDto) {

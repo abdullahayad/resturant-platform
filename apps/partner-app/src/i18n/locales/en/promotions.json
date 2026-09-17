@@ -45,6 +45,18 @@
     "dateRange": "Set a start and end date."
   },
   "createFailed": "Could not create promotion",
+  "summary": {
+    "title": "Promotions History",
+    "total": "Total created",
+    "activeNow": "Active now",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "pending": "Pending review",
+    "byDiscountType": "Percentage vs fixed amount",
+    "percentageCount": "{{count}} percentage",
+    "fixedAmountCount": "{{count}} fixed amount",
+    "loadFailed": "Could not load your promotions history"
+  },
   "status": {
     "PENDING": "Pending",
     "APPROVED": "Approved",

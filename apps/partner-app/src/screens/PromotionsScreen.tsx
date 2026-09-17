@@ -8,9 +8,11 @@ import type { ThemeColors } from '../theme/colors';
 import { usePaginatedList } from '../hooks/usePaginatedList';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
+import { DateField } from '../components/DateField';
 import { EmptyState } from '../components/EmptyState';
+import { StatCard } from '../components/StatCard';
 import { useAuth } from '../lib/AuthContext';
-import { api, type Dish, type PromotionItem } from '../lib/api';
+import { api, type Dish, type PromotionItem, type PromotionsSummary } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
@@ -61,6 +63,8 @@ export function PromotionsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<PromotionsSummary | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -89,6 +93,11 @@ export function PromotionsScreen() {
   useEffect(() => {
     if (error) setLoadError(t('common:networkError'));
   }, [error, t]);
+
+  const loadSummary = useCallback(() => {
+    api.promotionsSummary(token).then(setSummary).catch(() => setSummaryError(t('summary.loadFailed')));
+  }, [token, t]);
+  useEffect(loadSummary, [loadSummary]);
 
   const submit = async () => {
     setFormError(null);
@@ -132,6 +141,7 @@ export function PromotionsScreen() {
       });
       setPromotions((prev) => [created, ...prev]);
       setForm(emptyForm);
+      loadSummary();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : t('createFailed'));
     } finally {
@@ -144,6 +154,7 @@ export function PromotionsScreen() {
     try {
       const updated = await api.updatePromotion(token, promo.id, { isActive: !promo.isActive });
       setPromotions((prev) => prev.map((p) => (p.id === promo.id ? updated : p)));
+      loadSummary();
     } finally {
       setBusyId(null);
     }
@@ -154,6 +165,7 @@ export function PromotionsScreen() {
     try {
       await api.deletePromotion(token, id);
       setPromotions((prev) => prev.filter((p) => p.id !== id));
+      loadSummary();
     } finally {
       setBusyId(null);
     }
@@ -164,6 +176,24 @@ export function PromotionsScreen() {
       <Text style={styles.title}>{t('title')}</Text>
       <Text style={styles.subtitle}>{t('subtitle')}</Text>
       {loadError && <Text style={styles.error}>{loadError}</Text>}
+
+      <View style={styles.summarySection}>
+        <Text style={styles.formTitle}>{t('summary.title')}</Text>
+        {summaryError && <Text style={styles.error}>{summaryError}</Text>}
+        {summary && (
+          <View style={styles.summaryRow}>
+            <StatCard
+              label={t('summary.total')}
+              value={String(summary.total)}
+              trend={`${t('summary.percentageCount', { count: summary.byDiscountType.PERCENTAGE })} · ${t('summary.fixedAmountCount', { count: summary.byDiscountType.FIXED_AMOUNT })}`}
+            />
+            <StatCard label={t('summary.activeNow')} value={String(summary.activeNow)} />
+            <StatCard label={t('summary.approved')} value={String(summary.byStatus.APPROVED)} />
+            <StatCard label={t('summary.pending')} value={String(summary.byStatus.PENDING)} />
+            <StatCard label={t('summary.rejected')} value={String(summary.byStatus.REJECTED)} />
+          </View>
+        )}
+      </View>
 
       <View style={styles.list}>
         {promotions.map((p) => (
@@ -297,10 +327,10 @@ export function PromotionsScreen() {
         ) : (
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <FormField label={t('startDateLabel')} value={form.validFrom} onChangeText={(v) => setForm((f) => ({ ...f, validFrom: v }))} placeholder="2026-08-20" />
+              <DateField label={t('startDateLabel')} value={form.validFrom} onChange={(v) => setForm((f) => ({ ...f, validFrom: v }))} placeholder="2026-08-20" />
             </View>
             <View style={styles.flex1}>
-              <FormField label={t('endDateLabel')} value={form.validUntil} onChangeText={(v) => setForm((f) => ({ ...f, validUntil: v }))} placeholder="2026-08-22" />
+              <DateField label={t('endDateLabel')} value={form.validUntil} onChange={(v) => setForm((f) => ({ ...f, validUntil: v }))} placeholder="2026-08-22" />
             </View>
           </View>
         )}
@@ -322,6 +352,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   hint: { color: colors.mutedForeground, fontSize: 12 },
   flex1: { flex: 1 },
   row: { flexDirection: 'row', gap: 12 },
+
+  summarySection: { gap: 10 },
+  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
 
   list: { gap: 12 },
   loadMoreButton: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 20 },
