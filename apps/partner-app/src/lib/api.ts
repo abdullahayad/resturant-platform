@@ -451,7 +451,10 @@ export interface RestaurantPreview {
   foodCategories: { foodCategory: MasterDataItem }[];
   facilities: { facility: MasterDataItem }[];
   openingHours: OpeningHoursDay[];
-  dishes: Dish[];
+  // discountedPrice is the price after whichever currently-live promotion
+  // gives this dish the best deal, or null if none applies right now -
+  // computed server-side from real promotion data, never guessed here.
+  dishes: (Dish & { discountedPrice: string | null })[];
   galleryPhotos: { id: string; album: GalleryAlbum; url: string; caption: string | null; ambienceSubCategory: AmbienceSubCategory | null; isCover: boolean }[];
   chefProfiles: ChefProfile[];
   // A trimmed shape, not RestaurantEventItem - the public events list has no

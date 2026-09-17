@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
+import { PromotionsService } from '../promotions/promotions.service';
+import { computeDiscountedPrice } from '../promotions/promotion-pricing';
 
 // Everything a customer would actually be able to see, once a public app
 // or listing exists to show it - each relation filtered exactly the way
@@ -56,21 +58,32 @@ export class PreviewService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventsService,
+    private readonly promotions: PromotionsService,
   ) {}
 
   async get(restaurantId: string) {
-    const [restaurant, events] = await Promise.all([
+    const [restaurant, events, activePromotions] = await Promise.all([
       this.prisma.db.restaurant.findUnique({ where: { id: restaurantId }, select: previewSelect }),
       this.events.publicList(restaurantId),
+      this.promotions.activePromotionsNow(restaurantId),
     ]);
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
-    const { reviews, ...rest } = restaurant;
+    const { reviews, dishes, ...rest } = restaurant;
     const totalReviews = reviews.length;
     const overallAverage = totalReviews ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews : null;
 
+    // Same discount a customer would actually see applied at checkout,
+    // computed from whatever promotions are live right now - not a
+    // separate "promotions" list of its own.
+    const dishesWithPricing = dishes.map((dish) => {
+      const discounted = computeDiscountedPrice(Number(dish.price), activePromotions, dish.id);
+      return { ...dish, discountedPrice: discounted != null ? discounted.toFixed(2) : null };
+    });
+
     return {
       ...rest,
+      dishes: dishesWithPricing,
       events,
       overallAverage: overallAverage != null ? Number(overallAverage.toFixed(1)) : null,
       totalReviews,

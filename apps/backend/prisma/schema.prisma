@@ -753,7 +753,11 @@ model Promotion {
   startTime          String? // recurring: "HH:mm", omitted = all day
   endTime            String? // recurring: "HH:mm", omitted = all day
 
-  status          PromotionStatus @default(PENDING)
+  // Live immediately on creation/edit - no admin approval gate (unlike
+  // dishes/photos/events, which do wait for review). An admin can still
+  // set this to REJECTED to take a bad one down after the fact; PromotionsService
+  // never sets it back to PENDING on an edit, only on the row's very first insert.
+  status          PromotionStatus @default(APPROVED)
   rejectionReason String?
   reviewedById    String?
   reviewedAt      DateTime?

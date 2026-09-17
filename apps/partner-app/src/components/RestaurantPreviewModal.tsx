@@ -144,7 +144,14 @@ export function RestaurantPreviewModal({ visible, onClose }: RestaurantPreviewMo
                         <Text style={styles.dishName} numberOfLines={1}>
                           {language === 'ar' ? dish.nameAr : dish.nameEn}
                         </Text>
-                        <Text style={styles.dishPrice}>{Number(dish.price).toLocaleString()} IQD</Text>
+                        {dish.discountedPrice != null ? (
+                          <View style={styles.discountRow}>
+                            <Text style={styles.dishPriceOld}>{Number(dish.price).toLocaleString()} IQD</Text>
+                            <Text style={styles.dishPriceNew}>{Number(dish.discountedPrice).toLocaleString()} IQD</Text>
+                          </View>
+                        ) : (
+                          <Text style={styles.dishPrice}>{Number(dish.price).toLocaleString()} IQD</Text>
+                        )}
                         {dish.isMostOrdered && <Text style={styles.badge}>{t('mostOrdered')}</Text>}
                       </View>
                     ))}
@@ -312,6 +319,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   dishImage: { width: 120, height: 90, borderRadius: 10 },
   dishName: { fontSize: 12, fontWeight: '600', color: colors.foreground, marginTop: 4 },
   dishPrice: { fontSize: 11, color: colors.mutedForeground },
+  discountRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  dishPriceOld: { fontSize: 10, color: colors.mutedForeground, textDecorationLine: 'line-through' },
+  dishPriceNew: { fontSize: 11, fontWeight: '700', color: colors.primary },
   badge: {
     fontSize: 10,
     fontWeight: '700',

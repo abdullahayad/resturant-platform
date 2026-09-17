@@ -3,11 +3,13 @@ import { NotFoundException } from '@nestjs/common';
 import { PreviewService } from './preview.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
+import { PromotionsService } from '../promotions/promotions.service';
 
 describe('PreviewService', () => {
   let service: PreviewService;
   let prisma: { db: { restaurant: { findUnique: jest.Mock } } };
   let events: { publicList: jest.Mock };
+  let promotions: { activePromotionsNow: jest.Mock };
 
   const baseRestaurant = {
     id: 'r1',
@@ -22,12 +24,14 @@ describe('PreviewService', () => {
   beforeEach(async () => {
     prisma = { db: { restaurant: { findUnique: jest.fn() } } };
     events = { publicList: jest.fn().mockResolvedValue([]) };
+    promotions = { activePromotionsNow: jest.fn().mockResolvedValue([]) };
 
     const module = await Test.createTestingModule({
       providers: [
         PreviewService,
         { provide: PrismaService, useValue: prisma },
         { provide: EventsService, useValue: events },
+        { provide: PromotionsService, useValue: promotions },
       ],
     }).compile();
 
@@ -70,5 +74,22 @@ describe('PreviewService', () => {
 
     expect(events.publicList).toHaveBeenCalledWith('r1');
     expect(result.events).toEqual([{ id: 'e1', titleEn: 'Chef Table' }]);
+  });
+
+  it('attaches a discountedPrice to a dish covered by a currently-live promotion', async () => {
+    prisma.db.restaurant.findUnique.mockResolvedValueOnce({
+      ...baseRestaurant,
+      dishes: [{ id: 'd1', price: 10000 }, { id: 'd2', price: 5000 }],
+    });
+    promotions.activePromotionsNow.mockResolvedValueOnce([
+      { scope: 'SPECIFIC_DISHES', discountType: 'PERCENTAGE', discountValue: 20, dishes: [{ dishId: 'd1' }] },
+    ]);
+
+    const result = await service.get('r1');
+
+    expect(result.dishes).toEqual([
+      { id: 'd1', price: 10000, discountedPrice: '8000.00' },
+      { id: 'd2', price: 5000, discountedPrice: null },
+    ]);
   });
 });

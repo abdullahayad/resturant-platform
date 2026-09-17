@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreatePromotionDto, ModeratePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { pageOffset } from '../common/pagination';
+import { isPromotionLiveNow, type PromotionForPricing } from './promotion-pricing';
 
 const promotionInclude = {
   dishes: { include: { dish: { select: { id: true, nameEn: true, nameAr: true, price: true } } } },
@@ -66,6 +67,9 @@ export class PromotionsService {
         discountType: dto.discountType,
         discountValue: dto.discountValue,
         scope: dto.scope,
+        // Live immediately - no admin approval wait (see the status field's
+        // comment in schema.prisma).
+        status: 'APPROVED',
         isRecurring: dto.isRecurring,
         validFrom: dto.isRecurring ? null : dto.validFrom ? new Date(dto.validFrom) : null,
         validUntil: dto.isRecurring ? null : dto.validUntil ? new Date(dto.validUntil) : null,
@@ -95,17 +99,10 @@ export class PromotionsService {
       await this.assertDishesBelongToRestaurant(restaurantId, dto.dishIds);
     }
 
-    // Toggling isActive is not a content edit — only reset moderation when
-    // something a moderator actually looked at has changed, so an approved
-    // promo doesn't silently drop back to PENDING just because it was
-    // switched on or off. Checking Object.keys() alone isn't enough here:
-    // with useDefineForClassFields (default under our ES2023 target),
-    // every declared optional DTO field is an own key with value undefined
-    // regardless of what the request body actually sent, so the check has
-    // to look at which values are actually defined.
-    const { isActive, ...contentFields } = dto;
-    const isContentEdit = Object.values(contentFields).some((v) => v !== undefined);
-
+    // No approval gate to reset here - edits go live immediately, same as
+    // creation (see the status field's comment in schema.prisma). An admin
+    // can still take a promotion down via the moderate() endpoint below;
+    // this edit path never touches status either way.
     return this.prisma.db.promotion.update({
       where: { id },
       data: {
@@ -118,9 +115,6 @@ export class PromotionsService {
         discountValue: dto.discountValue,
         scope: dto.scope,
         isActive: dto.isActive,
-        ...(isContentEdit
-          ? { status: 'PENDING', rejectionReason: null, reviewedById: null, reviewedAt: null }
-          : {}),
         ...(dto.isRecurring !== undefined
           ? {
               isRecurring: dto.isRecurring,
@@ -169,6 +163,29 @@ export class PromotionsService {
     if (owned !== dishIds.length) {
       throw new BadRequestException('One or more selected dishes do not belong to this restaurant');
     }
+  }
+
+  // What a customer would actually see discounted right now - reused by
+  // PreviewService (via DI, not duplicated) rather than each caller
+  // re-deriving "is this promotion live" itself.
+  async activePromotionsNow(restaurantId: string): Promise<PromotionForPricing[]> {
+    const now = new Date();
+    const promotions = await this.prisma.db.promotion.findMany({
+      where: { restaurantId, isActive: true, status: { not: 'REJECTED' } },
+      select: {
+        scope: true,
+        discountType: true,
+        discountValue: true,
+        isRecurring: true,
+        validFrom: true,
+        validUntil: true,
+        recurringDayOfWeek: true,
+        startTime: true,
+        endTime: true,
+        dishes: { select: { dishId: true } },
+      },
+    });
+    return promotions.filter((p) => isPromotionLiveNow(p, now)).map((p) => ({ ...p, discountValue: Number(p.discountValue) }));
   }
 
   // ── Admin moderation ─────────────────────────────────────────────────
