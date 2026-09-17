@@ -58,16 +58,6 @@ export function RestaurantPreviewModal({ visible, onClose }: RestaurantPreviewMo
 
   return (
     <View style={[styles.backdrop, backdropStyle]}>
-      <View style={styles.chrome}>
-        <View style={styles.flex1}>
-          <Text style={styles.title}>{t('title')}</Text>
-          <Text style={styles.subtitle}>{t('subtitle')}</Text>
-        </View>
-        <Pressable onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>{tCommon('actions.close')}</Text>
-        </Pressable>
-      </View>
-
       <View style={styles.phoneFrame}>
         <View style={styles.statusBar}>
           <Text style={styles.statusBarTime}>{statusBarTime}</Text>
@@ -76,6 +66,14 @@ export function RestaurantPreviewModal({ visible, onClose }: RestaurantPreviewMo
             <Wifi size={13} color={colors.foreground} />
             <BatteryFull size={15} color={colors.foreground} />
           </View>
+        </View>
+
+        <View style={styles.header}>
+          <Text style={styles.title}>{t('title')}</Text>
+          <Text style={styles.subtitle}>{t('subtitle')}</Text>
+          <Pressable onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>{tCommon('actions.close')}</Text>
+          </Pressable>
         </View>
 
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
@@ -278,34 +276,18 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     padding: 16,
   },
-  // Both direct children of backdrop (not nested in one extra wrapper) so
-  // backdrop's own justifyContent:'center' can center them as a group -
-  // percentage heights below only resolve reliably against a parent whose
-  // own size is definite, which backdrop is (pinned to all 4 edges) and an
-  // auto-sized wrapper View would not be.
-  chrome: {
-    width: '100%',
-    maxWidth: 380,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 10,
-  },
   flex1: { flex: 1 },
-  title: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  subtitle: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  closeButton: { borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', paddingHorizontal: 12, paddingVertical: 6 },
-  closeButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
-  // A stylized phone: dark bezel border, rounded corners, and a fake
-  // status bar/home indicator - reads as "a photo of a phone screen"
-  // rather than another admin settings panel, regardless of the app's own
-  // current theme (the bezel color is fixed, like a real device).
+  // The single direct child of backdrop (its own maxHeight resolves
+  // reliably against backdrop, which is pinned to all 4 edges and so has a
+  // definite size - an intermediate auto-sized wrapper View would not) -
+  // a stylized phone with a dark bezel, rounded corners, a fake status
+  // bar, and a home indicator, so it reads as a screenshot of a real
+  // device rather than another admin panel.
   phoneFrame: {
     width: '100%',
     maxWidth: 380,
-    maxHeight: '80%',
+    maxHeight: '90%',
     backgroundColor: colors.card,
     borderRadius: 36,
     borderWidth: 10,
@@ -327,6 +309,32 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   statusBarTime: { fontSize: 13, fontWeight: '700', color: colors.foreground },
   statusBarIcons: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+
+  // This tool's own explanatory header - inside the frame (so the whole
+  // thing reads as one cohesive card, not a floating label plus a
+  // separate device), everything centered including the close action.
+  header: {
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  title: { fontSize: 16, fontWeight: '700', color: colors.primary, textAlign: 'center' },
+  subtitle: { fontSize: 12, color: colors.mutedForeground, textAlign: 'center' },
+  closeButton: {
+    marginTop: 6,
+    alignSelf: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  closeButtonText: { color: colors.foreground, fontSize: 13, fontWeight: '600' },
+
   body: { paddingHorizontal: 20 },
   bodyContent: { gap: 20, paddingTop: 8, paddingBottom: 8 },
   homeIndicatorWrap: { alignItems: 'center', paddingVertical: 8 },
