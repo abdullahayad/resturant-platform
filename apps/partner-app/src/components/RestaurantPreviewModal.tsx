@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { UtensilsCrossed, ImageOff, ChefHat, CalendarClock } from 'lucide-react-native';
+import { UtensilsCrossed, ImageOff, ChefHat, CalendarClock, SignalHigh, Wifi, BatteryFull } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -54,17 +54,28 @@ export function RestaurantPreviewModal({ visible, onClose }: RestaurantPreviewMo
     ? [data.district, data.province].filter((x): x is MasterDataItem => !!x).map((x) => localizedName(x, language)).join(', ')
     : '';
 
+  const statusBarTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   return (
     <View style={[styles.backdrop, backdropStyle]}>
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <View style={styles.flex1}>
-            <Text style={styles.title}>{t('title')}</Text>
-            <Text style={styles.subtitle}>{t('subtitle')}</Text>
+      <View style={styles.chrome}>
+        <View style={styles.flex1}>
+          <Text style={styles.title}>{t('title')}</Text>
+          <Text style={styles.subtitle}>{t('subtitle')}</Text>
+        </View>
+        <Pressable onPress={onClose} style={styles.closeButton}>
+          <Text style={styles.closeButtonText}>{tCommon('actions.close')}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.phoneFrame}>
+        <View style={styles.statusBar}>
+          <Text style={styles.statusBarTime}>{statusBarTime}</Text>
+          <View style={styles.statusBarIcons}>
+            <SignalHigh size={13} color={colors.foreground} />
+            <Wifi size={13} color={colors.foreground} />
+            <BatteryFull size={15} color={colors.foreground} />
           </View>
-          <Pressable onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>{tCommon('actions.close')}</Text>
-          </Pressable>
         </View>
 
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
@@ -236,6 +247,10 @@ export function RestaurantPreviewModal({ visible, onClose }: RestaurantPreviewMo
             </>
           )}
         </ScrollView>
+
+        <View style={styles.homeIndicatorWrap}>
+          <View style={styles.homeIndicator} />
+        </View>
       </View>
     </View>
   );
@@ -263,33 +278,60 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     padding: 16,
   },
-  card: {
+  // Both direct children of backdrop (not nested in one extra wrapper) so
+  // backdrop's own justifyContent:'center' can center them as a group -
+  // percentage heights below only resolve reliably against a parent whose
+  // own size is definite, which backdrop is (pinned to all 4 edges) and an
+  // auto-sized wrapper View would not be.
+  chrome: {
     width: '100%',
-    maxWidth: 560,
-    maxHeight: '90%',
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  header: {
+    maxWidth: 380,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: 10,
   },
   flex1: { flex: 1 },
-  title: { fontSize: 18, fontWeight: '700', color: colors.primary },
-  subtitle: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
-  closeButton: { borderRadius: 8, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 6 },
-  closeButtonText: { color: colors.foreground, fontSize: 13, fontWeight: '600' },
-  body: { padding: 20 },
-  bodyContent: { gap: 20, paddingBottom: 8 },
-  error: { color: colors.destructive, fontSize: 13 },
+  title: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  subtitle: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  closeButton: { borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', paddingHorizontal: 12, paddingVertical: 6 },
+  closeButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+
+  // A stylized phone: dark bezel border, rounded corners, and a fake
+  // status bar/home indicator - reads as "a photo of a phone screen"
+  // rather than another admin settings panel, regardless of the app's own
+  // current theme (the bezel color is fixed, like a real device).
+  phoneFrame: {
+    width: '100%',
+    maxWidth: 380,
+    maxHeight: '80%',
+    backgroundColor: colors.card,
+    borderRadius: 36,
+    borderWidth: 10,
+    borderColor: '#111',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  statusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  statusBarTime: { fontSize: 13, fontWeight: '700', color: colors.foreground },
+  statusBarIcons: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  body: { paddingHorizontal: 20 },
+  bodyContent: { gap: 20, paddingTop: 8, paddingBottom: 8 },
+  homeIndicatorWrap: { alignItems: 'center', paddingVertical: 8 },
+  homeIndicator: { width: 100, height: 4, borderRadius: 2, backgroundColor: colors.mutedForeground, opacity: 0.5 },
+  error: { color: colors.destructive, fontSize: 13, paddingHorizontal: 20 },
   loadingWrap: { paddingVertical: 40, alignItems: 'center' },
 
   hero: { flexDirection: 'row', gap: 14, alignItems: 'center' },
