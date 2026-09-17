@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
 import { usePaginatedList } from '../hooks/usePaginatedList';
+import { useMeasuredWidth } from '../hooks/useMeasuredWidth';
 import { resizeForUpload } from '../lib/resizeImage';
 import { localizedName } from '../lib/localizedName';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -30,7 +31,7 @@ export function PhotoGalleryScreen() {
   const { language } = useLanguage();
   const { t } = useTranslation('gallery');
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { width } = useWindowDimensions();
+  const { width, onLayout } = useMeasuredWidth();
   const numColumns = Math.max(1, Math.floor(width / (CARD_WIDTH + CARD_GAP)));
   const albumTabs: { key: GalleryAlbum; label: string }[] = [
     { key: 'FOOD', label: t('tabs.food') },
@@ -215,6 +216,7 @@ export function PhotoGalleryScreen() {
   return (
     <FlatList
       key={numColumns}
+      onLayout={onLayout}
       data={activeList}
       keyExtractor={(photo) => photo.id}
       renderItem={renderPhoto}

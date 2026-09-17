@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,7 @@ import { resizeForUpload } from '../lib/resizeImage';
 import { localizedName } from '../lib/localizedName';
 import { useLanguage } from '../i18n/LanguageContext';
 import { usePaginatedList } from '../hooks/usePaginatedList';
+import { useMeasuredWidth } from '../hooks/useMeasuredWidth';
 import { api, type Dish, type MasterDataItem } from '../lib/api';
 
 const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as string | null, photoUrl: '', isMostOrdered: false };
@@ -29,7 +30,7 @@ export function MenuManagementScreen() {
   const { language } = useLanguage();
   const { t } = useTranslation('menu');
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { width } = useWindowDimensions();
+  const { width, onLayout } = useMeasuredWidth();
   const numColumns = Math.max(1, Math.floor(width / (CARD_WIDTH + CARD_GAP)));
 
   const [categories, setCategories] = useState<MasterDataItem[]>([]);
@@ -202,6 +203,7 @@ export function MenuManagementScreen() {
     <>
     <FlatList
       key={numColumns}
+      onLayout={onLayout}
       data={dishes}
       keyExtractor={(dish) => dish.id}
       renderItem={renderDish}
