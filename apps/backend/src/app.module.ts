@@ -28,6 +28,7 @@ import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ActivityModule } from './activity/activity.module';
 import { PreviewModule } from './preview/preview.module';
+import { PaymentAccountsModule } from './payment-accounts/payment-accounts.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { PreviewModule } from './preview/preview.module';
     AnalyticsModule,
     ActivityModule,
     PreviewModule,
+    PaymentAccountsModule,
   ],
   controllers: [AppController, LegalController],
   providers: [

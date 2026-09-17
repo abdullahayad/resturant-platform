@@ -320,6 +320,21 @@ model Restaurant {
   crewCount    Int?
   crewPhotoUrl String?
 
+  // Payment Accounts (Settings & Staff) - each restaurant's own ZainCash /
+  // Qi Card merchant credentials, so a future customer-app checkout can
+  // charge a customer straight into this restaurant's own account (the
+  // platform never holds the money). The secret is encrypted at rest (see
+  // common/secretEncryption.ts) and never sent back to the frontend once
+  // saved - only merchantId + connectedAt are, so the UI can show
+  // "Connected" without ever displaying the key again. Not used by any
+  // live payment flow yet; there is no customer app to trigger one.
+  zainCashMerchantId      String?
+  zainCashSecretEncrypted String?
+  zainCashConnectedAt     DateTime?
+  qiCardMerchantId        String?
+  qiCardSecretEncrypted   String?
+  qiCardConnectedAt       DateTime?
+
   // Admin moderation trail
   reviewedById    String?
   reviewedAt      DateTime?

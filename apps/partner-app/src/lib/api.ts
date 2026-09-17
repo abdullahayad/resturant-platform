@@ -487,6 +487,28 @@ export interface ReservationItem {
   guestTier: { labelEn: string; labelAr: string } | null;
 }
 
+// Payment Accounts (Settings & Staff) - each restaurant's own ZainCash/Qi
+// Card merchant credentials, stored so a future customer-app checkout can
+// charge straight into this restaurant's own account. merchantId here is
+// always the masked "••••1234" form the backend returns - the real value
+// and the secret are never sent back once saved.
+export type PaymentGatewayId = 'zaincash' | 'qicard';
+
+export interface PaymentGatewayConnection {
+  merchantId: string;
+  connectedAt: string;
+}
+
+export interface PaymentAccountsState {
+  zaincash: PaymentGatewayConnection | null;
+  qicard: PaymentGatewayConnection | null;
+}
+
+export interface ConnectPaymentGatewayPayload {
+  merchantId: string;
+  secret: string;
+}
+
 export type StaffRole = 'MANAGER' | 'MENU_EDITOR';
 
 export interface StaffMember {
@@ -799,4 +821,10 @@ export const api = {
 
   deleteAccount: (token: string) =>
     send<{ deleted: 'staff' | 'restaurant' }>('DELETE', '/restaurants/me/account', token),
+
+  myPaymentAccounts: (token: string) => get<PaymentAccountsState>('/restaurants/me/payment-accounts', token),
+  connectPaymentGateway: (token: string, gateway: PaymentGatewayId, payload: ConnectPaymentGatewayPayload) =>
+    send<PaymentAccountsState>('PUT', `/restaurants/me/payment-accounts/${gateway}`, token, payload),
+  disconnectPaymentGateway: (token: string, gateway: PaymentGatewayId) =>
+    send<PaymentAccountsState>('DELETE', `/restaurants/me/payment-accounts/${gateway}`, token),
 };
