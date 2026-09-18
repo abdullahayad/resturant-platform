@@ -99,6 +99,13 @@ const facilities = [
   ['Card Payment', 'دفع بالبطاقة'],
   ['Shisha', 'شيشة'],
   ['Kids Area', 'منطقة أطفال'],
+  // Dining-occasion tags - so customers can eventually filter by the kind
+  // of experience they want, separately from BusinessType (what kind of
+  // venue it is) and FoodCategory (what it serves).
+  ['Romantic', 'رومانسي'],
+  ['Large Groups', 'مجموعات كبيرة'],
+  ['Scenic View', 'إطلالة مميزة'],
+  ['Quick Bite', 'وجبة سريعة'],
 ];
 
 const eventTypes: [string, string, string][] = [
