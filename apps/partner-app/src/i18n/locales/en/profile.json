@@ -5,6 +5,7 @@
   },
   "title": "Profile & Info",
   "previewAsCustomer": "Preview as Customer",
+  "partOfChain": "Part of: {{name}}",
   "sections": {
     "general": "General Information",
     "location": "Location & Map",

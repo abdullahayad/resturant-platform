@@ -5,6 +5,7 @@
   },
   "title": "الملف الشخصي والمعلومات",
   "previewAsCustomer": "معاينة كما يراها الزبون",
+  "partOfChain": "جزء من: {{name}}",
   "sections": {
     "general": "المعلومات العامة",
     "location": "الموقع والخريطة",

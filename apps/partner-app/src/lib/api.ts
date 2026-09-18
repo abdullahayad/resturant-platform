@@ -144,6 +144,9 @@ export interface RestaurantDetail extends AuthenticatedRestaurant {
   publishDeclineAcknowledgedAt: string | null;
   province: MasterDataItem | null;
   district: MasterDataItem | null;
+  // Set only by an admin, never by the restaurant itself - read-only here.
+  // See RestaurantChain's comment in the backend schema for why.
+  chain: MasterDataItem | null;
   businessTypes: { businessType: MasterDataItem }[];
   foodCategories: { foodCategory: MasterDataItem }[];
   facilities: { facility: MasterDataItem }[];
@@ -447,6 +450,7 @@ export interface RestaurantPreview {
   crewPhotoUrl: string | null;
   province: MasterDataItem | null;
   district: MasterDataItem | null;
+  chain: { nameEn: string; nameAr: string } | null;
   businessTypes: { businessType: MasterDataItem }[];
   foodCategories: { foodCategory: MasterDataItem }[];
   facilities: { facility: MasterDataItem }[];

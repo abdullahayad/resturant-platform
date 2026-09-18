@@ -202,6 +202,9 @@ export function ProfileInfoScreen() {
           </Pressable>
         </View>
         {loadError && <Text style={styles.error}>{loadError}</Text>}
+        {detail?.chain && (
+          <Text style={styles.chainNote}>{t('partOfChain', { name: localizedName(detail.chain, language) })}</Text>
+        )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('sections.general')}</Text>
@@ -381,6 +384,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
+  chainNote: { fontSize: 13, color: colors.primary, fontWeight: '600' },
   section: {
     gap: 12,
     borderTopWidth: 1,

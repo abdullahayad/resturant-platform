@@ -29,6 +29,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { ActivityModule } from './activity/activity.module';
 import { PreviewModule } from './preview/preview.module';
 import { PaymentAccountsModule } from './payment-accounts/payment-accounts.module';
+import { ChainsModule } from './chains/chains.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { PaymentAccountsModule } from './payment-accounts/payment-accounts.modul
     ActivityModule,
     PreviewModule,
     PaymentAccountsModule,
+    ChainsModule,
   ],
   controllers: [AppController, LegalController],
   providers: [

@@ -35,6 +35,9 @@ describe('RestaurantsService', () => {
         partnerStaffUser: {
           delete: jest.fn(),
         },
+        restaurantChain: {
+          findUnique: jest.fn(),
+        },
       },
     };
 
@@ -246,6 +249,47 @@ describe('RestaurantsService', () => {
       expect(prisma.db.restaurant.delete).toHaveBeenCalledWith({ where: { id: 'r1' } });
       expect(prisma.db.partnerStaffUser.delete).not.toHaveBeenCalled();
       expect(result).toEqual({ deleted: 'restaurant' });
+    });
+  });
+
+  describe('setChain', () => {
+    it('throws NotFoundException for a restaurant that does not exist', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.setChain('missing', 'c1')).rejects.toThrow(NotFoundException);
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses to link to a chain that does not exist', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurantChain.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.setChain('r1', 'missing-chain')).rejects.toThrow(NotFoundException);
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('links a restaurant to a chain that exists', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurantChain.findUnique.mockResolvedValueOnce({ id: 'c1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await service.setChain('r1', 'c1');
+
+      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'r1' }, data: { chainId: 'c1' } }),
+      );
+    });
+
+    it('clears the link when chainId is null, without checking any chain exists', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await service.setChain('r1', null);
+
+      expect(prisma.db.restaurantChain.findUnique).not.toHaveBeenCalled();
+      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'r1' }, data: { chainId: null } }),
+      );
     });
   });
 });

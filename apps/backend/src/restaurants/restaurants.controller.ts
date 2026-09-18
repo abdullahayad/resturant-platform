@@ -11,6 +11,7 @@ import { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
 import { UpdateStatsVisibilityDto } from './dto/update-stats-visibility.dto';
+import { SetChainDto } from './dto/set-chain.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
@@ -146,6 +147,12 @@ export class RestaurantsController {
   @Patch(':id/suspend')
   suspend(@Param('id') id: string) {
     return this.restaurants.suspend(id);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Patch(':id/chain')
+  setChain(@Param('id') id: string, @Body() dto: SetChainDto) {
+    return this.restaurants.setChain(id, dto.chainId ?? null);
   }
 
   @UseGuards(AdminAuthGuard)

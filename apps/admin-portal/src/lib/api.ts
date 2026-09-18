@@ -36,6 +36,18 @@ export interface RestaurantListItem {
   province: { id: string; nameEn: string; nameAr: string } | null
   district: { id: string; nameEn: string; nameAr: string } | null
   businessTypes: { businessType: { id: string; nameEn: string; nameAr: string } }[]
+  chain: { id: string; nameEn: string; nameAr: string } | null
+}
+
+// A brand with multiple branches - admin-managed only, never self-declared
+// by a restaurant owner (see RestaurantChain's comment in schema.prisma).
+export interface Chain {
+  id: string
+  nameEn: string
+  nameAr: string
+  createdAt: string
+  updatedAt: string
+  _count: { restaurants: number }
 }
 
 export interface AdminUserItem {
@@ -470,6 +482,14 @@ export const api = {
   suspend: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/suspend`),
   setStatsVisibility: (id: string, statsVisible: boolean) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/stats-visibility`, { statsVisible }),
+  setRestaurantChain: (id: string, chainId: string | null) =>
+    send<RestaurantListItem>('PATCH', `/restaurants/${id}/chain`, { chainId }),
+
+  chains: () => get<Chain[]>('/chains'),
+  createChain: (payload: { nameEn: string; nameAr: string }) => send<Chain>('POST', '/chains', payload),
+  updateChain: (id: string, payload: { nameEn: string; nameAr: string }) =>
+    send<Chain>('PATCH', `/chains/${id}`, payload),
+  deleteChain: (id: string) => send<{ id: string }>('DELETE', `/chains/${id}`),
 
   publishReview: (id: string) => get<PublishReviewDetail>(`/restaurants/${id}/publish-review`),
   moderatePublish: (id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>

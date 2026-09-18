@@ -26,6 +26,7 @@ const previewSelect = {
   crewPhotoUrl: true,
   province: { select: { nameEn: true, nameAr: true } },
   district: { select: { nameEn: true, nameAr: true } },
+  chain: { select: { nameEn: true, nameAr: true } },
   businessTypes: { select: { businessType: { select: { nameEn: true, nameAr: true } } } },
   foodCategories: { select: { foodCategory: { select: { nameEn: true, nameAr: true } } } },
   facilities: { select: { facility: { select: { nameEn: true, nameAr: true } } } },

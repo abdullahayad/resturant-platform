@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   api,
   UnauthorizedError,
+  type Chain,
   type MasterDataItemFull,
   type Province,
   type RestaurantDetail,
@@ -45,6 +46,7 @@ export function RestaurantsPage() {
   const [provinces, setProvinces] = useState<Province[]>([])
   const [businessTypes, setBusinessTypes] = useState<MasterDataItemFull[]>([])
   const [foodCategories, setFoodCategories] = useState<MasterDataItemFull[]>([])
+  const [chains, setChains] = useState<Chain[]>([])
 
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([])
   const [total, setTotal] = useState(0)
@@ -60,6 +62,7 @@ export function RestaurantsPage() {
     api.provinces().then(setProvinces).catch(() => {})
     api.masterData('business-types').then(setBusinessTypes).catch(() => {})
     api.masterData('food-categories').then(setFoodCategories).catch(() => {})
+    api.chains().then(setChains).catch(() => {})
   }, [])
 
   // Debounce the search box so we're not firing a request on every keystroke.
@@ -123,6 +126,7 @@ export function RestaurantsPage() {
         ownerEmail: r.ownerEmail,
         province: r.province?.nameEn ?? '',
         district: r.district?.nameEn ?? '',
+        chain: r.chain?.nameEn ?? '',
         statsVisible: r.statsVisible ? 'Yes' : 'No',
         createdAt: r.createdAt,
         reviewedAt: r.reviewedAt ?? '',
@@ -137,6 +141,7 @@ export function RestaurantsPage() {
         { key: 'ownerEmail', label: 'Owner Email' },
         { key: 'province', label: 'Province' },
         { key: 'district', label: 'District' },
+        { key: 'chain', label: 'Chain' },
         { key: 'statsVisible', label: 'Stats Visible to Partner' },
         { key: 'createdAt', label: 'Registered At' },
         { key: 'reviewedAt', label: 'Reviewed At' },
@@ -173,6 +178,16 @@ export function RestaurantsPage() {
     try {
       await api.approve(id)
       load()
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const setChain = async (id: string, chainId: string | null) => {
+    setBusyId(id)
+    try {
+      await api.setRestaurantChain(id, chainId)
+      if (expandedId === id) setDetail(await api.restaurant(id))
     } finally {
       setBusyId(null)
     }
@@ -394,6 +409,20 @@ export function RestaurantsPage() {
                           <div>
                             <div className="text-xs text-muted-foreground">Facilities</div>
                             <div>{detail.facilities.map((f) => f.facility.nameEn).join(', ') || '—'}</div>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <div className="mb-1 text-xs text-muted-foreground">Chain</div>
+                            <select
+                              value={detail.chain?.id ?? ''}
+                              disabled={busyId === r.id}
+                              onChange={(e) => setChain(r.id, e.target.value || null)}
+                              className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50"
+                            >
+                              <option value="">Not part of a chain</option>
+                              {chains.map((c) => (
+                                <option key={c.id} value={c.id}>{c.nameEn}</option>
+                              ))}
+                            </select>
                           </div>
                           {detail.rejectionReason && (
                             <div>

@@ -2,6 +2,7 @@
   "title": "معاينة كما يراها الزبون",
   "subtitle": "هذا ما سيراه الزبون عند إطلاق تطبيق الزبائن.",
   "noRatingsYet": "لا توجد تقييمات بعد",
+  "partOfChain": "جزء من: {{name}}",
   "ratingsCount_zero": "لا توجد تقييمات",
   "ratingsCount_one": "تقييم واحد",
   "ratingsCount_two": "تقييمان",

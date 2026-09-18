@@ -5,6 +5,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ApprovalsPage } from '@/pages/ApprovalsPage'
 import { RestaurantsPage } from '@/pages/RestaurantsPage'
+import { ChainsPage } from '@/pages/ChainsPage'
 import { MasterDataPage } from '@/pages/MasterDataPage'
 import { LocationsPage } from '@/pages/LocationsPage'
 import { ReviewsPage } from '@/pages/ReviewsPage'
@@ -28,6 +29,7 @@ function App() {
           <Route path="approvals" element={<ApprovalsPage />} />
           <Route path="restaurants" element={<RestaurantsPage />} />
           <Route path="restaurants/:id/publish-review" element={<PublishReviewPage />} />
+          <Route path="chains" element={<ChainsPage />} />
           <Route path="master-data" element={<MasterDataPage />} />
           <Route path="locations" element={<LocationsPage />} />
           <Route path="reviews" element={<ReviewsPage />} />

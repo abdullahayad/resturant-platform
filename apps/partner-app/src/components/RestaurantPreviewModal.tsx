@@ -94,6 +94,7 @@ export function RestaurantPreviewModal({ visible, onClose }: RestaurantPreviewMo
                 )}
                 <View style={styles.flex1}>
                   <Text style={styles.name}>{name}</Text>
+                  {data.chain && <Text style={styles.code}>{t('partOfChain', { name: localizedName(data.chain, language) })}</Text>}
                   <Text style={styles.code}>{data.codeNumber}</Text>
                   {!!locationLine && <Text style={styles.location}>{locationLine}</Text>}
                   <View style={styles.ratingRow}>

@@ -37,6 +37,7 @@ const restaurantListSelect = {
   province: { select: { id: true, nameEn: true, nameAr: true } },
   district: { select: { id: true, nameEn: true, nameAr: true } },
   businessTypes: { select: { businessType: { select: { id: true, nameEn: true, nameAr: true } } } },
+  chain: { select: { id: true, nameEn: true, nameAr: true } },
 } as const;
 
 const restaurantDetailSelect = {
@@ -270,6 +271,21 @@ export class RestaurantsService {
     return this.prisma.db.restaurant.update({
       where: { id },
       data: { statsVisible },
+      select: restaurantListSelect,
+    });
+  }
+
+  // Admin-only, deliberately not exposed on updateProfile - see
+  // RestaurantChain's comment in schema.prisma.
+  async setChain(id: string, chainId: string | null) {
+    await this.ensureExists(id);
+    if (chainId) {
+      const chain = await this.prisma.db.restaurantChain.findUnique({ where: { id: chainId }, select: { id: true } });
+      if (!chain) throw new NotFoundException('Chain not found');
+    }
+    return this.prisma.db.restaurant.update({
+      where: { id },
+      data: { chainId },
       select: restaurantListSelect,
     });
   }

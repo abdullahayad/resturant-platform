@@ -286,6 +286,13 @@ model Restaurant {
   // instead of just turning a search feature on.
   location   Unsupported("geography(Point, 4326)")?
 
+  // Which brand/chain this branch belongs to, if any - admin-only (see
+  // RestaurantChain below), never self-declared by the restaurant owner.
+  // Each branch still has its own separate login, menu, and staff; this is
+  // purely a "these are the same brand" fact for grouping/search later.
+  chainId String?
+  chain   RestaurantChain? @relation(fields: [chainId], references: [id], onDelete: SetNull)
+
   // Auth (owner account created at sign-up)
   ownerEmail        String    @unique
   ownerPasswordHash String
@@ -385,7 +392,25 @@ model Restaurant {
   @@index([publishStatus])
   @@index([provinceId])
   @@index([districtId])
+  @@index([chainId])
   @@map("restaurants")
+}
+
+// A brand with multiple branches (e.g. "Al-Zaman Restaurants" with 3
+// locations) - admin-managed only (see Restaurant.chainId above). Branches
+// keep fully independent logins/menus/staff; this only records that they're
+// the same brand, for grouping/search once a customer app exists.
+model RestaurantChain {
+  id     String @id @default(uuid())
+  nameEn String
+  nameAr String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurants Restaurant[]
+
+  @@map("restaurant_chains")
 }
 
 model RestaurantBusinessType {

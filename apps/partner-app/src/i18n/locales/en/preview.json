@@ -2,6 +2,7 @@
   "title": "Preview as Customer",
   "subtitle": "This is what a customer will see once the customer app launches.",
   "noRatingsYet": "No ratings yet",
+  "partOfChain": "Part of: {{name}}",
   "ratingsCount_one": "{{count}} rating",
   "ratingsCount_other": "{{count}} ratings",
   "sections": {
