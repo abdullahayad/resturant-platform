@@ -7,6 +7,7 @@ import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
 import { FormField } from '../components/FormField';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
 import { api, type ChefProfile, type ChefRoleSlug, type Dish } from '../lib/api';
@@ -221,6 +222,7 @@ export function ChefManagementScreen() {
   const [savingCrew, setSavingCrew] = useState(false);
   const [uploadingCrew, setUploadingCrew] = useState(false);
   const [localCrewPreview, setLocalCrewPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -234,7 +236,8 @@ export function ChefManagementScreen() {
         setCrewCount(state.crewCount != null ? String(state.crewCount) : '');
         setCrewPhotoUrl(state.crewPhotoUrl ?? '');
       })
-      .catch(() => setError(t('common:networkError')));
+      .catch(() => setError(t('common:networkError')))
+      .finally(() => setLoading(false));
   }, [token, t]);
 
   useEffect(load, [load]);
@@ -306,52 +309,58 @@ export function ChefManagementScreen() {
       <Text style={styles.subtitle}>{t('subtitle')}</Text>
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <View style={styles.grid}>
-        <ChefCard
-          title={t('headChef')}
-          role="chef"
-          form={headForm}
-          setForm={setHeadForm}
-          onSave={() => saveProfile('chef', headForm, setSavingHead)}
-          onRemove={() => removeProfile('chef')}
-          saving={savingHead}
-          hasProfile={!!headChef}
-          dishes={dishes}
-        />
-        <ChefCard
-          title={t('sousChef')}
-          role="sous-chef"
-          form={sousForm}
-          setForm={setSousForm}
-          onSave={() => saveProfile('sous-chef', sousForm, setSavingSous)}
-          onRemove={() => removeProfile('sous-chef')}
-          saving={savingSous}
-          hasProfile={!!sousChef}
-          dishes={dishes}
-        />
-      </View>
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <>
+          <View style={styles.grid}>
+            <ChefCard
+              title={t('headChef')}
+              role="chef"
+              form={headForm}
+              setForm={setHeadForm}
+              onSave={() => saveProfile('chef', headForm, setSavingHead)}
+              onRemove={() => removeProfile('chef')}
+              saving={savingHead}
+              hasProfile={!!headChef}
+              dishes={dishes}
+            />
+            <ChefCard
+              title={t('sousChef')}
+              role="sous-chef"
+              form={sousForm}
+              setForm={setSousForm}
+              onSave={() => saveProfile('sous-chef', sousForm, setSavingSous)}
+              onRemove={() => removeProfile('sous-chef')}
+              saving={savingSous}
+              hasProfile={!!sousChef}
+              dishes={dishes}
+            />
+          </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t('kitchenCrew')}</Text>
-        <Pressable onPress={pickCrewPhoto} style={styles.photoPicker}>
-          {localCrewPreview || crewPhotoUrl ? (
-            <Image source={{ uri: localCrewPreview ?? crewPhotoUrl }} style={styles.photoPreview} />
-          ) : uploadingCrew ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <Text style={styles.photoPickerText}>{t('tapToAddCrewPhoto')}</Text>
-          )}
-          {uploadingCrew && localCrewPreview && (
-            <View style={styles.photoUploadingOverlay}>
-              <ActivityIndicator color="#fff" />
-            </View>
-          )}
-        </Pressable>
-        <FormField label={t('crewCountLabel')} value={crewCount} onChangeText={setCrewCount} placeholder={t('crewCountPlaceholder')} keyboardType="numeric" />
-        <Pressable style={[styles.button, styles.primaryButton]} onPress={saveCrew} disabled={savingCrew}>
-          {savingCrew ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('save')}</Text>}
-        </Pressable>
-      </View>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('kitchenCrew')}</Text>
+            <Pressable onPress={pickCrewPhoto} style={styles.photoPicker}>
+              {localCrewPreview || crewPhotoUrl ? (
+                <Image source={{ uri: localCrewPreview ?? crewPhotoUrl }} style={styles.photoPreview} />
+              ) : uploadingCrew ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Text style={styles.photoPickerText}>{t('tapToAddCrewPhoto')}</Text>
+              )}
+              {uploadingCrew && localCrewPreview && (
+                <View style={styles.photoUploadingOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+            </Pressable>
+            <FormField label={t('crewCountLabel')} value={crewCount} onChangeText={setCrewCount} placeholder={t('crewCountPlaceholder')} keyboardType="numeric" />
+            <Pressable style={[styles.button, styles.primaryButton]} onPress={saveCrew} disabled={savingCrew}>
+              {savingCrew ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.primaryButtonText}>{t('save')}</Text>}
+            </Pressable>
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }

@@ -8,6 +8,7 @@ import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import {
   api,
@@ -89,17 +90,23 @@ export function SettingsStaffScreen() {
 
   // ── Payment Accounts ─────────────────────────────────────────────────
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccountsState | null>(null);
+  const [paymentAccountsLoading, setPaymentAccountsLoading] = useState(isManagerOrOwner);
   const [paymentAccountsError, setPaymentAccountsError] = useState<string | null>(null);
 
   const loadPaymentAccounts = useCallback(() => {
     if (!isManagerOrOwner) return;
-    api.myPaymentAccounts(token).then(setPaymentAccounts).catch(() => setPaymentAccountsError(t('paymentAccounts.loadFailed')));
+    api
+      .myPaymentAccounts(token)
+      .then(setPaymentAccounts)
+      .catch(() => setPaymentAccountsError(t('paymentAccounts.loadFailed')))
+      .finally(() => setPaymentAccountsLoading(false));
   }, [token, isManagerOrOwner, t]);
 
   useEffect(loadPaymentAccounts, [loadPaymentAccounts]);
 
   // ── Staff ──────────────────────────────────────────────────────────
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [staffLoading, setStaffLoading] = useState(isManagerOrOwner);
   const [staffError, setStaffError] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [invitePassword, setInvitePassword] = useState('');
@@ -110,7 +117,7 @@ export function SettingsStaffScreen() {
 
   const loadStaff = useCallback(() => {
     if (!isManagerOrOwner) return;
-    api.staff(token).then(setStaffList).catch(() => setStaffError(t('loadStaffFailed')));
+    api.staff(token).then(setStaffList).catch(() => setStaffError(t('loadStaffFailed'))).finally(() => setStaffLoading(false));
   }, [token, isManagerOrOwner, t]);
 
   useEffect(loadStaff, [loadStaff]);
@@ -258,17 +265,21 @@ export function SettingsStaffScreen() {
           <Text style={styles.sectionTitle}>{t('paymentAccounts.title')}</Text>
           <Text style={styles.sectionHint}>{t('paymentAccounts.hint')}</Text>
           {paymentAccountsError && <Text style={styles.error}>{paymentAccountsError}</Text>}
-          {(['zaincash', 'qicard'] as const).map((gatewayId) => (
-            <PaymentGatewayCard
-              key={gatewayId}
-              gatewayId={gatewayId}
-              connection={paymentAccounts?.[gatewayId] ?? null}
-              token={token}
-              colors={colors}
-              t={t}
-              onChange={setPaymentAccounts}
-            />
-          ))}
+          {paymentAccountsLoading ? (
+            <LoadingState />
+          ) : (
+            (['zaincash', 'qicard'] as const).map((gatewayId) => (
+              <PaymentGatewayCard
+                key={gatewayId}
+                gatewayId={gatewayId}
+                connection={paymentAccounts?.[gatewayId] ?? null}
+                token={token}
+                colors={colors}
+                t={t}
+                onChange={setPaymentAccounts}
+              />
+            ))
+          )}
         </View>
       )}
 
@@ -303,7 +314,11 @@ export function SettingsStaffScreen() {
               </View>
             </View>
           ))}
-          {staffList.length === 0 && <EmptyState icon={Users} message={t('noStaffInvitedYet')} />}
+          {staffLoading ? (
+            <LoadingState />
+          ) : (
+            staffList.length === 0 && <EmptyState icon={Users} message={t('noStaffInvitedYet')} />
+          )}
 
           <View style={styles.inviteForm}>
             <Text style={styles.inviteTitle}>{t('inviteStaff')}</Text>

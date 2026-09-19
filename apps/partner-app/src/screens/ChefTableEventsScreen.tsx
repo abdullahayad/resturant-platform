@@ -12,6 +12,7 @@ import { DateField } from '../components/DateField';
 import { TimeField } from '../components/TimeField';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { resizeForUpload } from '../lib/resizeImage';
 import { localizedName } from '../lib/localizedName';
@@ -55,6 +56,7 @@ export function ChefTableEventsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
   const [events, setEvents] = useState<RestaurantEventItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -70,7 +72,8 @@ export function ChefTableEventsScreen() {
         setEventTypes(types);
         setEvents(mine);
       })
-      .catch(() => setLoadError(t('common:networkError')));
+      .catch(() => setLoadError(t('common:networkError')))
+      .finally(() => setLoading(false));
   }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
@@ -254,7 +257,11 @@ export function ChefTableEventsScreen() {
             </View>
           </View>
         ))}
-        {events.length === 0 && !loadError && <EmptyState icon={CalendarClock} message={t('noEventsYet')} />}
+        {loading ? (
+          <LoadingState />
+        ) : (
+          events.length === 0 && !loadError && <EmptyState icon={CalendarClock} message={t('noEventsYet')} />
+        )}
       </View>
 
       <View style={styles.formCard}>

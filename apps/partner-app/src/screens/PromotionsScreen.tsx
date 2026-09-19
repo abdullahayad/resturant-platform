@@ -10,6 +10,7 @@ import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { DateField } from '../components/DateField';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { StatCard } from '../components/StatCard';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Dish, type PromotionItem, type PromotionsSummary } from '../lib/api';
@@ -244,7 +245,11 @@ export function PromotionsScreen() {
             </View>
           </View>
         ))}
-        {!loading && promotions.length === 0 && !loadError && <EmptyState icon={Percent} message={t('noPromotionsYet')} />}
+        {loading ? (
+          <LoadingState />
+        ) : (
+          promotions.length === 0 && !loadError && <EmptyState icon={Percent} message={t('noPromotionsYet')} />
+        )}
         {hasMore && (
           <Pressable style={styles.loadMoreButton} onPress={loadMore} disabled={loadingMore}>
             {loadingMore ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.loadMoreText}>{t('common:loadMore')}</Text>}

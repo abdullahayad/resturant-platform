@@ -7,6 +7,7 @@ import type { ThemeColors } from '../theme/colors';
 import { useLanguage } from '../i18n/LanguageContext';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type ReservationItem, type ReservationStatus } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
@@ -72,6 +73,7 @@ export function ReservationsScreen() {
   const { t } = useTranslation('chefTable');
   const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
   const [reservations, setReservations] = useState<ReservationItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<ReservationStatus | 'ALL'>('ALL');
@@ -83,7 +85,8 @@ export function ReservationsScreen() {
     api
       .myReservations(token)
       .then(setReservations)
-      .catch(() => setLoadError(t('common:networkError')));
+      .catch(() => setLoadError(t('common:networkError')))
+      .finally(() => setLoading(false));
   }, [token, t]);
 
   useEffect(loadAll, [loadAll]);
@@ -309,11 +312,16 @@ export function ReservationsScreen() {
             )}
           </View>
         ))}
-        {visible.length === 0 && !loadError && (
-          <EmptyState
-            icon={Users}
-            message={viewMode === 'calendar' ? t('view.noBookingsThisDay') : t('noReservationsYet')}
-          />
+        {loading ? (
+          <LoadingState />
+        ) : (
+          visible.length === 0 &&
+          !loadError && (
+            <EmptyState
+              icon={Users}
+              message={viewMode === 'calendar' ? t('view.noBookingsThisDay') : t('noReservationsYet')}
+            />
+          )
         )}
       </View>
       )}

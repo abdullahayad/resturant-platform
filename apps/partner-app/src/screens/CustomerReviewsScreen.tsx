@@ -10,6 +10,7 @@ import { usePaginatedList } from '../hooks/usePaginatedList';
 import { FormField } from '../components/FormField';
 import { StarRating } from '../components/StarRating';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Review, type ReviewSummary } from '../lib/api';
 import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
@@ -48,7 +49,7 @@ export function CustomerReviewsScreen() {
     (page: number) => api.myReviews(token, page, starFilter ?? undefined),
     [token, starFilter],
   );
-  const { items: visibleReviews, setItems: setReviews, loadingMore, error, reload, loadMore } =
+  const { items: visibleReviews, setItems: setReviews, loading, loadingMore, error, reload, loadMore } =
     usePaginatedList(fetchPage);
 
   useEffect(() => {
@@ -284,7 +285,7 @@ export function CustomerReviewsScreen() {
           </View>
         </View>
       }
-      ListEmptyComponent={!loadError ? <EmptyState icon={Star} message={t('noReviewsMatchFilter')} /> : null}
+      ListEmptyComponent={loading ? <LoadingState /> : !loadError ? <EmptyState icon={Star} message={t('noReviewsMatchFilter')} /> : null}
     />
   );
 }
