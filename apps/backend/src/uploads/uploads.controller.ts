@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StorageService } from './storage.service';
+import { ModerationService } from './moderation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'mov'];
@@ -15,7 +16,10 @@ const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 
 @UseGuards(JwtAuthGuard)
 @Controller('uploads')
 export class UploadsController {
-  constructor(private readonly storage: StorageService) {}
+  constructor(
+    private readonly storage: StorageService,
+    private readonly moderation: ModerationService,
+  ) {}
 
   @Post()
   @UseInterceptors(
@@ -36,6 +40,12 @@ export class UploadsController {
   )
   async upload(@UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
+
+    const ext = file.originalname.split('.').pop()?.toLowerCase() ?? '';
+    if (await this.moderation.isExplicit(file.buffer, ext)) {
+      throw new BadRequestException('This image was flagged as inappropriate and could not be uploaded.');
+    }
+
     return this.storage.upload(file, 'uploads');
   }
 }
