@@ -48,14 +48,53 @@ interface AdminActivityRestaurant {
   codeNumber: string
 }
 
+interface MasterDataName {
+  nameEn: string
+  nameAr: string
+}
+
 // Deliberately only what a restaurant itself adds (new dishes/photos/
 // promotions/events) - not restaurant.updatedAt, which also changes on an
-// admin's own actions (approve/reject/suspend/set chain/etc.).
+// admin's own actions (approve/reject/suspend/set chain/etc.). Each variant
+// carries enough to actually look at what was posted (image, name/title,
+// description) without a second request.
 export type AdminActivityItem =
-  | { type: 'dish'; id: string; createdAt: string; nameEn: string; nameAr: string; restaurant: AdminActivityRestaurant }
-  | { type: 'photo'; id: string; createdAt: string; album: string; restaurant: AdminActivityRestaurant }
-  | { type: 'promotion'; id: string; createdAt: string; titleEn: string; titleAr: string; restaurant: AdminActivityRestaurant }
-  | { type: 'event'; id: string; createdAt: string; titleEn: string; titleAr: string; restaurant: AdminActivityRestaurant }
+  | {
+      type: 'dish'
+      id: string
+      createdAt: string
+      nameEn: string
+      nameAr: string
+      photoUrl: string | null
+      price: string
+      menuCategory: MasterDataName | null
+      restaurant: AdminActivityRestaurant
+    }
+  | { type: 'photo'; id: string; createdAt: string; album: string; url: string; caption: string | null; restaurant: AdminActivityRestaurant }
+  | {
+      type: 'promotion'
+      id: string
+      createdAt: string
+      titleEn: string
+      titleAr: string
+      descriptionEn: string | null
+      descriptionAr: string | null
+      photoUrl: string | null
+      discountType: string
+      discountValue: string
+      restaurant: AdminActivityRestaurant
+    }
+  | {
+      type: 'event'
+      id: string
+      createdAt: string
+      titleEn: string
+      titleAr: string
+      descriptionEn: string | null
+      descriptionAr: string | null
+      photoUrl: string | null
+      restaurant: AdminActivityRestaurant
+    }
   // restaurant is null only for the rare case of an admin's own upload
   // getting blocked (see the backend's uploads/moderation.service.ts).
   | { type: 'blockedUpload'; id: string; createdAt: string; originalName: string; restaurant: AdminActivityRestaurant | null }

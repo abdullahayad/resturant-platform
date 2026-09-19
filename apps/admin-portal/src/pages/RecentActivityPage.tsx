@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UtensilsCrossed, Image as ImageIcon, Percent, CalendarClock, ShieldAlert } from 'lucide-react'
+import { UtensilsCrossed, Image as ImageIcon, Percent, CalendarClock, ShieldAlert, ChevronDown, ChevronRight } from 'lucide-react'
 import { api, UnauthorizedError, type AdminActivityItem } from '@/lib/api'
 import { Pager } from '@/components/Pager'
 
@@ -23,6 +23,64 @@ function describe(item: AdminActivityItem): string {
 
 const icons = { dish: UtensilsCrossed, photo: ImageIcon, promotion: Percent, event: CalendarClock, blockedUpload: ShieldAlert }
 
+// blockedUpload has nothing more to show - the flagged image is deliberately
+// never stored, so describe() above is already the whole story.
+function isExpandable(item: AdminActivityItem): boolean {
+  return item.type !== 'blockedUpload'
+}
+
+function Detail({ item }: { item: AdminActivityItem }) {
+  switch (item.type) {
+    case 'dish':
+      return (
+        <div className="flex gap-4">
+          {item.photoUrl && <img src={item.photoUrl} alt="" className="size-24 shrink-0 rounded-lg object-cover" />}
+          <div className="space-y-1 text-sm">
+            <div className="font-semibold">{item.nameEn} · {item.nameAr}</div>
+            <div className="text-muted-foreground">{Number(item.price).toLocaleString()} IQD</div>
+            {item.menuCategory && <div className="text-muted-foreground">{item.menuCategory.nameEn}</div>}
+          </div>
+        </div>
+      )
+    case 'photo':
+      return (
+        <div className="space-y-2">
+          <img src={item.url} alt="" className="max-h-72 rounded-lg object-contain" />
+          {item.caption && <div className="text-sm text-muted-foreground">{item.caption}</div>}
+        </div>
+      )
+    case 'promotion':
+      return (
+        <div className="flex gap-4">
+          {item.photoUrl && <img src={item.photoUrl} alt="" className="size-24 shrink-0 rounded-lg object-cover" />}
+          <div className="space-y-1 text-sm">
+            <div className="font-semibold">{item.titleEn} · {item.titleAr}</div>
+            <div className="text-muted-foreground">
+              {item.discountType === 'PERCENTAGE' ? `${Number(item.discountValue)}% off` : `${Number(item.discountValue).toLocaleString()} IQD off`}
+            </div>
+            {(item.descriptionEn || item.descriptionAr) && (
+              <div className="text-muted-foreground">{item.descriptionEn} {item.descriptionEn && item.descriptionAr && '·'} {item.descriptionAr}</div>
+            )}
+          </div>
+        </div>
+      )
+    case 'event':
+      return (
+        <div className="flex gap-4">
+          {item.photoUrl && <img src={item.photoUrl} alt="" className="size-24 shrink-0 rounded-lg object-cover" />}
+          <div className="space-y-1 text-sm">
+            <div className="font-semibold">{item.titleEn} · {item.titleAr}</div>
+            {(item.descriptionEn || item.descriptionAr) && (
+              <div className="text-muted-foreground">{item.descriptionEn} {item.descriptionEn && item.descriptionAr && '·'} {item.descriptionAr}</div>
+            )}
+          </div>
+        </div>
+      )
+    case 'blockedUpload':
+      return null
+  }
+}
+
 export function RecentActivityPage() {
   const navigate = useNavigate()
   const [items, setItems] = useState<AdminActivityItem[]>([])
@@ -30,6 +88,7 @@ export function RecentActivityPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -53,8 +112,8 @@ export function RecentActivityPage() {
         <p className="text-sm text-muted-foreground">
           What restaurants are adding across the whole platform — new dishes, photos, promotions, and events —
           newest first. Since everything goes live the moment a restaurant adds it, this is the place to spot-check
-          what's changing without reviewing every restaurant one by one. Photos the AI reviewer blocked as
-          inappropriate show up here too, highlighted in red.
+          what's changing without reviewing every restaurant one by one. Tap a row to see what was actually posted.
+          Photos the AI reviewer blocked as inappropriate show up here too, highlighted in red.
         </p>
       </div>
 
@@ -65,29 +124,47 @@ export function RecentActivityPage() {
         {items.map((item) => {
           const Icon = icons[item.type]
           const isBlocked = item.type === 'blockedUpload'
+          const expandable = isExpandable(item)
+          const key = `${item.type}-${item.id}`
+          const expanded = expandedKey === key
           return (
-            <div key={`${item.type}-${item.id}`} className={`flex items-start gap-3 px-4 py-3 ${isBlocked ? 'bg-destructive/5' : ''}`}>
+            <div key={key}>
               <div
-                className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${
-                  isBlocked ? 'bg-destructive/15 text-destructive' : 'bg-secondary text-muted-foreground'
-                }`}
+                onClick={() => expandable && setExpandedKey(expanded ? null : key)}
+                className={`flex items-start gap-3 px-4 py-3 ${isBlocked ? 'bg-destructive/5' : ''} ${expandable ? 'cursor-pointer hover:bg-secondary/50' : ''}`}
               >
-                <Icon className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm">
-                  {item.restaurant ? (
-                    <>
-                      <span className="font-semibold">{item.restaurant.nameEn}</span>{' '}
-                      <span className="text-muted-foreground">({item.restaurant.codeNumber})</span>{' '}
-                    </>
-                  ) : (
-                    <span className="font-semibold">An admin</span>
-                  )}
-                  <span className={isBlocked ? 'text-destructive' : undefined}>{describe(item)}</span>
+                <div
+                  className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${
+                    isBlocked ? 'bg-destructive/15 text-destructive' : 'bg-secondary text-muted-foreground'
+                  }`}
+                >
+                  <Icon className="size-4" />
                 </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm">
+                    {item.restaurant ? (
+                      <>
+                        <span className="font-semibold">{item.restaurant.nameEn}</span>{' '}
+                        <span className="text-muted-foreground">({item.restaurant.codeNumber})</span>{' '}
+                      </>
+                    ) : (
+                      <span className="font-semibold">An admin</span>
+                    )}
+                    <span className={isBlocked ? 'text-destructive' : undefined}>{describe(item)}</span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</div>
+                </div>
+                {expandable && (
+                  <div className="mt-1 shrink-0 text-muted-foreground">
+                    {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                  </div>
+                )}
               </div>
+              {expanded && (
+                <div className="border-t border-border bg-secondary/30 px-4 py-4">
+                  <Detail item={item} />
+                </div>
+              )}
             </div>
           )
         })}

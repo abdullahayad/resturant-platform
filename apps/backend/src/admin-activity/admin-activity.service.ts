@@ -14,11 +14,52 @@ interface RestaurantSummary {
   codeNumber: string;
 }
 
+interface MasterDataName {
+  nameEn: string;
+  nameAr: string;
+}
+
+// Enough detail per type for an admin to actually look at what was posted
+// (the image, the name/title, the description) without a second request -
+// not the full editing-level shape restaurant screens use, just what's
+// needed to judge "does this look fine."
 export type AdminActivityItem =
-  | { type: 'dish'; id: string; createdAt: Date; nameEn: string; nameAr: string; restaurant: RestaurantSummary }
-  | { type: 'photo'; id: string; createdAt: Date; album: string; restaurant: RestaurantSummary }
-  | { type: 'promotion'; id: string; createdAt: Date; titleEn: string; titleAr: string; restaurant: RestaurantSummary }
-  | { type: 'event'; id: string; createdAt: Date; titleEn: string; titleAr: string; restaurant: RestaurantSummary }
+  | {
+      type: 'dish';
+      id: string;
+      createdAt: Date;
+      nameEn: string;
+      nameAr: string;
+      photoUrl: string | null;
+      price: string;
+      menuCategory: MasterDataName | null;
+      restaurant: RestaurantSummary;
+    }
+  | { type: 'photo'; id: string; createdAt: Date; album: string; url: string; caption: string | null; restaurant: RestaurantSummary }
+  | {
+      type: 'promotion';
+      id: string;
+      createdAt: Date;
+      titleEn: string;
+      titleAr: string;
+      descriptionEn: string | null;
+      descriptionAr: string | null;
+      photoUrl: string | null;
+      discountType: string;
+      discountValue: string;
+      restaurant: RestaurantSummary;
+    }
+  | {
+      type: 'event';
+      id: string;
+      createdAt: Date;
+      titleEn: string;
+      titleAr: string;
+      descriptionEn: string | null;
+      descriptionAr: string | null;
+      photoUrl: string | null;
+      restaurant: RestaurantSummary;
+    }
   // restaurant is null only for the rare case of an admin's own upload
   // getting blocked (see uploads/moderation.service.ts).
   | { type: 'blockedUpload'; id: string; createdAt: Date; originalName: string; restaurant: RestaurantSummary | null };
@@ -52,22 +93,51 @@ export class AdminActivityService {
       blockedUploadTotal,
     ] = await Promise.all([
       this.prisma.db.dish.findMany({
-        select: { id: true, nameEn: true, nameAr: true, createdAt: true, restaurant: { select: restaurantSummarySelect } },
+        select: {
+          id: true,
+          nameEn: true,
+          nameAr: true,
+          photoUrl: true,
+          price: true,
+          createdAt: true,
+          menuCategory: { select: { nameEn: true, nameAr: true } },
+          restaurant: { select: restaurantSummarySelect },
+        },
         orderBy: { createdAt: 'desc' },
         take: fetchCount,
       }),
       this.prisma.db.galleryPhoto.findMany({
-        select: { id: true, album: true, createdAt: true, restaurant: { select: restaurantSummarySelect } },
+        select: { id: true, album: true, url: true, caption: true, createdAt: true, restaurant: { select: restaurantSummarySelect } },
         orderBy: { createdAt: 'desc' },
         take: fetchCount,
       }),
       this.prisma.db.promotion.findMany({
-        select: { id: true, titleEn: true, titleAr: true, createdAt: true, restaurant: { select: restaurantSummarySelect } },
+        select: {
+          id: true,
+          titleEn: true,
+          titleAr: true,
+          descriptionEn: true,
+          descriptionAr: true,
+          photoUrl: true,
+          discountType: true,
+          discountValue: true,
+          createdAt: true,
+          restaurant: { select: restaurantSummarySelect },
+        },
         orderBy: { createdAt: 'desc' },
         take: fetchCount,
       }),
       this.prisma.db.restaurantEvent.findMany({
-        select: { id: true, titleEn: true, titleAr: true, createdAt: true, restaurant: { select: restaurantSummarySelect } },
+        select: {
+          id: true,
+          titleEn: true,
+          titleAr: true,
+          descriptionEn: true,
+          descriptionAr: true,
+          photoUrl: true,
+          createdAt: true,
+          restaurant: { select: restaurantSummarySelect },
+        },
         orderBy: { createdAt: 'desc' },
         take: fetchCount,
       }),
@@ -84,10 +154,42 @@ export class AdminActivityService {
     ]);
 
     const merged: AdminActivityItem[] = [
-      ...dishes.map((d) => ({ type: 'dish' as const, id: d.id, createdAt: d.createdAt, nameEn: d.nameEn, nameAr: d.nameAr, restaurant: d.restaurant })),
-      ...photos.map((p) => ({ type: 'photo' as const, id: p.id, createdAt: p.createdAt, album: p.album, restaurant: p.restaurant })),
-      ...promotions.map((p) => ({ type: 'promotion' as const, id: p.id, createdAt: p.createdAt, titleEn: p.titleEn, titleAr: p.titleAr, restaurant: p.restaurant })),
-      ...events.map((e) => ({ type: 'event' as const, id: e.id, createdAt: e.createdAt, titleEn: e.titleEn, titleAr: e.titleAr, restaurant: e.restaurant })),
+      ...dishes.map((d) => ({
+        type: 'dish' as const,
+        id: d.id,
+        createdAt: d.createdAt,
+        nameEn: d.nameEn,
+        nameAr: d.nameAr,
+        photoUrl: d.photoUrl,
+        price: d.price.toFixed(2),
+        menuCategory: d.menuCategory,
+        restaurant: d.restaurant,
+      })),
+      ...photos.map((p) => ({ type: 'photo' as const, id: p.id, createdAt: p.createdAt, album: p.album, url: p.url, caption: p.caption, restaurant: p.restaurant })),
+      ...promotions.map((p) => ({
+        type: 'promotion' as const,
+        id: p.id,
+        createdAt: p.createdAt,
+        titleEn: p.titleEn,
+        titleAr: p.titleAr,
+        descriptionEn: p.descriptionEn,
+        descriptionAr: p.descriptionAr,
+        photoUrl: p.photoUrl,
+        discountType: p.discountType,
+        discountValue: p.discountValue.toFixed(2),
+        restaurant: p.restaurant,
+      })),
+      ...events.map((e) => ({
+        type: 'event' as const,
+        id: e.id,
+        createdAt: e.createdAt,
+        titleEn: e.titleEn,
+        titleAr: e.titleAr,
+        descriptionEn: e.descriptionEn,
+        descriptionAr: e.descriptionAr,
+        photoUrl: e.photoUrl,
+        restaurant: e.restaurant,
+      })),
       ...blockedUploads.map((b) => ({ type: 'blockedUpload' as const, id: b.id, createdAt: b.createdAt, originalName: b.originalName, restaurant: b.restaurant })),
     ];
     merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

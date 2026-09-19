@@ -26,15 +26,38 @@ describe('AdminActivityService', () => {
     service = module.get(AdminActivityService);
   });
 
+  // price/discountValue only need a .toFixed() method, same as a real
+  // Prisma Decimal - a plain JS number satisfies that without pulling in
+  // the Decimal class just for these tests.
   it('merges dishes, photos, promotions, and events across every restaurant, newest first', async () => {
     prisma.db.dish.findMany.mockResolvedValueOnce([
-      { id: 'd1', nameEn: 'Kebab', nameAr: 'كباب', createdAt: new Date('2026-09-15T10:00:00Z'), restaurant: restaurant('r1') },
+      {
+        id: 'd1',
+        nameEn: 'Kebab',
+        nameAr: 'كباب',
+        photoUrl: null,
+        price: 5000,
+        menuCategory: null,
+        createdAt: new Date('2026-09-15T10:00:00Z'),
+        restaurant: restaurant('r1'),
+      },
     ]);
     prisma.db.galleryPhoto.findMany.mockResolvedValueOnce([
-      { id: 'p1', album: 'FOOD', createdAt: new Date('2026-09-15T12:00:00Z'), restaurant: restaurant('r2') },
+      { id: 'p1', album: 'FOOD', url: 'https://example.com/p1.jpg', caption: null, createdAt: new Date('2026-09-15T12:00:00Z'), restaurant: restaurant('r2') },
     ]);
     prisma.db.promotion.findMany.mockResolvedValueOnce([
-      { id: 'pr1', titleEn: 'Sale', titleAr: 'تخفيض', createdAt: new Date('2026-09-15T08:00:00Z'), restaurant: restaurant('r3') },
+      {
+        id: 'pr1',
+        titleEn: 'Sale',
+        titleAr: 'تخفيض',
+        descriptionEn: null,
+        descriptionAr: null,
+        photoUrl: null,
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        createdAt: new Date('2026-09-15T08:00:00Z'),
+        restaurant: restaurant('r3'),
+      },
     ]);
 
     const result = await service.recentActivity(1);
@@ -62,6 +85,9 @@ describe('AdminActivityService', () => {
       id: `d${i}`,
       nameEn: 'X',
       nameAr: 'X',
+      photoUrl: null,
+      price: 1000,
+      menuCategory: null,
       createdAt: new Date(2026, 8, 15, 0, i),
       restaurant: restaurant('r1'),
     }));
