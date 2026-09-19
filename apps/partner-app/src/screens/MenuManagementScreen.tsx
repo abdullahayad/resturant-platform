@@ -8,6 +8,7 @@ import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { BulkPriceUpdateModal } from '../components/BulkPriceUpdateModal';
 import { UtensilsCrossed } from 'lucide-react-native';
 import { radii, cardShadow } from '../theme/tokens';
@@ -291,7 +292,7 @@ export function MenuManagementScreen() {
           </View>
         </View>
       }
-      ListEmptyComponent={!loadError && !loading ? <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} /> : null}
+      ListEmptyComponent={loading ? <LoadingState /> : !loadError ? <EmptyState icon={UtensilsCrossed} message={t('noDishesYet')} /> : null}
     />
     <BulkPriceUpdateModal
       visible={bulkPriceVisible}

@@ -8,6 +8,7 @@ import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { usePaginatedList } from '../hooks/usePaginatedList';
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth';
@@ -296,9 +297,11 @@ export function PhotoGalleryScreen() {
         </View>
       }
       ListEmptyComponent={
-        !localPreview && !loading ? (
+        localPreview ? null : loading ? (
+          <LoadingState />
+        ) : (
           <EmptyState icon={ImageOff} message={album === 'REVIEW' ? t('noReviewPhotosYet') : t('noPhotosYet')} />
-        ) : null
+        )
       }
     />
   );

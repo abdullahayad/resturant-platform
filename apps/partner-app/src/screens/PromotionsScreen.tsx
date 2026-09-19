@@ -151,10 +151,13 @@ export function PromotionsScreen() {
 
   const toggleActive = async (promo: PromotionItem) => {
     setBusyId(promo.id);
+    setLoadError(null);
     try {
       const updated = await api.updatePromotion(token, promo.id, { isActive: !promo.isActive });
       setPromotions((prev) => prev.map((p) => (p.id === promo.id ? updated : p)));
       loadSummary();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : t('toggleFailed'));
     } finally {
       setBusyId(null);
     }
@@ -162,10 +165,13 @@ export function PromotionsScreen() {
 
   const remove = async (id: string) => {
     setBusyId(id);
+    setLoadError(null);
     try {
       await api.deletePromotion(token, id);
       setPromotions((prev) => prev.filter((p) => p.id !== id));
       loadSummary();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : t('deleteFailed'));
     } finally {
       setBusyId(null);
     }

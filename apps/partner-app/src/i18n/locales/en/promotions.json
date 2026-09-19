@@ -45,6 +45,8 @@
     "dateRange": "Set a start and end date."
   },
   "createFailed": "Could not create promotion",
+  "toggleFailed": "Could not update promotion — try again",
+  "deleteFailed": "Could not delete promotion — try again",
   "summary": {
     "title": "Promotions History",
     "total": "Total created",

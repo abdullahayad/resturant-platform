@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Users, Phone, CalendarDays, Check, X, ChevronLeft, ChevronRight, CalendarCheck2 } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../lib/AuthContext';
@@ -67,8 +68,9 @@ function callGuest(phone: string) {
 export function ReservationsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { isRTL } = useLanguage();
   const { t } = useTranslation('chefTable');
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isRTL), [colors, isRTL]);
   const [reservations, setReservations] = useState<ReservationItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -319,7 +321,7 @@ export function ReservationsScreen() {
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create({
   container: { gap: 16, paddingBottom: 40, maxWidth: 620 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   subtitle: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
@@ -342,19 +344,24 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   statLabel: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
 
   list: { gap: 12 },
+  // The status stripe is a "start edge" accent, same as the nav
+  // rail/sidebar's own edge borders - it has to swap sides for Arabic, or
+  // it stays pinned to the physical left while the rest of the card
+  // mirrors around it.
   card: {
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    borderLeftWidth: 3,
+    borderLeftWidth: isRTL ? 0 : 3,
+    borderRightWidth: isRTL ? 3 : 0,
     backgroundColor: colors.card,
     padding: 14,
     gap: 8,
     ...cardShadow,
   },
-  accentPending: { borderLeftColor: colors.mutedForeground },
-  accentConfirmed: { borderLeftColor: colors.success },
-  accentCancelled: { borderLeftColor: colors.destructive },
+  accentPending: isRTL ? { borderRightColor: colors.mutedForeground } : { borderLeftColor: colors.mutedForeground },
+  accentConfirmed: isRTL ? { borderRightColor: colors.success } : { borderLeftColor: colors.success },
+  accentCancelled: isRTL ? { borderRightColor: colors.destructive } : { borderLeftColor: colors.destructive },
 
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   guestRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
