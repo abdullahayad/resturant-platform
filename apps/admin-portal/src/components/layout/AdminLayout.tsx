@@ -13,6 +13,7 @@ export function AdminLayout() {
   const admin = auth.getAdmin()
   const { theme, toggleTheme } = useTheme()
   const [approvalsBadge, setApprovalsBadge] = useState(0)
+  const [blockedUploadsBadge, setBlockedUploadsBadge] = useState(0)
 
   // True pending count (signup + go-live review), refetched on every
   // navigation so it stays reasonably fresh as the admin moves around and
@@ -22,6 +23,14 @@ export function AdminLayout() {
       api.restaurants({ status: 'PENDING_REVIEW' }).then((r) => r.total).catch(() => 0),
       api.restaurants({ publishStatus: 'PENDING' }).then((r) => r.total).catch(() => 0),
     ]).then(([signup, review]) => setApprovalsBadge(signup + review))
+  }, [location.pathname])
+
+  // Photos the AI reviewer blocked in the last 24h - a rolling window, not
+  // an all-time count, so this actually reflects "something happened
+  // recently" rather than growing forever (see recentBlockedCount() on the
+  // backend).
+  useEffect(() => {
+    api.recentBlockedCount().then((r) => setBlockedUploadsBadge(r.count)).catch(() => setBlockedUploadsBadge(0))
   }, [location.pathname])
 
   const signOut = () => {
@@ -74,6 +83,11 @@ export function AdminLayout() {
                   {item.path === '/approvals' && approvalsBadge > 0 && (
                     <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
                       {approvalsBadge > 9 ? '9+' : approvalsBadge}
+                    </span>
+                  )}
+                  {item.path === '/recent-activity' && blockedUploadsBadge > 0 && (
+                    <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                      {blockedUploadsBadge > 9 ? '9+' : blockedUploadsBadge}
                     </span>
                   )}
                 </>

@@ -12,4 +12,9 @@ export class AdminActivityController {
   list(@Query() query: PageQueryDto) {
     return this.activity.recentActivity(query.page);
   }
+
+  @Get('recent-blocked-count')
+  recentBlockedCount() {
+    return this.activity.recentBlockedCount();
+  }
 }

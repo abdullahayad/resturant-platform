@@ -99,4 +99,20 @@ describe('AdminActivityService', () => {
     expect(result.items).toHaveLength(20);
     expect(result.total).toBe(25);
   });
+
+  describe('recentBlockedCount', () => {
+    it('only counts blocked uploads from the last 24 hours', async () => {
+      prisma.db.blockedUpload.count.mockResolvedValueOnce(3);
+
+      const result = await service.recentBlockedCount();
+
+      expect(result).toEqual({ count: 3 });
+      const call = prisma.db.blockedUpload.count.mock.calls[0][0];
+      expect(call.where.createdAt.gte).toBeInstanceOf(Date);
+      // Within a few seconds of "now minus 24h" - not asserting an exact
+      // timestamp, which would make this test flaky.
+      const expectedCutoff = Date.now() - 24 * 60 * 60 * 1000;
+      expect(Math.abs(call.where.createdAt.gte.getTime() - expectedCutoff)).toBeLessThan(5000);
+    });
+  });
 });

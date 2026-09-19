@@ -545,6 +545,7 @@ export const api = {
 
   chains: () => get<Chain[]>('/chains'),
   adminActivity: (page?: number) => get<Paginated<AdminActivityItem>>(`/admin-activity${qsFrom({ page })}`),
+  recentBlockedCount: () => get<{ count: number }>('/admin-activity/recent-blocked-count'),
   createChain: (payload: { nameEn: string; nameAr: string }) => send<Chain>('POST', '/chains', payload),
   updateChain: (id: string, payload: { nameEn: string; nameAr: string }) =>
     send<Chain>('PATCH', `/chains/${id}`, payload),

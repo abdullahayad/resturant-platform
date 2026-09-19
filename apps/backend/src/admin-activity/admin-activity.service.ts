@@ -7,6 +7,11 @@ const PAGE_SIZE = 20;
 // plain per-source skip/take.
 const MAX_FETCH_PER_SOURCE = 400;
 
+// Window for the nav sidebar's red badge - a blocked upload from months ago
+// isn't "new," so a plain all-time count would never go back down and stop
+// meaning anything. 24h keeps the badge reflecting genuinely recent activity.
+const RECENT_BLOCKED_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 interface RestaurantSummary {
   id: string;
   nameEn: string;
@@ -198,5 +203,15 @@ export class AdminActivityService {
     const items = merged.slice(start, start + PAGE_SIZE);
     const total = dishTotal + photoTotal + promotionTotal + eventTotal + blockedUploadTotal;
     return { items, total, page, pageSize: PAGE_SIZE };
+  }
+
+  // Drives the red badge on the Recent Activity nav item - see
+  // RECENT_BLOCKED_WINDOW_MS above for why this is a rolling window rather
+  // than an all-time count.
+  async recentBlockedCount() {
+    const count = await this.prisma.db.blockedUpload.count({
+      where: { createdAt: { gte: new Date(Date.now() - RECENT_BLOCKED_WINDOW_MS) } },
+    });
+    return { count };
   }
 }
