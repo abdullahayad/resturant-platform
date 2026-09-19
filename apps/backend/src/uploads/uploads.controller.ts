@@ -40,15 +40,28 @@ export class UploadsController {
       },
     }),
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- req is
+  // still needed once moderation is re-enabled (see below); keeping the
+  // signature ready rather than churning it twice.
   async upload(@Req() req: { user: AppJwtPayload }, @UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
 
-    const ext = file.originalname.split('.').pop()?.toLowerCase() ?? '';
-    if (await this.moderation.isExplicit(file.buffer, ext)) {
-      const restaurantId = req.user.type === 'partner' ? req.user.sub : null;
-      await this.moderation.recordBlocked(restaurantId, file.originalname);
-      throw new BadRequestException('This image was flagged as inappropriate and could not be uploaded.');
-    }
+    // TEMPORARILY DISABLED (2026-09-19): loading nsfwjs's TF.js model plus
+    // classifying a single real (~1600px, client-resized) photo measured
+    // ~420MB peak RSS locally - enough to OOM-crash the backend on Render's
+    // constrained instance, which is exactly what broke uploads in
+    // production. Not safe to run in-process at this instance size. Needs a
+    // genuinely different approach (a lighter model, an external API, a
+    // separate worker process with its own memory ceiling, or a bigger
+    // instance) before re-enabling - see moderation.service.ts, which is
+    // left in place and still tested, just not called here for now.
+    //
+    // const ext = file.originalname.split('.').pop()?.toLowerCase() ?? '';
+    // if (await this.moderation.isExplicit(file.buffer, ext)) {
+    //   const restaurantId = req.user.type === 'partner' ? req.user.sub : null;
+    //   await this.moderation.recordBlocked(restaurantId, file.originalname);
+    //   throw new BadRequestException('This image was flagged as inappropriate and could not be uploaded.');
+    // }
 
     return this.storage.upload(file, 'uploads');
   }
