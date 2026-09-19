@@ -9,6 +9,7 @@ import {
   Building2,
   ShieldAlert,
   ShieldCheck,
+  Activity,
   Megaphone,
   Percent,
   Sparkles,
@@ -26,6 +27,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { label: 'Recent Activity', path: '/recent-activity', icon: Activity },
   { label: 'Restaurant Approvals', path: '/approvals', icon: ClipboardCheck },
   { label: 'Restaurants', path: '/restaurants', icon: Store },
   { label: 'Chains', path: '/chains', icon: Building2 },

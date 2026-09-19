@@ -41,6 +41,22 @@ export interface RestaurantListItem {
 
 // A brand with multiple branches - admin-managed only, never self-declared
 // by a restaurant owner (see RestaurantChain's comment in schema.prisma).
+interface AdminActivityRestaurant {
+  id: string
+  nameEn: string
+  nameAr: string
+  codeNumber: string
+}
+
+// Deliberately only what a restaurant itself adds (new dishes/photos/
+// promotions/events) - not restaurant.updatedAt, which also changes on an
+// admin's own actions (approve/reject/suspend/set chain/etc.).
+export type AdminActivityItem =
+  | { type: 'dish'; id: string; createdAt: string; nameEn: string; nameAr: string; restaurant: AdminActivityRestaurant }
+  | { type: 'photo'; id: string; createdAt: string; album: string; restaurant: AdminActivityRestaurant }
+  | { type: 'promotion'; id: string; createdAt: string; titleEn: string; titleAr: string; restaurant: AdminActivityRestaurant }
+  | { type: 'event'; id: string; createdAt: string; titleEn: string; titleAr: string; restaurant: AdminActivityRestaurant }
+
 export interface Chain {
   id: string
   nameEn: string
@@ -486,6 +502,7 @@ export const api = {
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/chain`, { chainId }),
 
   chains: () => get<Chain[]>('/chains'),
+  adminActivity: (page?: number) => get<Paginated<AdminActivityItem>>(`/admin-activity${qsFrom({ page })}`),
   createChain: (payload: { nameEn: string; nameAr: string }) => send<Chain>('POST', '/chains', payload),
   updateChain: (id: string, payload: { nameEn: string; nameAr: string }) =>
     send<Chain>('PATCH', `/chains/${id}`, payload),

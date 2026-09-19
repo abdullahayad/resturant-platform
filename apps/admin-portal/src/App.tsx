@@ -6,6 +6,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { ApprovalsPage } from '@/pages/ApprovalsPage'
 import { RestaurantsPage } from '@/pages/RestaurantsPage'
 import { ChainsPage } from '@/pages/ChainsPage'
+import { RecentActivityPage } from '@/pages/RecentActivityPage'
 import { MasterDataPage } from '@/pages/MasterDataPage'
 import { LocationsPage } from '@/pages/LocationsPage'
 import { ReviewsPage } from '@/pages/ReviewsPage'
@@ -26,6 +27,7 @@ function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="recent-activity" element={<RecentActivityPage />} />
           <Route path="approvals" element={<ApprovalsPage />} />
           <Route path="restaurants" element={<RestaurantsPage />} />
           <Route path="restaurants/:id/publish-review" element={<PublishReviewPage />} />

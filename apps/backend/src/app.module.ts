@@ -30,6 +30,7 @@ import { ActivityModule } from './activity/activity.module';
 import { PreviewModule } from './preview/preview.module';
 import { PaymentAccountsModule } from './payment-accounts/payment-accounts.module';
 import { ChainsModule } from './chains/chains.module';
+import { AdminActivityModule } from './admin-activity/admin-activity.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ChainsModule } from './chains/chains.module';
     PreviewModule,
     PaymentAccountsModule,
     ChainsModule,
+    AdminActivityModule,
   ],
   controllers: [AppController, LegalController],
   providers: [
