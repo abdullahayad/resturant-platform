@@ -387,6 +387,7 @@ model Restaurant {
   featuredPlacements FeaturedPlacement[]
   pushTokens        RestaurantPushToken[]
   featureFlagOverrides FeatureFlagOverride[]
+  blockedUploads    BlockedUpload[]
 
   @@index([status])
   @@index([publishStatus])
@@ -953,6 +954,24 @@ model RestaurantPushToken {
 
   @@index([restaurantId])
   @@map("restaurant_push_tokens")
+}
+
+// A record of an upload ModerationService blocked (see
+// uploads/moderation.service.ts) - the flagged image itself is never
+// stored (the block happens before it ever reaches storage), just the
+// fact that it happened, so an admin has somewhere to actually see it
+// rather than it vanishing into a rejected request no one but the
+// restaurant ever saw.
+model BlockedUpload {
+  id           String   @id @default(uuid())
+  restaurantId String?
+  originalName String
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@map("blocked_uploads")
 }
 
 // ────────────────────────────────────────────────────────────────────────────

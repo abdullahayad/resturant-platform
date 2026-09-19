@@ -15,6 +15,7 @@ describe('AdminActivityService', () => {
         galleryPhoto: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
         promotion: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
         restaurantEvent: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+        blockedUpload: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
       },
     };
 
@@ -40,6 +41,20 @@ describe('AdminActivityService', () => {
 
     expect(result.items.map((i) => i.id)).toEqual(['p1', 'd1', 'pr1']);
     expect(result.items[0]).toEqual(expect.objectContaining({ type: 'photo', restaurant: restaurant('r2') }));
+  });
+
+  it('merges in blocked uploads, including one with no restaurant (an admin\'s own blocked upload)', async () => {
+    prisma.db.blockedUpload.findMany.mockResolvedValueOnce([
+      { id: 'b1', originalName: 'bad.jpg', createdAt: new Date('2026-09-15T14:00:00Z'), restaurant: restaurant('r1') },
+      { id: 'b2', originalName: 'other.png', createdAt: new Date('2026-09-15T09:00:00Z'), restaurant: null },
+    ]);
+
+    const result = await service.recentActivity(1);
+
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({ type: 'blockedUpload', originalName: 'bad.jpg', restaurant: restaurant('r1') }),
+    );
+    expect(result.items[1]).toEqual(expect.objectContaining({ type: 'blockedUpload', restaurant: null }));
   });
 
   it('page 1 returns the 20 most recent items across all sources combined', async () => {

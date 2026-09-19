@@ -4,6 +4,7 @@ import * as jpeg from 'jpeg-js';
 import { PNG } from 'pngjs';
 import * as nsfwjs from 'nsfwjs';
 import type { NSFWJS, PredictionType } from 'nsfwjs';
+import { PrismaService } from '../prisma/prisma.service';
 
 // Free, fully local, no account/API key - nsfwjs ships its model weights
 // inside the npm package itself (no CDN fetch at inference time), and runs
@@ -52,6 +53,17 @@ function rgbaToRgb(data: Uint8Array | Buffer, width: number, height: number): Ui
 @Injectable()
 export class ModerationService {
   private readonly logger = new Logger(ModerationService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  // The flagged image itself is never stored (the block happens before it
+  // ever reaches storage) - this is purely so an admin has somewhere to
+  // actually see it happened, in Recent Activity, instead of it vanishing
+  // into a rejected request only the uploader ever saw. restaurantId is
+  // null for the rare case of an admin's own upload getting blocked.
+  async recordBlocked(restaurantId: string | null, originalName: string): Promise<void> {
+    await this.prisma.db.blockedUpload.create({ data: { restaurantId, originalName } });
+  }
 
   // Only jpg/png are actually decoded here - the two formats the pure-JS
   // decoders below handle without a native image library. webp/gif/video

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -10,6 +11,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { StorageService } from './storage.service';
 import { ModerationService } from './moderation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { AppJwtPayload } from '../auth/jwt-payload';
 
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'mov'];
 
@@ -38,11 +40,13 @@ export class UploadsController {
       },
     }),
   )
-  async upload(@UploadedFile() file?: Express.Multer.File) {
+  async upload(@Req() req: { user: AppJwtPayload }, @UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
 
     const ext = file.originalname.split('.').pop()?.toLowerCase() ?? '';
     if (await this.moderation.isExplicit(file.buffer, ext)) {
+      const restaurantId = req.user.type === 'partner' ? req.user.sub : null;
+      await this.moderation.recordBlocked(restaurantId, file.originalname);
       throw new BadRequestException('This image was flagged as inappropriate and could not be uploaded.');
     }
 

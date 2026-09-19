@@ -56,6 +56,9 @@ export type AdminActivityItem =
   | { type: 'photo'; id: string; createdAt: string; album: string; restaurant: AdminActivityRestaurant }
   | { type: 'promotion'; id: string; createdAt: string; titleEn: string; titleAr: string; restaurant: AdminActivityRestaurant }
   | { type: 'event'; id: string; createdAt: string; titleEn: string; titleAr: string; restaurant: AdminActivityRestaurant }
+  // restaurant is null only for the rare case of an admin's own upload
+  // getting blocked (see the backend's uploads/moderation.service.ts).
+  | { type: 'blockedUpload'; id: string; createdAt: string; originalName: string; restaurant: AdminActivityRestaurant | null }
 
 export interface Chain {
   id: string

@@ -1,4 +1,5 @@
 import { ModerationService, isUnsafe } from './moderation.service';
+import { PrismaService } from '../prisma/prisma.service';
 import type { PredictionType } from 'nsfwjs';
 
 describe('isUnsafe', () => {
@@ -30,9 +31,11 @@ describe('isUnsafe', () => {
 
 describe('ModerationService', () => {
   let service: ModerationService;
+  let prisma: { db: { blockedUpload: { create: jest.Mock } } };
 
   beforeEach(() => {
-    service = new ModerationService();
+    prisma = { db: { blockedUpload: { create: jest.fn().mockResolvedValue({}) } } };
+    service = new ModerationService(prisma as unknown as PrismaService);
   });
 
   it('passes through unmoderated formats (e.g. webp) without attempting to decode them', async () => {
@@ -44,5 +47,23 @@ describe('ModerationService', () => {
     // Garbage bytes claiming to be a jpg - jpeg.decode() will throw.
     const result = await service.isExplicit(Buffer.from([1, 2, 3, 4, 5]), 'jpg');
     expect(result).toBe(false);
+  });
+
+  describe('recordBlocked', () => {
+    it('records the restaurant id and original filename, never the image itself', async () => {
+      await service.recordBlocked('r1', 'bad-photo.jpg');
+
+      expect(prisma.db.blockedUpload.create).toHaveBeenCalledWith({
+        data: { restaurantId: 'r1', originalName: 'bad-photo.jpg' },
+      });
+    });
+
+    it('accepts a null restaurant id for an admin\'s own blocked upload', async () => {
+      await service.recordBlocked(null, 'bad-photo.jpg');
+
+      expect(prisma.db.blockedUpload.create).toHaveBeenCalledWith({
+        data: { restaurantId: null, originalName: 'bad-photo.jpg' },
+      });
+    });
   });
 });
