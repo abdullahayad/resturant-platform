@@ -23,8 +23,8 @@ const reservationStatusTones: Record<ReservationStatus, StatusPillTone> = {
 
 function formatSchedule(e: AdminEventItem) {
   if (e.isRecurring) {
-    const day = e.recurringDayOfWeek != null ? dayNames[e.recurringDayOfWeek] : '—'
-    return e.recurringTime ? `Every ${day}, ${e.recurringTime}` : `Every ${day}`
+    const days = e.recurringDaysOfWeek?.length ? e.recurringDaysOfWeek.map((d) => dayNames[d]).join(', ') : '—'
+    return e.recurringTime ? `Every ${days}, ${e.recurringTime}` : `Every ${days}`
   }
   if (!e.eventDate) return 'Date not set'
   const d = new Date(e.eventDate)

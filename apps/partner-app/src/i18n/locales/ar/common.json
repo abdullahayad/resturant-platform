@@ -29,9 +29,8 @@
   "wakingUpServer": "لا يزال التحميل جاريًا — قد يكون الخادم في طور التشغيل، قد يستغرق هذا حتى دقيقة.",
   "soon": "قريباً",
   "loadMore": "تحميل المزيد",
-  "introTaglineWord1": "اختيار",
-  "introTaglineWord2": "افضل",
-  "introTaglineWord3": "اليوم",
+  "introWithLabel": "ويه",
+  "introTagline": "المكان التمنيته",
   "lastUpdated": "آخر تحديث {{date}}",
   "timeAgo": {
     "justNow": "الآن",

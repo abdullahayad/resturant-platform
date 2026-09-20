@@ -732,10 +732,10 @@ model RestaurantEvent {
   price         Decimal? @db.Decimal(10, 2)
   capacity      Int? // max total guests per reservation date; null = unlimited
 
-  isRecurring        Boolean   @default(false)
-  eventDate          DateTime? // one-off events: specific date & time
-  recurringDayOfWeek Int? // recurring events: 0 = Sunday ... 6 = Saturday
-  recurringTime      String? // recurring events: "HH:mm"
+  isRecurring         Boolean   @default(false)
+  eventDate           DateTime? // one-off events: specific date & time
+  recurringDaysOfWeek Int[]     @default([]) // recurring events: which days it happens, 0 = Sunday ... 6 = Saturday. One event can recur on several days (e.g. every Sun + Tue) - all other fields (price, capacity, etc.) are shared across every day.
+  recurringTime       String? // recurring events: "HH:mm"
 
   isActive  Boolean  @default(true)
   moderationStatus ModerationStatus @default(VISIBLE)

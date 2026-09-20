@@ -24,7 +24,9 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 function formatSchedule(event: RestaurantEventItem, t: TFunction): string {
   if (event.isRecurring) {
-    const day = t(`common:days.${DAY_KEYS[event.recurringDayOfWeek ?? 0]}`);
+    const day = (event.recurringDaysOfWeek ?? [])
+      .map((d) => t(`common:days.${DAY_KEYS[d]}`))
+      .join(', ');
     return t('every', { day, time: event.recurringTime });
   }
   if (!event.eventDate) return t('dateNotSet');
@@ -44,7 +46,7 @@ const emptyForm = {
   isRecurring: false,
   eventDate: '',
   eventTime: '',
-  recurringDayOfWeek: 0,
+  recurringDaysOfWeek: [] as number[],
   recurringTime: '',
 };
 
@@ -100,7 +102,7 @@ export function ChefTableEventsScreen() {
       isRecurring: event.isRecurring,
       eventDate: event.eventDate ? event.eventDate.slice(0, 10) : '',
       eventTime: event.eventDate ? new Date(event.eventDate).toTimeString().slice(0, 5) : '',
-      recurringDayOfWeek: event.recurringDayOfWeek ?? 0,
+      recurringDaysOfWeek: event.recurringDaysOfWeek ?? [],
       recurringTime: event.recurringTime ?? '',
     });
   };
@@ -137,6 +139,10 @@ export function ChefTableEventsScreen() {
       setFormError(t('validation.titleAndType'));
       return;
     }
+    if (form.isRecurring && form.recurringDaysOfWeek.length === 0) {
+      setFormError(t('validation.recurringDays'));
+      return;
+    }
     if (form.isRecurring && !form.recurringTime) {
       setFormError(t('validation.recurringTime'));
       return;
@@ -158,7 +164,7 @@ export function ChefTableEventsScreen() {
         eventTypeId: form.eventTypeId,
         isRecurring: form.isRecurring,
         eventDate: form.isRecurring ? undefined : `${form.eventDate}T${form.eventTime}:00`,
-        recurringDayOfWeek: form.isRecurring ? form.recurringDayOfWeek : undefined,
+        recurringDaysOfWeek: form.isRecurring ? form.recurringDaysOfWeek : undefined,
         recurringTime: form.isRecurring ? form.recurringTime : undefined,
       };
       if (editingId) {
@@ -331,8 +337,15 @@ export function ChefTableEventsScreen() {
             <Text style={styles.fieldLabel}>{t('dayOfWeek')}</Text>
             <ChipSelect
               options={DAY_KEYS.map((key, id) => ({ id: String(id), label: t(`common:days.${key}`) }))}
-              selectedIds={[String(form.recurringDayOfWeek)]}
-              onToggle={(id) => setForm((f) => ({ ...f, recurringDayOfWeek: Number(id) }))}
+              selectedIds={form.recurringDaysOfWeek.map(String)}
+              onToggle={(id) =>
+                setForm((f) => ({
+                  ...f,
+                  recurringDaysOfWeek: f.recurringDaysOfWeek.includes(Number(id))
+                    ? f.recurringDaysOfWeek.filter((d) => d !== Number(id))
+                    : [...f.recurringDaysOfWeek, Number(id)].sort((a, b) => a - b),
+                }))
+              }
             />
             <TimeField
               label={t('timeLabel')}

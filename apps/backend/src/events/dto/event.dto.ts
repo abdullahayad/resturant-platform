@@ -1,4 +1,8 @@
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsDateString,
   IsIn,
@@ -70,10 +74,14 @@ export class CreateEventDto {
 
   // Recurring events
   @ValidateIf((dto: CreateEventDto) => dto.isRecurring)
-  @IsInt()
-  @Min(0)
-  @Max(6)
-  recurringDayOfWeek?: number;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(7)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  recurringDaysOfWeek?: number[];
 
   @ValidateIf((dto: CreateEventDto) => dto.isRecurring)
   @Matches(TIME_PATTERN, { message: 'recurringTime must be in HH:mm 24-hour format' })
@@ -131,10 +139,14 @@ export class UpdateEventDto {
   eventDate?: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(6)
-  recurringDayOfWeek?: number;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(7)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  recurringDaysOfWeek?: number[];
 
   @IsOptional()
   @Matches(TIME_PATTERN, { message: 'recurringTime must be in HH:mm 24-hour format' })

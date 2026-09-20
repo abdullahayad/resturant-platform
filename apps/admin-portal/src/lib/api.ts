@@ -255,7 +255,7 @@ export interface AdminEventItem {
   capacity: number | null
   isRecurring: boolean
   eventDate: string | null
-  recurringDayOfWeek: number | null
+  recurringDaysOfWeek: number[]
   recurringTime: string | null
   isActive: boolean
   moderationStatus: ModerationStatus

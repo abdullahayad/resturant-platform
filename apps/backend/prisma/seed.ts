@@ -376,7 +376,7 @@ async function main() {
           descriptionEn: 'Live oud and vocals every Friday evening.',
           descriptionAr: 'عزف عود وغناء حي مساء كل جمعة.',
           isRecurring: true,
-          recurringDayOfWeek: 5,
+          recurringDaysOfWeek: [5],
           recurringTime: '20:00',
         },
         {

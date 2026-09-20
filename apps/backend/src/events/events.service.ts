@@ -21,7 +21,7 @@ const eventSelect = {
   capacity: true,
   isRecurring: true,
   eventDate: true,
-  recurringDayOfWeek: true,
+  recurringDaysOfWeek: true,
   recurringTime: true,
   isActive: true,
   moderationStatus: true,
@@ -76,19 +76,19 @@ export class EventsService {
   }
 
   // The date live capacity is measured against: a one-off event's own date,
-  // or the next date matching a recurring event's day-of-week (today counts
-  // if today is that day, so a same-day capacity badge still reflects
-  // today's bookings rather than jumping ahead to next week).
-  private nextOccurrenceDate(event: { isRecurring: boolean; eventDate: Date | null; recurringDayOfWeek: number | null }): string | null {
+  // or the SOONEST upcoming date matching any of a recurring event's days
+  // (today counts if today is one of them, so a same-day capacity badge
+  // still reflects today's bookings rather than jumping ahead to next week).
+  private nextOccurrenceDate(event: { isRecurring: boolean; eventDate: Date | null; recurringDaysOfWeek: number[] }): string | null {
     if (!event.isRecurring) {
       return event.eventDate ? event.eventDate.toISOString() : null;
     }
-    if (event.recurringDayOfWeek == null) return null;
+    if (event.recurringDaysOfWeek.length === 0) return null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const diff = (event.recurringDayOfWeek - today.getDay() + 7) % 7;
+    const minDiff = Math.min(...event.recurringDaysOfWeek.map((day) => (day - today.getDay() + 7) % 7));
     const next = new Date(today);
-    next.setDate(today.getDate() + diff);
+    next.setDate(today.getDate() + minDiff);
     return next.toISOString();
   }
 
@@ -105,7 +105,8 @@ export class EventsService {
       select: eventSelect,
     });
 
-    const recurring = events.filter((e) => e.isRecurring).sort((a, b) => (a.recurringDayOfWeek ?? 0) - (b.recurringDayOfWeek ?? 0));
+    const earliestDay = (e: { recurringDaysOfWeek: number[] }) => (e.recurringDaysOfWeek.length ? Math.min(...e.recurringDaysOfWeek) : 0);
+    const recurring = events.filter((e) => e.isRecurring).sort((a, b) => earliestDay(a) - earliestDay(b));
     const oneOff = events
       .filter((e) => !e.isRecurring)
       .sort((a, b) => (a.eventDate?.getTime() ?? 0) - (b.eventDate?.getTime() ?? 0));
@@ -126,7 +127,7 @@ export class EventsService {
         capacity: dto.capacity,
         isRecurring: dto.isRecurring,
         eventDate: dto.isRecurring ? null : dto.eventDate ? new Date(dto.eventDate) : null,
-        recurringDayOfWeek: dto.isRecurring ? dto.recurringDayOfWeek : null,
+        recurringDaysOfWeek: dto.isRecurring ? dto.recurringDaysOfWeek : [],
         recurringTime: dto.isRecurring ? dto.recurringTime : null,
       },
       select: eventSelect,
@@ -151,12 +152,12 @@ export class EventsService {
           ? {
               isRecurring: dto.isRecurring,
               eventDate: dto.isRecurring ? null : dto.eventDate ? new Date(dto.eventDate) : undefined,
-              recurringDayOfWeek: dto.isRecurring ? dto.recurringDayOfWeek : null,
+              recurringDaysOfWeek: dto.isRecurring ? dto.recurringDaysOfWeek : [],
               recurringTime: dto.isRecurring ? dto.recurringTime : null,
             }
           : {
               eventDate: dto.eventDate ? new Date(dto.eventDate) : undefined,
-              recurringDayOfWeek: dto.recurringDayOfWeek,
+              recurringDaysOfWeek: dto.recurringDaysOfWeek,
               recurringTime: dto.recurringTime,
             }),
       },
@@ -219,14 +220,14 @@ export class EventsService {
   // A reservationDate is only meaningful if it's an actual occurrence of the
   // event — otherwise a client could pick an arbitrary date to dodge the
   // capacity check on the real one.
-  private assertValidOccurrence(event: { isRecurring: boolean; eventDate: Date | null; recurringDayOfWeek: number | null }, dateStr: string) {
+  private assertValidOccurrence(event: { isRecurring: boolean; eventDate: Date | null; recurringDaysOfWeek: number[] }, dateStr: string) {
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) {
       throw new BadRequestException('reservationDate is not a valid date');
     }
     if (event.isRecurring) {
-      if (date.getDay() !== event.recurringDayOfWeek) {
-        throw new BadRequestException('reservationDate does not fall on this event\'s recurring day');
+      if (!event.recurringDaysOfWeek.includes(date.getDay())) {
+        throw new BadRequestException('reservationDate does not fall on any of this event\'s recurring days');
       }
     } else {
       const eventDay = event.eventDate ? this.dayBounds(event.eventDate.toISOString()).start.getTime() : null;

@@ -38,13 +38,14 @@
   "schedule": "Schedule",
   "oneOffDate": "One-off date",
   "everyWeek": "Every week",
-  "dayOfWeek": "Day of the week",
+  "dayOfWeek": "Days of the week",
   "timeLabel": "Time",
   "dateLabel": "Date",
   "submit": "Create Event",
   "validation": {
     "titleAndType": "Fill in title (EN/AR) and pick an event type.",
     "recurringTime": "Set a time for the recurring event.",
+    "recurringDays": "Pick at least one day of the week.",
     "dateAndTime": "Set a date and time for the event."
   },
   "createFailed": "Could not create event",

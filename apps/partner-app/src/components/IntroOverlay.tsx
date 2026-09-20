@@ -16,13 +16,13 @@ interface IntroOverlayProps {
 // below) — it's independent of their fixed left-to-right screen position.
 const SEGMENT_SETS = {
   en: {
-    sourceHeight: 197,
+    sourceHeight: 171,
     reverseDropOrder: false,
     // "Li" / "G" (with the pin) / "ETA" — drops in reading order, left to right.
     segments: [
-      { source: require('../../assets/intro-en-1.png'), width: 131 },
-      { source: require('../../assets/intro-en-2.png'), width: 192 },
-      { source: require('../../assets/intro-en-3.png'), width: 466 },
+      { source: require('../../assets/intro-en-1.png'), width: 115 },
+      { source: require('../../assets/intro-en-2.png'), width: 139 },
+      { source: require('../../assets/intro-en-3.png'), width: 352 },
     ],
   },
   ar: {
@@ -46,7 +46,8 @@ const DROP_START_Y = -160;
 const STAGGER_MS = 180;
 const LEAD_IN_MS = 2000;
 const WORD_STAGGER_MS = 450;
-const TAGLINE_WORD_KEYS = ['common:introTaglineWord1', 'common:introTaglineWord2', 'common:introTaglineWord3'] as const;
+const WITH_LABEL_KEY = 'common:introWithLabel';
+const TAGLINE_KEY = 'common:introTagline';
 
 /** Drop from above, bounce twice (a big bounce then a smaller one), then settle at rest. */
 function dropWithBounce(value: Animated.Value, delay: number, onComplete?: () => void) {
@@ -73,11 +74,12 @@ function revealWord(opacity: Animated.Value, rise: Animated.Value, delay: number
 
 /** Full-screen brand intro shown right after the native splash hands off to JS: plain white for
  * LEAD_IN_MS, then the wordmark's three pieces drop in one after another (each bouncing twice
- * before settling), then the tagline fades in one word at a time at a slow pace, then everything
- * holds before fading into the app. Which wordmark and tagline show depends on the current app
- * language. The native splash itself is configured with no image at all (just white) — Android
- * 12+ won't reliably hold it open on request and its splash-icon rendering center-crops wide art,
- * so all the actual logo presentation happens here instead, under our own control. */
+ * before settling), then a small "With" label fades in above the wordmark's first-read segment
+ * (above "Li" / "لي"), then the tagline fades in below it one word at a time at a slow pace, then
+ * everything holds before fading into the app. Which wordmark and tagline show depends on the
+ * current app language. The native splash itself is configured with no image at all (just white)
+ * — Android 12+ won't reliably hold it open on request and its splash-icon rendering center-crops
+ * wide art, so all the actual logo presentation happens here instead, under our own control. */
 export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverlayProps) {
   const { language } = useLanguage();
   const { t } = useTranslation();
@@ -85,11 +87,25 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
   const totalSourceWidth = useMemo(() => set.segments.reduce((sum, s) => sum + s.width, 0), [set]);
   const scale = DISPLAY_WIDTH / totalSourceWidth;
   const displayHeight = set.sourceHeight * scale;
+  const lastSegmentIndex = set.segments.length - 1;
+  // The segment that's first in READING order (not necessarily first on screen) - "Li" for
+  // English (screen-leftmost already), "لي" for Arabic (screen-rightmost, since Arabic reads
+  // right-to-left) - is where the small "With" label anchors above.
+  const firstReadIndex = set.reverseDropOrder ? lastSegmentIndex : 0;
+  const withLeftPx = useMemo(
+    () => set.segments.slice(0, firstReadIndex).reduce((sum, s) => sum + s.width, 0) * scale,
+    [set, firstReadIndex, scale],
+  );
+  const withWidthPx = set.segments[firstReadIndex].width * scale;
+
+  const taglineWords = useMemo(() => t(TAGLINE_KEY).split(' '), [t]);
 
   const opacity = useRef(new Animated.Value(1)).current;
   const dropY = useRef(set.segments.map(() => new Animated.Value(DROP_START_Y))).current;
-  const wordOpacity = useRef(TAGLINE_WORD_KEYS.map(() => new Animated.Value(0))).current;
-  const wordRise = useRef(TAGLINE_WORD_KEYS.map(() => new Animated.Value(10))).current;
+  const withOpacity = useRef(new Animated.Value(0)).current;
+  const withRise = useRef(new Animated.Value(10)).current;
+  const wordOpacity = useRef(taglineWords.map(() => new Animated.Value(0))).current;
+  const wordRise = useRef(taglineWords.map(() => new Animated.Value(10))).current;
 
   // React Native Web doesn't reliably honor the row's `direction: 'ltr'` override
   // when the document itself is globally RTL — it still mirrors the flex order,
@@ -109,12 +125,16 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
       // Screen position (i) is fixed; drop order can differ from it (see reverseDropOrder above).
       const dropOrder = set.reverseDropOrder ? lastCount - i : i;
       const isLastToLand = dropOrder === lastCount;
-      dropWithBounce(dropY[i], LEAD_IN_MS + dropOrder * STAGGER_MS, isLastToLand ? revealTagline : undefined);
+      dropWithBounce(dropY[i], LEAD_IN_MS + dropOrder * STAGGER_MS, isLastToLand ? revealWithLabel : undefined);
     });
 
+    function revealWithLabel() {
+      revealWord(withOpacity, withRise, 0, revealTagline);
+    }
+
     function revealTagline() {
-      TAGLINE_WORD_KEYS.forEach((_, i) => {
-        const isLast = i === TAGLINE_WORD_KEYS.length - 1;
+      taglineWords.forEach((_, i) => {
+        const isLast = i === taglineWords.length - 1;
         revealWord(wordOpacity[i], wordRise[i], i * WORD_STAGGER_MS, isLast ? finishIntro : undefined);
       });
     }
@@ -129,33 +149,50 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
 
   return (
     <Animated.View style={[styles.overlay, { opacity }]}>
-      <View style={styles.row}>
-        {displayIndices.map((i) => {
-          const seg = set.segments[i];
-          return (
-            <Animated.Image
-              key={i}
-              source={seg.source}
-              style={{
-                width: seg.width * scale,
-                height: displayHeight,
-                transform: [{ translateY: dropY[i] }],
-              }}
-              resizeMode="contain"
-            />
-          );
-        })}
+      <View style={styles.wordmarkWrap}>
+        <Animated.Text
+          style={[
+            styles.withLabel,
+            {
+              left: withLeftPx,
+              width: withWidthPx,
+              opacity: withOpacity,
+              transform: [{ translateY: withRise }],
+              fontSize: language === 'ar' ? 17 : 13,
+              top: language === 'ar' ? -26 : -22,
+            },
+          ]}
+        >
+          {t(WITH_LABEL_KEY)}
+        </Animated.Text>
+        <View style={styles.row}>
+          {displayIndices.map((i) => {
+            const seg = set.segments[i];
+            return (
+              <Animated.Image
+                key={i}
+                source={seg.source}
+                style={{
+                  width: seg.width * scale,
+                  height: displayHeight,
+                  transform: [{ translateY: dropY[i] }],
+                }}
+                resizeMode="contain"
+              />
+            );
+          })}
+        </View>
       </View>
       <View style={styles.taglineRow}>
-        {TAGLINE_WORD_KEYS.map((key, i) => (
+        {taglineWords.map((word, i) => (
           <Animated.Text
-            key={key}
+            key={`${word}-${i}`}
             style={[
               styles.taglineWord,
               { opacity: wordOpacity[i], transform: [{ translateY: wordRise[i] }] },
             ]}
           >
-            {t(key)}
+            {word}
           </Animated.Text>
         ))}
       </View>
@@ -182,6 +219,11 @@ const styles = StyleSheet.create({
   // it as invalid and doesn't apply it the same way anyway - web's fix is the
   // `displayIndices` reversal above instead).
   row: { flexDirection: 'row', alignItems: 'center', ...(Platform.OS !== 'web' ? { direction: 'ltr' as const } : null) },
+  // Fixed-width wrapper (equal to DISPLAY_WIDTH by construction, since `scale` is derived from
+  // it) so the "With" label can be positioned absolutely above the wordmark's first-read segment
+  // without disturbing the row's own centering.
+  wordmarkWrap: { width: DISPLAY_WIDTH, position: 'relative', marginTop: 24 },
+  withLabel: { position: 'absolute', top: -22, fontSize: 13, fontWeight: '600', color: '#cc4408', letterSpacing: 0.5, textAlign: 'center' },
   // The tagline is ordinary text, not a fixed logo asset — it's left free to mirror under RTL
   // (Arabic words cascade in from the right, matching how the language is actually read).
   taglineRow: { flexDirection: 'row', marginTop: 14, gap: 8 },

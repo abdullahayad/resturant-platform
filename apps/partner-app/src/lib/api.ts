@@ -374,7 +374,7 @@ export interface RestaurantEventItem {
   capacity: number | null;
   isRecurring: boolean;
   eventDate: string | null;
-  recurringDayOfWeek: number | null;
+  recurringDaysOfWeek: number[];
   recurringTime: string | null;
   isActive: boolean;
   createdAt: string;
@@ -398,7 +398,7 @@ export interface EventPayload {
   capacity?: number;
   isRecurring: boolean;
   eventDate?: string;
-  recurringDayOfWeek?: number;
+  recurringDaysOfWeek?: number[];
   recurringTime?: string;
 }
 
@@ -476,7 +476,7 @@ export interface RestaurantPreview {
     capacity: number | null;
     isRecurring: boolean;
     eventDate: string | null;
-    recurringDayOfWeek: number | null;
+    recurringDaysOfWeek: number[];
     recurringTime: string | null;
     eventType: EventTypeItem;
   }[];

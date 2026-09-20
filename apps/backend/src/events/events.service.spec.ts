@@ -20,10 +20,16 @@ describe('EventsService', () => {
     isActive: true,
     isRecurring: true,
     eventDate: null,
-    recurringDayOfWeek: 5, // Friday
+    recurringDaysOfWeek: [5], // Friday
     capacity: 10,
     titleEn: 'Live Music Night',
     restaurant: { status: 'APPROVED', notifyNewBooking: false },
+  };
+
+  const bookableMultiDayRecurringEvent = {
+    ...bookableRecurringEvent,
+    recurringDaysOfWeek: [0, 2], // Sunday and Tuesday
+    titleEn: 'Chef\'s Table',
   };
 
   const bookableOneOffEvent = {
@@ -32,7 +38,7 @@ describe('EventsService', () => {
     isActive: true,
     isRecurring: false,
     eventDate: new Date('2026-09-10T00:00:00Z'),
-    recurringDayOfWeek: null,
+    recurringDaysOfWeek: [],
     capacity: 5,
     titleEn: 'Grand Opening',
     restaurant: { status: 'APPROVED', notifyNewBooking: false },
@@ -93,6 +99,33 @@ describe('EventsService', () => {
 
       // 2026-09-12 is a Saturday, not the event's Friday.
       await expect(service.availability(restaurantId, eventId, '2026-09-12')).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts a date matching any of a multi-day recurring event\'s days', async () => {
+      prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableMultiDayRecurringEvent);
+      prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([]);
+      // 2026-09-13 is a Sunday.
+      await expect(service.availability(restaurantId, eventId, '2026-09-13')).resolves.toEqual({
+        capacity: 10,
+        reserved: 0,
+        remaining: 10,
+      });
+
+      prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableMultiDayRecurringEvent);
+      prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([]);
+      // 2026-09-15 is a Tuesday.
+      await expect(service.availability(restaurantId, eventId, '2026-09-15')).resolves.toEqual({
+        capacity: 10,
+        reserved: 0,
+        remaining: 10,
+      });
+    });
+
+    it('rejects a date that falls on neither of a multi-day recurring event\'s days', async () => {
+      prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableMultiDayRecurringEvent);
+
+      // 2026-09-14 is a Monday - not Sunday or Tuesday.
+      await expect(service.availability(restaurantId, eventId, '2026-09-14')).rejects.toThrow(BadRequestException);
     });
 
     it('accepts a date matching a one-off event\'s exact date', async () => {
@@ -224,8 +257,8 @@ describe('EventsService', () => {
 
     it('adds a live bookedCount, scoped to the next occurrence, only for events with a capacity set', async () => {
       prisma.db.restaurantEvent.findMany.mockResolvedValueOnce([
-        { id: 'e1', capacity: 12, isRecurring: false, eventDate: new Date('2026-10-03'), recurringDayOfWeek: null },
-        { id: 'e2', capacity: null, isRecurring: false, eventDate: new Date('2026-10-03'), recurringDayOfWeek: null },
+        { id: 'e1', capacity: 12, isRecurring: false, eventDate: new Date('2026-10-03'), recurringDaysOfWeek: [] },
+        { id: 'e2', capacity: null, isRecurring: false, eventDate: new Date('2026-10-03'), recurringDaysOfWeek: [] },
       ]);
       prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([{ partySize: 5 }, { partySize: 3 }]);
 

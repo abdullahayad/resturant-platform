@@ -29,9 +29,8 @@
   "wakingUpServer": "Still loading — the server may be waking up, this can take up to a minute.",
   "soon": "Soon",
   "loadMore": "Load more",
-  "introTaglineWord1": "Pick",
-  "introTaglineWord2": "Better",
-  "introTaglineWord3": "Today",
+  "introWithLabel": "With",
+  "introTagline": "Your City Navigator",
   "lastUpdated": "Last updated {{date}}",
   "timeAgo": {
     "justNow": "just now",
