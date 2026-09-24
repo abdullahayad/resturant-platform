@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { LegalController } from './legal/legal.controller';
+import { SupportSessionPageController } from './support-session/support-session-page.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { MasterDataModule } from './master-data/master-data.module';
@@ -65,7 +66,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     ChainsModule,
     AdminActivityModule,
   ],
-  controllers: [AppController, LegalController],
+  controllers: [AppController, LegalController, SupportSessionPageController],
   providers: [
     // Must come before any other exception filter (none currently exist).
     { provide: APP_FILTER, useClass: SentryGlobalFilter },

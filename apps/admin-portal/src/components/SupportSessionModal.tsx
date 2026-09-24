@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
-import { api } from '@/lib/api'
+import { api, ROOT_URL } from '@/lib/api'
 
 interface SupportSessionModalProps {
   restaurantId: string
@@ -8,15 +8,16 @@ interface SupportSessionModalProps {
   onClose: () => void
 }
 
-// Points at a small hosted "tap to open" page rather than the app's own
-// ligetapartner:// link directly - most phone camera QR scanners only
+// Points at a small page the backend itself serves (see
+// support-session/support-session-page.controller.ts) rather than the app's
+// own ligetapartner:// link directly - most phone camera QR scanners only
 // special-case regular http(s) links, and typing/pasting a custom scheme
 // into a browser's address bar isn't reliably handled either. A real link
 // tap on an actual webpage is the one thing Android reliably hands off to
 // the app that registered the scheme (see app.json's "scheme" and App.tsx's
 // incoming-link handling), so the QR points here and this page does the tap.
 function supportLinkFor(token: string): string {
-  return `https://claude.ai/artifact/YV7aWMs7EXtMstn94ivdkk?token=${encodeURIComponent(token)}`
+  return `${ROOT_URL}/support-session?token=${encodeURIComponent(token)}`
 }
 
 // "Manage as this restaurant" - issues a short-lived login for one

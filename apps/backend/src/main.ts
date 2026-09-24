@@ -20,7 +20,7 @@ import { AppModule } from './app.module';
 // metadata), or because something outside our own apps depends on the exact
 // path (UptimeRobot pings "/", Swagger serves its own sub-paths under
 // "/docs"). Everything else moves under /v1.
-const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json'];
+const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json', 'support-session'];
 
 // Comma-separated list of allowed browser origins, e.g.
 // "http://localhost:5173,https://admin.example.com". Falls back to the
