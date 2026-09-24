@@ -8,11 +8,15 @@ interface SupportSessionModalProps {
   onClose: () => void
 }
 
-// The deep-link scheme the partner app registers (see app.json's "scheme").
-// The app reads the token from this URL and signs in as the restaurant it
-// belongs to - see App.tsx's incoming-link handling.
+// Points at a small hosted "tap to open" page rather than the app's own
+// ligetapartner:// link directly - most phone camera QR scanners only
+// special-case regular http(s) links, and typing/pasting a custom scheme
+// into a browser's address bar isn't reliably handled either. A real link
+// tap on an actual webpage is the one thing Android reliably hands off to
+// the app that registered the scheme (see app.json's "scheme" and App.tsx's
+// incoming-link handling), so the QR points here and this page does the tap.
 function supportLinkFor(token: string): string {
-  return `ligetapartner://support?token=${encodeURIComponent(token)}`
+  return `https://claude.ai/artifact/YV7aWMs7EXtMstn94ivdkk?token=${encodeURIComponent(token)}`
 }
 
 // "Manage as this restaurant" - issues a short-lived login for one
@@ -62,11 +66,12 @@ export function SupportSessionModal({ restaurantId, restaurantName, onClose }: S
         {qrDataUrl && (
           <>
             <div className="mt-4 inline-block rounded-xl border border-border bg-white p-3">
-              <img src={qrDataUrl} alt="QR code to sign in as this restaurant" width={220} height={220} />
+              <img src={qrDataUrl} alt="QR code linking to a page that opens the app signed in as this restaurant" width={220} height={220} />
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              Scan with a phone that already has the LiGETA Restaurant app installed. It signs you in as this
-              restaurant for 30 minutes — you'll need to sign back into your own account afterward.
+              Scan with a phone that already has the LiGETA Restaurant app installed, then tap the button that page
+              shows. It signs you in as this restaurant for 30 minutes — you'll need to sign back into your own
+              account afterward.
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
               Logged for transparency: this session shows up in Recent Activity, tagged with your name.
