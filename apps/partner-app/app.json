@@ -3,6 +3,7 @@
     "name": "LiGETA Restaurant",
     "slug": "restaurant-partner-portal",
     "version": "1.0.0",
+    "scheme": "ligetapartner",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

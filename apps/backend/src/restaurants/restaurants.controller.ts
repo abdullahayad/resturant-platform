@@ -13,6 +13,7 @@ import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
 import { UpdateStatsVisibilityDto } from './dto/update-stats-visibility.dto';
 import { SetChainDto } from './dto/set-chain.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
+import { SuperAdminGuard } from '../auth/guards/super-admin.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
@@ -153,6 +154,14 @@ export class RestaurantsController {
   @Patch(':id/chain')
   setChain(@Param('id') id: string, @Body() dto: SetChainDto) {
     return this.restaurants.setChain(id, dto.chainId ?? null);
+  }
+
+  // Full account access to any restaurant is powerful enough to keep behind
+  // the stricter super-admin guard, not every moderator.
+  @UseGuards(SuperAdminGuard)
+  @Post(':id/admin-support-session')
+  createAdminSupportSession(@Req() req: { user: AdminJwtPayload }, @Param('id') id: string) {
+    return this.restaurants.createAdminSupportSession(req.user.sub, id);
   }
 
   @UseGuards(AdminAuthGuard)

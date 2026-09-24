@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, AppState, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as Linking from 'expo-linking';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import type { ThemeColors } from './src/theme/colors';
 import './src/i18n';
@@ -97,6 +98,36 @@ function AppContent() {
       cancelled = true;
     };
   }, [session?.token, session?.restaurant.status]);
+
+  // "Manage as this restaurant" - an admin-issued link (ligetapartner://support?token=...)
+  // scanned as a QR from the admin portal. Applies once bootstrap has
+  // settled so it always wins over whatever session was already stored,
+  // and skips the biometric lock entirely (scanning the QR already required
+  // holding the unlocked phone, so re-prompting Face ID here would be pure
+  // friction with no real security benefit).
+  useEffect(() => {
+    if (!bootstrapped) return;
+
+    async function applySupportLink(url: string | null) {
+      if (!url) return;
+      const { hostname, queryParams } = Linking.parse(url);
+      const token = queryParams?.token;
+      if (hostname !== 'support' || typeof token !== 'string') return;
+      try {
+        const restaurant = await api.me(token);
+        setLocked(false);
+        setSession({ token, restaurant });
+      } catch {
+        setSession(null);
+        setSessionExpired(true);
+        setView('signIn');
+      }
+    }
+
+    Linking.getInitialURL().then(applySupportLink);
+    const subscription = Linking.addEventListener('url', ({ url }) => applySupportLink(url));
+    return () => subscription.remove();
+  }, [bootstrapped]);
 
   // A stale login token makes every authenticated request fail with 401 — the
   // api layer reports that here instead of each screen showing a misleading

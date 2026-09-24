@@ -67,7 +67,10 @@ export type AdminActivityItem =
     }
   // restaurant is null only for the rare case of an admin's own upload
   // getting blocked (see uploads/moderation.service.ts).
-  | { type: 'blockedUpload'; id: string; createdAt: Date; originalName: string; restaurant: RestaurantSummary | null };
+  | { type: 'blockedUpload'; id: string; createdAt: Date; originalName: string; restaurant: RestaurantSummary | null }
+  // A "Manage as this restaurant" session an admin started - see
+  // AdminSupportSession's comment in schema.prisma.
+  | { type: 'adminSupportSession'; id: string; createdAt: Date; adminName: string; restaurant: RestaurantSummary };
 
 const restaurantSummarySelect = { id: true, nameEn: true, nameAr: true, codeNumber: true } as const;
 
@@ -78,9 +81,10 @@ export class AdminActivityService {
   // Deliberately only what a restaurant itself adds - not restaurant.updatedAt,
   // which also changes on an admin's own actions (approve/reject/suspend/set
   // chain/etc.) and would misleadingly read as "the restaurant changed
-  // something" when it was actually us. blockedUpload is the one exception -
-  // that's never the restaurant's own action, it's something ModerationService
-  // stopped, which is exactly why it needs to be visible here.
+  // something" when it was actually us. blockedUpload and adminSupportSession
+  // are the two exceptions - neither is the restaurant's own action (one is
+  // something ModerationService stopped, the other is an admin accessing the
+  // account directly), which is exactly why both need to stay visible here.
   async recentActivity(pageParam?: number) {
     const page = pageParam && pageParam > 0 ? pageParam : 1;
     const fetchCount = Math.min(page * PAGE_SIZE, MAX_FETCH_PER_SOURCE);
@@ -91,11 +95,13 @@ export class AdminActivityService {
       promotions,
       events,
       blockedUploads,
+      supportSessions,
       dishTotal,
       photoTotal,
       promotionTotal,
       eventTotal,
       blockedUploadTotal,
+      supportSessionTotal,
     ] = await Promise.all([
       this.prisma.db.dish.findMany({
         select: {
@@ -151,11 +157,22 @@ export class AdminActivityService {
         orderBy: { createdAt: 'desc' },
         take: fetchCount,
       }),
+      this.prisma.db.adminSupportSession.findMany({
+        select: {
+          id: true,
+          createdAt: true,
+          admin: { select: { fullName: true } },
+          restaurant: { select: restaurantSummarySelect },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: fetchCount,
+      }),
       this.prisma.db.dish.count(),
       this.prisma.db.galleryPhoto.count(),
       this.prisma.db.promotion.count(),
       this.prisma.db.restaurantEvent.count(),
       this.prisma.db.blockedUpload.count(),
+      this.prisma.db.adminSupportSession.count(),
     ]);
 
     const merged: AdminActivityItem[] = [
@@ -196,12 +213,19 @@ export class AdminActivityService {
         restaurant: e.restaurant,
       })),
       ...blockedUploads.map((b) => ({ type: 'blockedUpload' as const, id: b.id, createdAt: b.createdAt, originalName: b.originalName, restaurant: b.restaurant })),
+      ...supportSessions.map((s) => ({
+        type: 'adminSupportSession' as const,
+        id: s.id,
+        createdAt: s.createdAt,
+        adminName: s.admin.fullName,
+        restaurant: s.restaurant,
+      })),
     ];
     merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     const start = (page - 1) * PAGE_SIZE;
     const items = merged.slice(start, start + PAGE_SIZE);
-    const total = dishTotal + photoTotal + promotionTotal + eventTotal + blockedUploadTotal;
+    const total = dishTotal + photoTotal + promotionTotal + eventTotal + blockedUploadTotal + supportSessionTotal;
     return { items, total, page, pageSize: PAGE_SIZE };
   }
 

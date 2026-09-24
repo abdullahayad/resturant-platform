@@ -290,6 +290,36 @@ export class RestaurantsService {
     });
   }
 
+  // "Manage as this restaurant" - mints a short-lived token that behaves
+  // exactly like a normal owner login (same tokenVersion check every partner
+  // route already does), so no other code needs to know this session came
+  // from an admin rather than a real sign-in. A row is logged purely for
+  // transparency - see AdminSupportSession's comment in schema.prisma.
+  async createAdminSupportSession(adminId: string, restaurantId: string) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { id: true, nameEn: true, nameAr: true, status: true, tokenVersion: true },
+    });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+
+    const accessToken = await this.jwt.signAsync(
+      {
+        sub: restaurant.id,
+        type: 'partner',
+        restaurantStatus: restaurant.status,
+        tokenVersion: restaurant.tokenVersion,
+        impersonatedBy: adminId,
+      },
+      { expiresIn: '30m' },
+    );
+
+    await this.prisma.db.adminSupportSession.create({
+      data: { adminId, restaurantId: restaurant.id },
+    });
+
+    return { accessToken, restaurant: { id: restaurant.id, nameEn: restaurant.nameEn, nameAr: restaurant.nameAr } };
+  }
+
   async updateProfile(id: string, dto: UpdateRestaurantProfileDto) {
     await this.ensureExists(id);
 

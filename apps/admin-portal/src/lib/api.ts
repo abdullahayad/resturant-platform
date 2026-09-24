@@ -98,6 +98,8 @@ export type AdminActivityItem =
   // restaurant is null only for the rare case of an admin's own upload
   // getting blocked (see the backend's uploads/moderation.service.ts).
   | { type: 'blockedUpload'; id: string; createdAt: string; originalName: string; restaurant: AdminActivityRestaurant | null }
+  // A "Manage as this restaurant" session an admin started.
+  | { type: 'adminSupportSession'; id: string; createdAt: string; adminName: string; restaurant: AdminActivityRestaurant }
 
 export interface Chain {
   id: string
@@ -542,6 +544,11 @@ export const api = {
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/stats-visibility`, { statsVisible }),
   setRestaurantChain: (id: string, chainId: string | null) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/chain`, { chainId }),
+  createAdminSupportSession: (id: string) =>
+    send<{ accessToken: string; restaurant: { id: string; nameEn: string; nameAr: string } }>(
+      'POST',
+      `/restaurants/${id}/admin-support-session`,
+    ),
 
   chains: () => get<Chain[]>('/chains'),
   adminActivity: (page?: number) => get<Paginated<AdminActivityItem>>(`/admin-activity${qsFrom({ page })}`),

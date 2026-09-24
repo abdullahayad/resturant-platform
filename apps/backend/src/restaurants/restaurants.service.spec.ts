@@ -11,6 +11,7 @@ import { Prisma } from '../../generated/prisma/client';
 describe('RestaurantsService', () => {
   let service: RestaurantsService;
   let prisma: { db: Record<string, Record<string, jest.Mock>> };
+  let jwt: { signAsync: jest.Mock };
 
   const baseRegisterDto: RegisterRestaurantDto = {
     nameEn: 'Test Restaurant',
@@ -38,14 +39,18 @@ describe('RestaurantsService', () => {
         restaurantChain: {
           findUnique: jest.fn(),
         },
+        adminSupportSession: {
+          create: jest.fn(),
+        },
       },
     };
+    jwt = { signAsync: jest.fn().mockResolvedValue('token') };
 
     const module = await Test.createTestingModule({
       providers: [
         RestaurantsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
+        { provide: JwtService, useValue: jwt },
         { provide: EmailService, useValue: { send: jest.fn() } },
         { provide: PushService, useValue: { sendToRestaurants: jest.fn().mockResolvedValue(undefined) } },
       ],
@@ -290,6 +295,47 @@ describe('RestaurantsService', () => {
       expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'r1' }, data: { chainId: null } }),
       );
+    });
+  });
+
+  describe('createAdminSupportSession', () => {
+    it('throws NotFoundException for a restaurant that does not exist', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.createAdminSupportSession('admin1', 'missing')).rejects.toThrow(NotFoundException);
+      expect(jwt.signAsync).not.toHaveBeenCalled();
+      expect(prisma.db.adminSupportSession.create).not.toHaveBeenCalled();
+    });
+
+    it('mints a token carrying the restaurant\'s own tokenVersion and the admin who started it, and logs the session', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({
+        id: 'r1',
+        nameEn: 'Al Baghdadi',
+        nameAr: 'البغدادي',
+        status: 'APPROVED',
+        tokenVersion: 3,
+      });
+      prisma.db.adminSupportSession.create.mockResolvedValueOnce({});
+
+      const result = await service.createAdminSupportSession('admin1', 'r1');
+
+      expect(jwt.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub: 'r1',
+          type: 'partner',
+          restaurantStatus: 'APPROVED',
+          tokenVersion: 3,
+          impersonatedBy: 'admin1',
+        }),
+        { expiresIn: '30m' },
+      );
+      expect(prisma.db.adminSupportSession.create).toHaveBeenCalledWith({
+        data: { adminId: 'admin1', restaurantId: 'r1' },
+      });
+      expect(result).toEqual({
+        accessToken: 'token',
+        restaurant: { id: 'r1', nameEn: 'Al Baghdadi', nameAr: 'البغدادي' },
+      });
     });
   });
 });

@@ -16,6 +16,7 @@ describe('AdminActivityService', () => {
         promotion: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
         restaurantEvent: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
         blockedUpload: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+        adminSupportSession: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
       },
     };
 
@@ -98,6 +99,18 @@ describe('AdminActivityService', () => {
 
     expect(result.items).toHaveLength(20);
     expect(result.total).toBe(25);
+  });
+
+  it('merges in "Manage as this restaurant" support sessions, tagged with the admin who started them', async () => {
+    prisma.db.adminSupportSession.findMany.mockResolvedValueOnce([
+      { id: 's1', createdAt: new Date('2026-09-15T11:00:00Z'), admin: { fullName: 'Ali Admin' }, restaurant: restaurant('r1') },
+    ]);
+
+    const result = await service.recentActivity(1);
+
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({ type: 'adminSupportSession', adminName: 'Ali Admin', restaurant: restaurant('r1') }),
+    );
   });
 
   describe('recentBlockedCount', () => {

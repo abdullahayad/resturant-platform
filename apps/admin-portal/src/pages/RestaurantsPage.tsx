@@ -15,6 +15,7 @@ import { Switch } from '@/components/Switch'
 import { FilterTabs } from '@/components/FilterTabs'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 import { Pager } from '@/components/Pager'
+import { SupportSessionModal } from '@/components/SupportSessionModal'
 
 const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -57,6 +58,7 @@ export function RestaurantsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<RestaurantDetail | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [supportSessionFor, setSupportSessionFor] = useState<{ id: string; nameEn: string } | null>(null)
 
   useEffect(() => {
     api.provinces().then(setProvinces).catch(() => {})
@@ -439,6 +441,15 @@ export function RestaurantsPage() {
                               label={detail.statsVisible ? 'Visible to partner' : 'Hidden from partner'}
                             />
                           </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <div className="mb-1 text-xs text-muted-foreground">Support</div>
+                            <button
+                              onClick={() => setSupportSessionFor({ id: r.id, nameEn: r.nameEn })}
+                              className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-secondary"
+                            >
+                              Manage as this restaurant
+                            </button>
+                          </div>
                         </div>
                       )}
                     </td>
@@ -458,6 +469,14 @@ export function RestaurantsPage() {
       </div>
 
       <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+
+      {supportSessionFor && (
+        <SupportSessionModal
+          restaurantId={supportSessionFor.id}
+          restaurantName={supportSessionFor.nameEn}
+          onClose={() => setSupportSessionFor(null)}
+        />
+      )}
     </div>
   )
 }
