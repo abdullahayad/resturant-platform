@@ -41,7 +41,7 @@ const SEGMENT_SETS = {
     // withAnchorIndex: "ويه" sits above "ك" (index 1, the pin letter) specifically,
     // not the first-read piece - a deliberate placement, not derived from reading order.
     withAnchorIndex: 1,
-    withOffsetPx: -62,
+    withOffsetPx: -74,
     segments: [
       { source: require('../../assets/intro-ar-1.png'), width: 348 },
       { source: require('../../assets/intro-ar-2.png'), width: 187 },
@@ -163,8 +163,8 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
               width: withWidthPx,
               opacity: withOpacity,
               transform: [{ translateY: withRise }],
-              fontSize: language === 'ar' ? 17 : 13,
-              top: language === 'ar' ? -26 : -22,
+              fontSize: language === 'ar' ? 19 : 13,
+              top: language === 'ar' ? -28 : -22,
             },
           ]}
         >
