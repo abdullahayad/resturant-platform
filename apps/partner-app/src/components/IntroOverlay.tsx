@@ -19,10 +19,10 @@ const SEGMENT_SETS = {
     sourceHeight: 171,
     reverseDropOrder: false,
     // "Li" / "G" (with the pin) / "ETA" — drops in reading order, left to right.
-    // withAnchorIndex: which segment the small "With" label sits above - "Li",
-    // the first-read piece. withOffsetPx: fine-tune nudge off that segment's
-    // center, in display px.
-    withAnchorIndex: 0,
+    // withAnchorIndex: which segment the small "With" label sits above - "G"
+    // (index 1, the pin letter), matching where "ويه" sits above "ك" in Arabic.
+    // withOffsetPx: fine-tune nudge off that segment's center, in display px.
+    withAnchorIndex: 1,
     withOffsetPx: 0,
     segments: [
       { source: require('../../assets/intro-en-1.png'), width: 115 },
@@ -41,7 +41,7 @@ const SEGMENT_SETS = {
     // withAnchorIndex: "ويه" sits above "ك" (index 1, the pin letter) specifically,
     // not the first-read piece - a deliberate placement, not derived from reading order.
     withAnchorIndex: 1,
-    withOffsetPx: -18,
+    withOffsetPx: -30,
     segments: [
       { source: require('../../assets/intro-ar-1.png'), width: 348 },
       { source: require('../../assets/intro-ar-2.png'), width: 187 },
