@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, AppState, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import * as LocalAuthentication from 'expo-local-authentication';
 import * as Linking from 'expo-linking';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import type { ThemeColors } from './src/theme/colors';
@@ -16,7 +15,6 @@ import { RegisterRestaurantScreen } from './src/screens/auth/RegisterRestaurantS
 import { SignInScreen } from './src/screens/auth/SignInScreen';
 import { ForgotPasswordScreen } from './src/screens/auth/ForgotPasswordScreen';
 import { AccountStatusScreen } from './src/screens/auth/AccountStatusScreen';
-import { BiometricLockScreen } from './src/screens/auth/BiometricLockScreen';
 import { AppShell } from './src/navigation/AppShell';
 import { AuthContext } from './src/lib/AuthContext';
 import { IntroOverlay } from './src/components/IntroOverlay';
@@ -30,7 +28,7 @@ type Session = StoredSession;
 // the app feel deliberately "reopened" rather than just resumed mid-thought —
 // matching what most well-made apps do. A brief switch away (a notification, a
 // phone call) shouldn't trigger it, only a genuine period of not using the app.
-const INTRO_REPLAY_AFTER_MS = 15 * 60 * 1000;
+const INTRO_REPLAY_AFTER_MS = 60 * 60 * 1000;
 
 export default function App() {
   return (
@@ -58,23 +56,11 @@ function AppContent() {
   const [introVisible, setIntroVisible] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [enabledKeys, setEnabledKeys] = useState<string[] | null>(null);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [locked, setLocked] = useState(false);
   const backgroundedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      getStoredSession(),
-      LocalAuthentication.hasHardwareAsync().then(
-        (hasHardware) => hasHardware && LocalAuthentication.isEnrolledAsync(),
-      ),
-    ]).then(([stored, hasEnrolledBiometrics]) => {
+    getStoredSession().then((stored) => {
       if (stored) setSession(stored);
-      setBiometricAvailable(!!hasEnrolledBiometrics);
-      // Lock a fresh app launch immediately if there's a session to protect
-      // and the phone can actually verify who's holding it - a device with
-      // no biometrics enrolled keeps today's behavior (straight into the app).
-      if (stored && hasEnrolledBiometrics) setLocked(true);
       setBootstrapped(true);
     });
   }, []);
@@ -101,10 +87,7 @@ function AppContent() {
 
   // "Manage as this restaurant" - an admin-issued link (ligetapartner://support?token=...)
   // scanned as a QR from the admin portal. Applies once bootstrap has
-  // settled so it always wins over whatever session was already stored,
-  // and skips the biometric lock entirely (scanning the QR already required
-  // holding the unlocked phone, so re-prompting Face ID here would be pure
-  // friction with no real security benefit).
+  // settled so it always wins over whatever session was already stored.
   useEffect(() => {
     if (!bootstrapped) return;
 
@@ -115,7 +98,6 @@ function AppContent() {
       if (hostname !== 'support' || typeof token !== 'string') return;
       try {
         const restaurant = await api.me(token);
-        setLocked(false);
         setSession({ token, restaurant });
       } catch {
         setSession(null);
@@ -150,24 +132,13 @@ function AppContent() {
       }
       if (nextState === 'active' && backgroundedAtRef.current !== null) {
         if (Date.now() - backgroundedAtRef.current >= INTRO_REPLAY_AFTER_MS) {
-          // Only re-lock a session that's actually signed in - there's nothing
-          // to protect while sitting on the landing/sign-in screens, and
-          // re-locking there would just re-prompt biometrics right after the
-          // next manual password sign-in.
-          if (biometricAvailable && session) {
-            // The lock screen's own "Welcome back" moment replaces the intro
-            // replay here - showing both at once would mean the native Face
-            // ID/fingerprint sheet popping up over a mid-flight logo animation.
-            setLocked(true);
-          } else {
-            setIntroVisible(true);
-          }
+          setIntroVisible(true);
         }
         backgroundedAtRef.current = null;
       }
     });
     return () => subscription.remove();
-  }, [biometricAvailable, session]);
+  }, []);
 
   useEffect(() => {
     if (!bootstrapped) return; // don't clobber storage with null before rehydration finishes
@@ -176,7 +147,6 @@ function AppContent() {
 
   const signOut = () => {
     setSession(null);
-    setLocked(false);
     setView('landing');
   };
 
@@ -188,9 +158,7 @@ function AppContent() {
         </View>
       ) : session ? (
         session.restaurant.status === 'APPROVED' ? (
-          locked ? (
-            <BiometricLockScreen onUnlocked={() => setLocked(false)} onUsePasswordInstead={signOut} />
-          ) : enabledKeys === null ? (
+          enabledKeys === null ? (
             <View style={[styles.root, styles.centered]}>
               <ActivityIndicator color={colors.primary} />
             </View>
@@ -233,7 +201,6 @@ function AppContent() {
               onSignedIn={(token, restaurant, staff) => {
                 identify(restaurant.id, { name: restaurant.nameEn, status: restaurant.status });
                 track('signed_in');
-                setLocked(false);
                 setSession({ token, restaurant, staff });
               }}
               onForgotPassword={() => setView('forgotPassword')}
