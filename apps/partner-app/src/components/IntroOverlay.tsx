@@ -194,7 +194,11 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
             key={`${word}-${i}`}
             style={[
               styles.taglineWord,
-              { opacity: wordOpacity[i], transform: [{ translateY: wordRise[i] }] },
+              {
+                opacity: wordOpacity[i],
+                transform: [{ translateY: wordRise[i] }],
+                fontSize: language === 'ar' ? 18 : 15,
+              },
             ]}
           >
             {word}
