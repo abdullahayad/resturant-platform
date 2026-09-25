@@ -41,7 +41,7 @@ const SEGMENT_SETS = {
     // withAnchorIndex: "ويه" sits above "ك" (index 1, the pin letter) specifically,
     // not the first-read piece - a deliberate placement, not derived from reading order.
     withAnchorIndex: 1,
-    withOffsetPx: -30,
+    withOffsetPx: -50,
     segments: [
       { source: require('../../assets/intro-ar-1.png'), width: 348 },
       { source: require('../../assets/intro-ar-2.png'), width: 187 },
