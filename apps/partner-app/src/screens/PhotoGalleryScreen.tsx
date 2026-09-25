@@ -54,7 +54,7 @@ export function PhotoGalleryScreen() {
   const [ambienceTab, setAmbienceTab] = useState<AmbienceSubCategory>('OUTDOOR');
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [localPreviews, setLocalPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [togglingCoverId, setTogglingCoverId] = useState<string | null>(null);
 
@@ -119,36 +119,41 @@ export function PhotoGalleryScreen() {
     }
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-    if (result.canceled || !result.assets[0]) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8, allowsMultipleSelection: true });
+    if (result.canceled || result.assets.length === 0) return;
 
-    const asset = result.assets[0];
-    // Show the picked photo immediately from the device's own copy — the
-    // upload round-trip (device -> backend -> R2) can take several seconds,
-    // and waiting for that before showing anything reads as "nothing
-    // happened" rather than "uploading".
-    setLocalPreview(asset.uri);
+    // Show every picked photo immediately from the device's own copy — the
+    // upload round-trip (device -> backend -> R2) can take several seconds
+    // per photo, and waiting for that before showing anything reads as
+    // "nothing happened" rather than "uploading".
+    setLocalPreviews(result.assets.map((a) => a.uri));
     setUploading(true);
     try {
-      const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
-      const wasResized = resizedUri !== asset.uri;
-      const { url } = await api.uploadFile(token, {
-        uri: resizedUri,
-        name: asset.fileName ?? 'photo.jpg',
-        type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
-      });
-      await api.addGalleryPhoto(token, {
-        album,
-        url,
-        dishId: album === 'FOOD' ? (selectedDishId ?? undefined) : undefined,
-        ambienceSubCategory: album === 'AMBIENCE' ? ambienceTab : undefined,
-      });
+      // Sequential, not parallel - keeps a failure partway through
+      // unambiguous (everything before it succeeded, nothing after did)
+      // instead of an unpredictable mix from N requests racing.
+      for (const asset of result.assets) {
+        const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+        const wasResized = resizedUri !== asset.uri;
+        const { url } = await api.uploadFile(token, {
+          uri: resizedUri,
+          name: asset.fileName ?? 'photo.jpg',
+          type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
+        });
+        await api.addGalleryPhoto(token, {
+          album,
+          url,
+          dishId: album === 'FOOD' ? (selectedDishId ?? undefined) : undefined,
+          ambienceSubCategory: album === 'AMBIENCE' ? ambienceTab : undefined,
+        });
+        setLocalPreviews((prev) => prev.slice(1));
+      }
       reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('uploadFailed'));
     } finally {
       setUploading(false);
-      setLocalPreview(null);
+      setLocalPreviews([]);
     }
   };
 
@@ -286,18 +291,18 @@ export function PhotoGalleryScreen() {
             </Pressable>
           )}
 
-          {localPreview && (
-            <View style={[styles.photoCard, styles.uploadingCard]}>
-              <Image source={{ uri: localPreview }} style={styles.photoImage} />
+          {localPreviews.map((uri, i) => (
+            <View key={`${uri}-${i}`} style={[styles.photoCard, styles.uploadingCard]}>
+              <Image source={{ uri }} style={styles.photoImage} />
               <View style={styles.photoUploadingOverlay}>
                 <ActivityIndicator color="#fff" />
               </View>
             </View>
-          )}
+          ))}
         </View>
       }
       ListEmptyComponent={
-        localPreview ? null : loading ? (
+        localPreviews.length > 0 ? null : loading ? (
           <LoadingState />
         ) : (
           <EmptyState icon={ImageOff} message={album === 'REVIEW' ? t('noReviewPhotosYet') : t('noPhotosYet')} />

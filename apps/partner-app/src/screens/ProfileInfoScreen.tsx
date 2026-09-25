@@ -53,7 +53,7 @@ export function ProfileInfoScreen() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [uploadingStory, setUploadingStory] = useState(false);
-  const [localStoryPreview, setLocalStoryPreview] = useState<string | null>(null);
+  const [localStoryPreviews, setLocalStoryPreviews] = useState<string[]>([]);
   const [savingHours, setSavingHours] = useState(false);
   const [hoursMessage, setHoursMessage] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -158,25 +158,30 @@ export function ProfileInfoScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
+      allowsMultipleSelection: true,
     });
-    if (result.canceled || !result.assets[0]) return;
+    if (result.canceled || result.assets.length === 0) return;
 
-    const asset = result.assets[0];
-    // Show the picked photo immediately from the device's own copy — the
-    // upload round-trip (device -> backend -> R2) can take several seconds,
-    // and waiting for that before showing anything reads as "nothing
-    // happened" rather than "uploading".
-    setLocalStoryPreview(asset.uri);
+    // Show every picked photo immediately from the device's own copy — the
+    // upload round-trip (device -> backend -> R2) can take several seconds
+    // per photo, and waiting for that before showing anything reads as
+    // "nothing happened" rather than "uploading".
+    setLocalStoryPreviews(result.assets.map((a) => a.uri));
     setUploadingStory(true);
     try {
-      const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
-      const wasResized = resizedUri !== asset.uri;
-      const { url } = await api.uploadFile(token, {
-        uri: resizedUri,
-        name: asset.fileName ?? 'story.jpg',
-        type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
-      });
-      await api.createStory(token, url, 'photo', storyCaption || undefined);
+      // Sequential, not parallel - the same caption applies to each new
+      // story, and a failure partway through stays unambiguous this way.
+      for (const asset of result.assets) {
+        const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+        const wasResized = resizedUri !== asset.uri;
+        const { url } = await api.uploadFile(token, {
+          uri: resizedUri,
+          name: asset.fileName ?? 'story.jpg',
+          type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
+        });
+        await api.createStory(token, url, 'photo', storyCaption || undefined);
+        setLocalStoryPreviews((prev) => prev.slice(1));
+      }
       setStoryCaption('');
       const fresh = await api.activeStories(token);
       setStories(fresh);
@@ -184,7 +189,7 @@ export function ProfileInfoScreen() {
       setSaveMessage(err instanceof Error ? err.message : t('storyUploadFailed'));
     } finally {
       setUploadingStory(false);
-      setLocalStoryPreview(null);
+      setLocalStoryPreviews([]);
     }
   };
 
@@ -336,18 +341,18 @@ export function ProfileInfoScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('sections.story')}</Text>
-        {stories.length === 0 && !localStoryPreview ? (
+        {stories.length === 0 && localStoryPreviews.length === 0 ? (
           <Text style={styles.hint}>{t('noActiveStory')}</Text>
         ) : (
           <View style={styles.storyRow}>
-            {localStoryPreview && (
-              <View style={styles.storyCard}>
-                <Image source={{ uri: localStoryPreview }} style={styles.storyImage} />
+            {localStoryPreviews.map((uri, i) => (
+              <View key={`${uri}-${i}`} style={styles.storyCard}>
+                <Image source={{ uri }} style={styles.storyImage} />
                 <View style={styles.storyUploadingOverlay}>
                   <ActivityIndicator color="#fff" />
                 </View>
               </View>
-            )}
+            ))}
             {stories.map((s) => (
               <View key={s.id} style={styles.storyCard}>
                 <Image source={{ uri: s.mediaUrl }} style={styles.storyImage} />
