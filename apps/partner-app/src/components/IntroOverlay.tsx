@@ -20,8 +20,10 @@ const SEGMENT_SETS = {
     reverseDropOrder: false,
     // "Li" / "G" (with the pin) / "ETA" — drops in reading order, left to right.
     // withAnchorIndex: which segment the small "With" label sits above - "Li",
-    // the first-read piece.
+    // the first-read piece. withOffsetPx: fine-tune nudge off that segment's
+    // center, in display px.
     withAnchorIndex: 0,
+    withOffsetPx: 0,
     segments: [
       { source: require('../../assets/intro-en-1.png'), width: 115 },
       { source: require('../../assets/intro-en-2.png'), width: 139 },
@@ -39,6 +41,7 @@ const SEGMENT_SETS = {
     // withAnchorIndex: "ويه" sits above "ك" (index 1, the pin letter) specifically,
     // not the first-read piece - a deliberate placement, not derived from reading order.
     withAnchorIndex: 1,
+    withOffsetPx: 18,
     segments: [
       { source: require('../../assets/intro-ar-1.png'), width: 348 },
       { source: require('../../assets/intro-ar-2.png'), width: 187 },
@@ -95,7 +98,7 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
   const displayHeight = set.sourceHeight * scale;
   const withAnchorIndex = set.withAnchorIndex;
   const withLeftPx = useMemo(
-    () => set.segments.slice(0, withAnchorIndex).reduce((sum, s) => sum + s.width, 0) * scale,
+    () => set.segments.slice(0, withAnchorIndex).reduce((sum, s) => sum + s.width, 0) * scale + set.withOffsetPx,
     [set, withAnchorIndex, scale],
   );
   const withWidthPx = set.segments[withAnchorIndex].width * scale;
