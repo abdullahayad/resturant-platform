@@ -19,6 +19,9 @@ const SEGMENT_SETS = {
     sourceHeight: 171,
     reverseDropOrder: false,
     // "Li" / "G" (with the pin) / "ETA" — drops in reading order, left to right.
+    // withAnchorIndex: which segment the small "With" label sits above - "Li",
+    // the first-read piece.
+    withAnchorIndex: 0,
     segments: [
       { source: require('../../assets/intro-en-1.png'), width: 115 },
       { source: require('../../assets/intro-en-2.png'), width: 139 },
@@ -33,6 +36,9 @@ const SEGMENT_SETS = {
     // screen) drop first, then "ك", then "يته" last: the pieces still land in their
     // fixed left-to-right screen positions, only the *order* they arrive in follows
     // how the word is actually read.
+    // withAnchorIndex: "ويه" sits above "ك" (index 1, the pin letter) specifically,
+    // not the first-read piece - a deliberate placement, not derived from reading order.
+    withAnchorIndex: 1,
     segments: [
       { source: require('../../assets/intro-ar-1.png'), width: 348 },
       { source: require('../../assets/intro-ar-2.png'), width: 187 },
@@ -87,16 +93,12 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
   const totalSourceWidth = useMemo(() => set.segments.reduce((sum, s) => sum + s.width, 0), [set]);
   const scale = DISPLAY_WIDTH / totalSourceWidth;
   const displayHeight = set.sourceHeight * scale;
-  const lastSegmentIndex = set.segments.length - 1;
-  // The segment that's first in READING order (not necessarily first on screen) - "Li" for
-  // English (screen-leftmost already), "لي" for Arabic (screen-rightmost, since Arabic reads
-  // right-to-left) - is where the small "With" label anchors above.
-  const firstReadIndex = set.reverseDropOrder ? lastSegmentIndex : 0;
+  const withAnchorIndex = set.withAnchorIndex;
   const withLeftPx = useMemo(
-    () => set.segments.slice(0, firstReadIndex).reduce((sum, s) => sum + s.width, 0) * scale,
-    [set, firstReadIndex, scale],
+    () => set.segments.slice(0, withAnchorIndex).reduce((sum, s) => sum + s.width, 0) * scale,
+    [set, withAnchorIndex, scale],
   );
-  const withWidthPx = set.segments[firstReadIndex].width * scale;
+  const withWidthPx = set.segments[withAnchorIndex].width * scale;
 
   const taglineWords = useMemo(() => t(TAGLINE_KEY).split(' '), [t]);
 
