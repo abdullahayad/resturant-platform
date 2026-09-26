@@ -457,9 +457,16 @@ export interface FeatureFlagItem {
 
 class UnauthorizedError extends Error {}
 
-function authHeaders(): HeadersInit {
-  const token = auth.getToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+// Reads the non-httpOnly CSRF cookie the backend sets alongside the real
+// (httpOnly, unreadable) auth cookie - this page's JS can read this one on
+// purpose, so it can echo it back as a header the backend checks against
+// the same cookie (see AdminAuthGuard). A forged cross-site request would
+// carry the auth cookie automatically but has no way to read this one to
+// produce a matching header.
+function csrfHeaders(): HeadersInit {
+  const match = document.cookie.match(/(?:^|; )admin_csrf=([^;]*)/)
+  const token = match ? decodeURIComponent(match[1]) : null
+  return token ? { 'x-csrf-token': token } : {}
 }
 
 async function handle<T>(res: Response): Promise<T> {
@@ -472,14 +479,15 @@ async function handle<T>(res: Response): Promise<T> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE_URL}${path}`, { credentials: 'include' })
   return handle<T>(res)
 }
 
 async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   return handle<T>(res)
@@ -499,9 +507,13 @@ function qsFrom(params: Record<string, string | number | undefined | null>): str
 }
 
 export const api = {
-  async login(email: string, password: string): Promise<{ accessToken: string; admin: AdminProfile }> {
+  // The token comes back as an httpOnly cookie (see the backend's
+  // adminLogin), never in this response body - credentials: 'include' is
+  // what makes the browser actually store the Set-Cookie the server sends.
+  async login(email: string, password: string): Promise<{ admin: AdminProfile }> {
     const res = await fetch(`${API_BASE_URL}/auth/admin/login`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     })
@@ -509,6 +521,14 @@ export const api = {
     if (!res.ok) throw new Error(data.message || 'Invalid email or password')
     return data
   },
+
+  async logout(): Promise<void> {
+    await fetch(`${API_BASE_URL}/auth/admin/logout`, { method: 'POST', credentials: 'include' })
+  },
+
+  // The only way to know "am I still signed in" on a fresh page load - the
+  // auth cookie is httpOnly, so this page's own JS can't just check for it.
+  me: (): Promise<{ admin: AdminProfile }> => get('/auth/admin/me'),
 
   restaurants: (filters?: {
     status?: RestaurantStatus

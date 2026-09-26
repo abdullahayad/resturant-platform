@@ -2,6 +2,9 @@ import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/com
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AdminJwtPayload, AppJwtPayload } from '../jwt-payload';
+import { ADMIN_CSRF_COOKIE, ADMIN_CSRF_HEADER, ADMIN_TOKEN_COOKIE } from '../../common/adminAuthCookies';
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 @Injectable()
 export class AdminAuthGuard extends JwtAuthGuard {
@@ -30,6 +33,24 @@ export class AdminAuthGuard extends JwtAuthGuard {
       throw new UnauthorizedException('Session is no longer valid, please sign in again');
     }
     admin.adminRole = record.role;
+
+    // CSRF check - only relevant when this request is using the browser
+    // cookie (the admin portal); the partner app's header-based tokens
+    // aren't cookies, so a forged cross-site request can never carry them
+    // automatically the way a cookie is. sameSite: 'none' on the auth
+    // cookie (required since the portal and this API are different sites)
+    // means the browser *would* attach it to a forged request from anywhere
+    // - this check is what actually stops that forged request from
+    // succeeding, since forging a matching header requires reading a cookie
+    // the forging site was never allowed to read.
+    if (request.cookies?.[ADMIN_TOKEN_COOKIE] && !SAFE_METHODS.has(request.method)) {
+      const csrfCookie = request.cookies?.[ADMIN_CSRF_COOKIE];
+      const csrfHeader = request.headers?.[ADMIN_CSRF_HEADER];
+      if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+        throw new UnauthorizedException('Missing or invalid CSRF token');
+      }
+    }
+
     return true;
   }
 }

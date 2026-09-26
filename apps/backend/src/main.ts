@@ -12,6 +12,7 @@ import { ValidationPipe } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 // Routes that stay at a permanent, unversioned address — either because
@@ -46,6 +47,10 @@ async function bootstrap() {
   // unconditionally meant the /docs override never actually took effect
   // (see security review).
   app.use(helmet({ contentSecurityPolicy: false }));
+  // Needed to read the admin portal's httpOnly auth cookie off incoming
+  // requests (see adminAuthCookies.ts / jwt.strategy.ts) - Express doesn't
+  // parse cookies into req.cookies on its own.
+  app.use(cookieParser());
 
   // Every route now canonically lives under /v1 (see setGlobalPrefix below),
   // but the app already installed on real phones was built calling the old
@@ -82,7 +87,12 @@ async function bootstrap() {
   // honored as-is everywhere rather than silently getting cut down further
   // in one of them. Web-only: native app requests aren't subject to CORS
   // preflights at all, so this has no effect there.
-  app.enableCors({ origin: allowedOrigins, maxAge: 7200 });
+  // credentials: true lets the browser actually send/receive the admin
+  // portal's auth cookie cross-site (the portal and this API are different
+  // domains) - without it, the browser silently drops the cookie on both
+  // the request and the Set-Cookie response, regardless of what the cookie
+  // itself specifies.
+  app.enableCors({ origin: allowedOrigins, credentials: true, maxAge: 7200 });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
 
   if (swaggerEnabled) {

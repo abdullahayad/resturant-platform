@@ -16,8 +16,8 @@ export function LoginPage() {
     setError(null)
     setSubmitting(true)
     try {
-      const { accessToken, admin } = await api.login(email, password)
-      auth.setSession(accessToken, admin)
+      const { admin } = await api.login(email, password)
+      auth.setAdmin(admin)
       navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')

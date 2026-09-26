@@ -33,7 +33,11 @@ export function AdminLayout() {
     api.recentBlockedCount().then((r) => setBlockedUploadsBadge(r.count)).catch(() => setBlockedUploadsBadge(0))
   }, [location.pathname])
 
-  const signOut = () => {
+  const signOut = async () => {
+    // Clears the server-side cookies too, not just local state - the old
+    // localStorage-only clear had nothing server-side to clean up, but an
+    // httpOnly cookie can't be removed by this page's own JS at all.
+    await api.logout().catch(() => {})
     auth.clear()
     navigate('/login', { replace: true })
   }
