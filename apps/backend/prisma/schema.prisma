@@ -25,6 +25,17 @@ enum RestaurantStatus {
   SUSPENDED
 }
 
+// Admin-assigned price/quality tier - purely a label today (sorting/display
+// in the admin portal), no effect on anything a restaurant or customer sees.
+// Deliberately admin-only, same reasoning as RestaurantChain: a restaurant
+// judging its own tier would defeat the point of an independent rating.
+enum RestaurantClass {
+  LUXURY
+  UPSCALE
+  MODERATE
+  BUDGET
+}
+
 enum AdminRole {
   SUPER_ADMIN
   MODERATOR
@@ -293,6 +304,10 @@ model Restaurant {
   // purely a "these are the same brand" fact for grouping/search later.
   chainId String?
   chain   RestaurantChain? @relation(fields: [chainId], references: [id], onDelete: SetNull)
+
+  // Admin-assigned price/quality tier - see RestaurantClass's own comment.
+  // Nullable: a restaurant starts unclassified until an admin sets it.
+  class RestaurantClass?
 
   // Auth (owner account created at sign-up)
   ownerEmail        String    @unique

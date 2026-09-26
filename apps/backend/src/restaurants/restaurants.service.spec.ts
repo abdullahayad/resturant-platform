@@ -44,6 +44,9 @@ describe('RestaurantsService', () => {
         adminSupportSession: {
           create: jest.fn(),
         },
+        dish: {
+          aggregate: jest.fn().mockResolvedValue({ _avg: { price: null } }),
+        },
       },
     };
     jwt = { signAsync: jest.fn().mockResolvedValue('token') };
@@ -311,6 +314,60 @@ describe('RestaurantsService', () => {
       expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'r1' }, data: { chainId: null } }),
       );
+    });
+  });
+
+  describe('setClass', () => {
+    it('throws NotFoundException for a restaurant that does not exist', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.setClass('missing', 'LUXURY')).rejects.toThrow(NotFoundException);
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('sets a restaurant\'s class', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await service.setClass('r1', 'BUDGET');
+
+      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'r1' }, data: { class: 'BUDGET' } }),
+      );
+    });
+
+    it('clears the class when given null', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await service.setClass('r1', null);
+
+      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'r1' }, data: { class: null } }),
+      );
+    });
+  });
+
+  describe('findOne', () => {
+    it('includes the average price of the restaurant\'s active dishes', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.dish.aggregate.mockResolvedValueOnce({ _avg: { price: { toString: () => '18500.5' } } });
+
+      const result = await service.findOne('r1');
+
+      expect(prisma.db.dish.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { restaurantId: 'r1', isActive: true } }),
+      );
+      expect(result.averageDishPrice).toBe(18500.5);
+    });
+
+    it('reports a null average when the restaurant has no active dishes', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.dish.aggregate.mockResolvedValueOnce({ _avg: { price: null } });
+
+      const result = await service.findOne('r1');
+
+      expect(result.averageDishPrice).toBeNull();
     });
   });
 

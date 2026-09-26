@@ -17,6 +17,17 @@ export interface Paginated<T> {
 export type RestaurantStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
 export type PublishStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
+// Admin-assigned price/quality tier - purely a label today, no effect on
+// anything a restaurant or customer sees (see RestaurantClass's comment in
+// the backend's schema.prisma).
+export type RestaurantClass = 'LUXURY' | 'UPSCALE' | 'MODERATE' | 'BUDGET'
+export const RESTAURANT_CLASS_LABELS: Record<RestaurantClass, string> = {
+  LUXURY: 'Luxury ($$$$)',
+  UPSCALE: 'Upscale ($$$)',
+  MODERATE: 'Moderate ($$)',
+  BUDGET: 'Budget ($)',
+}
+
 export interface RestaurantListItem {
   id: string
   codeNumber: string
@@ -38,6 +49,7 @@ export interface RestaurantListItem {
   district: { id: string; nameEn: string; nameAr: string } | null
   businessTypes: { businessType: { id: string; nameEn: string; nameAr: string } }[]
   chain: { id: string; nameEn: string; nameAr: string } | null
+  class: RestaurantClass | null
 }
 
 // A brand with multiple branches - admin-managed only, never self-declared
@@ -154,6 +166,9 @@ export interface ReviewItem {
 export interface RestaurantDetail extends RestaurantListItem {
   latitude: number | null
   longitude: number | null
+  // The restaurant's active menu average, computed server-side - shown
+  // alongside the class picker so it's an informed choice, not a guess.
+  averageDishPrice: number | null
   foodCategories: { foodCategory: { id: string; nameEn: string; nameAr: string } }[]
   facilities: { facility: { id: string; nameEn: string; nameAr: string } }[]
   openingHours: {
@@ -565,6 +580,8 @@ export const api = {
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/stats-visibility`, { statsVisible }),
   setRestaurantChain: (id: string, chainId: string | null) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/chain`, { chainId }),
+  setRestaurantClass: (id: string, restaurantClass: RestaurantClass | null) =>
+    send<RestaurantListItem>('PATCH', `/restaurants/${id}/class`, { restaurantClass }),
   createAdminSupportSession: (id: string) =>
     send<{ accessToken: string; restaurant: { id: string; nameEn: string; nameAr: string } }>(
       'POST',

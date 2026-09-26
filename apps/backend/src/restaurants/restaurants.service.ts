@@ -16,6 +16,7 @@ import { EmailService } from '../email/email.service';
 import { PushService } from '../push/push.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 import { pageOffset } from '../common/pagination';
+import type { RestaurantClassValue } from '../common/restaurantClass';
 
 const restaurantListSelect = {
   id: true,
@@ -39,6 +40,7 @@ const restaurantListSelect = {
   district: { select: { id: true, nameEn: true, nameAr: true } },
   businessTypes: { select: { businessType: { select: { id: true, nameEn: true, nameAr: true } } } },
   chain: { select: { id: true, nameEn: true, nameAr: true } },
+  class: true,
 } as const;
 
 const restaurantDetailSelect = {
@@ -237,7 +239,28 @@ export class RestaurantsService {
       select: restaurantDetailSelect,
     });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
-    return restaurant;
+
+    // A real, already-available data point (not invented price bands) to
+    // help an admin judge this restaurant's class consistently, rather than
+    // guessing blind - see setClass() below for the classification itself.
+    const priceAgg = await this.prisma.db.dish.aggregate({
+      where: { restaurantId: id, isActive: true },
+      _avg: { price: true },
+    });
+    return { ...restaurant, averageDishPrice: priceAgg._avg.price ? Number(priceAgg._avg.price) : null };
+  }
+
+  // Admin-only, deliberately not exposed on updateProfile - a restaurant
+  // judging its own price/quality tier would defeat the point of an
+  // independent classification (see RestaurantClass's comment in
+  // schema.prisma).
+  async setClass(id: string, restaurantClass: RestaurantClassValue | null) {
+    await this.ensureExists(id);
+    return this.prisma.db.restaurant.update({
+      where: { id },
+      data: { class: restaurantClass },
+      select: restaurantListSelect,
+    });
   }
 
   async approve(id: string) {

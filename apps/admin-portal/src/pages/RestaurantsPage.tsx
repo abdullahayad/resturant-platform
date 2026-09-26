@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import {
   api,
   UnauthorizedError,
+  RESTAURANT_CLASS_LABELS,
   type Chain,
   type MasterDataItemFull,
   type Province,
+  type RestaurantClass,
   type RestaurantDetail,
   type RestaurantListItem,
   type RestaurantStatus,
@@ -202,6 +204,16 @@ export function RestaurantsPage() {
     setBusyId(id)
     try {
       await api.setRestaurantChain(id, chainId)
+      if (expandedId === id) setDetail(await api.restaurant(id))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const setClass = async (id: string, restaurantClass: RestaurantClass | null) => {
+    setBusyId(id)
+    try {
+      await api.setRestaurantClass(id, restaurantClass)
       if (expandedId === id) setDetail(await api.restaurant(id))
     } finally {
       setBusyId(null)
@@ -436,6 +448,25 @@ export function RestaurantsPage() {
                               <option value="">Not part of a chain</option>
                               {chains.map((c) => (
                                 <option key={c.id} value={c.id}>{c.nameEn}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <div className="mb-1 text-xs text-muted-foreground">
+                              Class
+                              {detail.averageDishPrice != null && (
+                                <span> (avg. menu price: {detail.averageDishPrice.toFixed(2)})</span>
+                              )}
+                            </div>
+                            <select
+                              value={detail.class ?? ''}
+                              disabled={busyId === r.id}
+                              onChange={(e) => setClass(r.id, (e.target.value || null) as RestaurantClass | null)}
+                              className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50"
+                            >
+                              <option value="">Unclassified</option>
+                              {(Object.keys(RESTAURANT_CLASS_LABELS) as RestaurantClass[]).map((c) => (
+                                <option key={c} value={c}>{RESTAURANT_CLASS_LABELS[c]}</option>
                               ))}
                             </select>
                           </div>

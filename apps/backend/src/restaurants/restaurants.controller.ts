@@ -12,6 +12,7 @@ import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
 import { UpdateStatsVisibilityDto } from './dto/update-stats-visibility.dto';
 import { SetChainDto } from './dto/set-chain.dto';
+import { SetClassDto } from './dto/set-class.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { SuperAdminGuard } from '../auth/guards/super-admin.guard';
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
@@ -154,6 +155,12 @@ export class RestaurantsController {
   @Patch(':id/chain')
   setChain(@Param('id') id: string, @Body() dto: SetChainDto) {
     return this.restaurants.setChain(id, dto.chainId ?? null);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Patch(':id/class')
+  setClass(@Param('id') id: string, @Body() dto: SetClassDto) {
+    return this.restaurants.setClass(id, dto.restaurantClass ?? null);
   }
 
   // Full account access to any restaurant is powerful enough to keep behind
