@@ -95,8 +95,8 @@ export class RestaurantsController {
 
   @UseGuards(PartnerAuthGuard)
   @Delete('me/push-token')
-  unregisterPushToken(@Body() dto: RegisterPushTokenDto) {
-    return this.restaurants.unregisterPushToken(dto.token);
+  unregisterPushToken(@Req() req: { user: PartnerJwtPayload }, @Body() dto: RegisterPushTokenDto) {
+    return this.restaurants.unregisterPushToken(req.user.sub, dto.token);
   }
 
   // Self-service deletion — any logged-in device, any role, any approval

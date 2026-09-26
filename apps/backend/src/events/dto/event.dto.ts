@@ -138,7 +138,13 @@ export class UpdateEventDto {
   @IsDateString()
   eventDate?: string;
 
-  @IsOptional()
+  // Required whenever this request turns isRecurring on (matching
+  // CreateEventDto), but still optional-if-absent otherwise, so an update
+  // that isn't touching the schedule at all can still omit it entirely.
+  // Without this, PATCHing { isRecurring: true } alone would silently save
+  // an unrecurring "recurring" event with zero days - permanently
+  // unbookable, since every occurrence check would fail.
+  @ValidateIf((dto: UpdateEventDto) => dto.recurringDaysOfWeek !== undefined || dto.isRecurring === true)
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(7)

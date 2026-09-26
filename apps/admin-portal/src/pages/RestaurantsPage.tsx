@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   api,
@@ -59,6 +59,11 @@ export function RestaurantsPage() {
   const [detail, setDetail] = useState<RestaurantDetail | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [supportSessionFor, setSupportSessionFor] = useState<{ id: string; nameEn: string } | null>(null)
+  // Generation counters so a slower, older request can never overwrite what
+  // a newer one already showed - whichever call was started *last* always
+  // wins, regardless of which response actually arrives first.
+  const listRequestIdRef = useRef(0)
+  const detailRequestIdRef = useRef(0)
 
   useEffect(() => {
     api.provinces().then(setProvinces).catch(() => {})
@@ -88,18 +93,23 @@ export function RestaurantsPage() {
   })
 
   const load = () => {
+    const requestId = ++listRequestIdRef.current
     setLoading(true)
     api
       .restaurants({ ...currentFilters(), page })
       .then((res) => {
+        if (listRequestIdRef.current !== requestId) return
         setRestaurants(res.items)
         setTotal(res.total)
       })
       .catch((err) => {
+        if (listRequestIdRef.current !== requestId) return
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (listRequestIdRef.current === requestId) setLoading(false)
+      })
   }
 
   useEffect(load, [filter, provinceId, districtId, businessTypeId, foodCategoryId, debouncedSearch, page])
@@ -154,13 +164,16 @@ export function RestaurantsPage() {
 
   const toggleExpand = async (id: string) => {
     if (expandedId === id) {
+      detailRequestIdRef.current++ // abandon any in-flight fetch for the row being collapsed
       setExpandedId(null)
       setDetail(null)
       return
     }
+    const requestId = ++detailRequestIdRef.current
     setExpandedId(id)
     setDetail(null)
     const full = await api.restaurant(id)
+    if (detailRequestIdRef.current !== requestId) return // a newer row was clicked before this one loaded
     setDetail(full)
   }
 

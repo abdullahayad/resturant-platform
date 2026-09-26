@@ -31,6 +31,7 @@ const eventSelect = {
 
 const reservationSelect = {
   id: true,
+  restaurantId: true,
   eventId: true,
   guestName: true,
   guestPhone: true,
@@ -254,12 +255,21 @@ export class EventsService {
     // reuses the same key, so this hands back the original booking instead
     // of creating - and re-notifying the restaurant about - a duplicate.
     // Checked first, before even looking up the event, since a
-    // resubmission needs none of that.
+    // resubmission needs none of that. idempotencyKey is globally unique
+    // (not scoped to restaurant/event), so a genuine resubmission must also
+    // match the restaurant and event being booked here - otherwise this is
+    // some other booking's key being reused by mistake, not a resubmission,
+    // and returning that unrelated booking would be silently wrong.
     const alreadyBooked = await this.prisma.db.chefTableBooking.findUnique({
       where: { idempotencyKey: dto.idempotencyKey },
       select: reservationSelect,
     });
-    if (alreadyBooked) return alreadyBooked;
+    if (alreadyBooked) {
+      if (alreadyBooked.restaurantId === restaurantId && alreadyBooked.eventId === eventId) {
+        return alreadyBooked;
+      }
+      throw new BadRequestException('This idempotency key was already used for a different reservation');
+    }
 
     const event = await this.findBookableEvent(restaurantId, eventId);
     this.assertValidOccurrence(event, dto.reservationDate);

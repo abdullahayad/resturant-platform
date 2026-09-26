@@ -62,8 +62,16 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
 
   const selectedProvince = provinces.find((p) => p.id === provinceId);
 
+  // Catches obviously-wrong values before they ever reach the network - the
+  // backend is the real source of truth (it rejects a malformed email
+  // outright), but nothing there currently catches a garbage phone number
+  // like "1", so a bad value here would otherwise create an account whose
+  // owner can never actually be reached for password resets or support.
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const isValidPhone = phone.replace(/\D/g, '').length >= 10;
+
   const canSubmit =
-    nameEn.trim() && nameAr.trim() && phone.trim() && email.trim() && password.length >= 8 &&
+    nameEn.trim() && nameAr.trim() && isValidPhone && isValidEmail && password.length >= 8 &&
     businessTypeIds.length > 0 && foodCategoryIds.length > 0 && agreedToTerms;
 
   const handleSubmit = async () => {

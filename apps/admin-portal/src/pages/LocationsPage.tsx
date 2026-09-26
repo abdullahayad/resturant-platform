@@ -27,64 +27,114 @@ export function LocationsPage() {
 
   useEffect(load, [])
 
+  // Every write below funnels failures through here instead of letting them
+  // go unhandled - a rejected promise from a plain (non-try/catch) async
+  // handler used to fail completely silently, giving no feedback at all
+  // (e.g. a MODERATOR blocked by the backend from deleting a district would
+  // just see nothing happen).
+  const handleWriteError = (err: unknown) => {
+    if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
+    else setError(err instanceof Error ? err.message : 'Something went wrong - please try again.')
+  }
+
   const addProvince = async () => {
     if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 2) return
-    const created = await api.createProvince(newProvince)
-    setProvinces((prev) => [...prev, { ...created, districts: [] }])
-    setNewProvince(emptyProvinceForm)
+    try {
+      setError(null)
+      const created = await api.createProvince(newProvince)
+      setProvinces((prev) => [...prev, { ...created, districts: [] }])
+      setNewProvince(emptyProvinceForm)
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   const toggleProvinceActive = async (p: Province) => {
-    const updated = await api.updateProvince(p.id, { isActive: !p.isActive })
-    setProvinces((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x)))
+    try {
+      setError(null)
+      const updated = await api.updateProvince(p.id, { isActive: !p.isActive })
+      setProvinces((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x)))
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   const saveProvinceCode = async (p: Province, code: string) => {
     if (code === p.code || code.trim().length !== 2) return
-    const updated = await api.updateProvince(p.id, { code })
-    setProvinces((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x)))
+    try {
+      setError(null)
+      const updated = await api.updateProvince(p.id, { code })
+      setProvinces((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x)))
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   const saveDistrictCode = async (provinceId: string, d: District, code: string) => {
     if (code === d.code || code.trim().length !== 2) return
-    const updated = await api.updateDistrict(d.id, { code })
-    setProvinces((prev) =>
-      prev.map((p) =>
-        p.id === provinceId ? { ...p, districts: p.districts.map((x) => (x.id === d.id ? updated : x)) } : p,
-      ),
-    )
+    try {
+      setError(null)
+      const updated = await api.updateDistrict(d.id, { code })
+      setProvinces((prev) =>
+        prev.map((p) =>
+          p.id === provinceId ? { ...p, districts: p.districts.map((x) => (x.id === d.id ? updated : x)) } : p,
+        ),
+      )
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   const deleteProvince = async (id: string) => {
-    await api.deleteProvince(id)
-    setProvinces((prev) => prev.filter((p) => p.id !== id))
+    try {
+      setError(null)
+      await api.deleteProvince(id)
+      setProvinces((prev) => prev.filter((p) => p.id !== id))
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   const addDistrict = async (provinceId: string) => {
     if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 2) return
-    const created = await api.createDistrict(provinceId, newDistrict)
-    setProvinces((prev) =>
-      prev.map((p) => (p.id === provinceId ? { ...p, districts: [...p.districts, created] } : p)),
-    )
-    setNewDistrict(emptyProvinceForm)
+    try {
+      setError(null)
+      const created = await api.createDistrict(provinceId, newDistrict)
+      setProvinces((prev) =>
+        prev.map((p) => (p.id === provinceId ? { ...p, districts: [...p.districts, created] } : p)),
+      )
+      setNewDistrict(emptyProvinceForm)
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   const toggleDistrictActive = async (provinceId: string, d: District) => {
-    const updated = await api.updateDistrict(d.id, { isActive: !d.isActive })
-    setProvinces((prev) =>
-      prev.map((p) =>
-        p.id === provinceId ? { ...p, districts: p.districts.map((x) => (x.id === d.id ? updated : x)) } : p,
-      ),
-    )
+    try {
+      setError(null)
+      const updated = await api.updateDistrict(d.id, { isActive: !d.isActive })
+      setProvinces((prev) =>
+        prev.map((p) =>
+          p.id === provinceId ? { ...p, districts: p.districts.map((x) => (x.id === d.id ? updated : x)) } : p,
+        ),
+      )
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   const deleteDistrict = async (provinceId: string, districtId: string) => {
-    await api.deleteDistrict(districtId)
-    setProvinces((prev) =>
-      prev.map((p) =>
-        p.id === provinceId ? { ...p, districts: p.districts.filter((d) => d.id !== districtId) } : p,
-      ),
-    )
+    try {
+      setError(null)
+      await api.deleteDistrict(districtId)
+      setProvinces((prev) =>
+        prev.map((p) =>
+          p.id === provinceId ? { ...p, districts: p.districts.filter((d) => d.id !== districtId) } : p,
+        ),
+      )
+    } catch (err) {
+      handleWriteError(err)
+    }
   }
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>

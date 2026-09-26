@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateGalleryPhotoDto, ModerateGalleryPhotoDto } from './dto/gallery-photo.dto';
 import type { GalleryAlbumValue } from '../common/gallery';
@@ -87,15 +87,26 @@ export class GalleryService {
     });
     if (!photo || photo.restaurantId !== restaurantId) throw new NotFoundException('Photo not found');
 
-    return this.prisma.db.$transaction(async (tx) => {
-      if (cover) {
-        await tx.galleryPhoto.updateMany({
-          where: { restaurantId, album: photo.album, isCover: true },
-          data: { isCover: false },
-        });
+    try {
+      return await this.prisma.db.$transaction(async (tx) => {
+        if (cover) {
+          await tx.galleryPhoto.updateMany({
+            where: { restaurantId, album: photo.album, isCover: true },
+            data: { isCover: false },
+          });
+        }
+        return tx.galleryPhoto.update({ where: { id }, data: { isCover: cover }, include: photoInclude });
+      });
+    } catch (err) {
+      // The partial unique index (one cover per restaurantId+album) is the
+      // real backstop for this - two near-simultaneous setCover(true) calls
+      // in the same album can still both reach this transaction, and now
+      // exactly one of them loses here instead of both silently succeeding.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('Another photo was just set as the cover for this album - try again');
       }
-      return tx.galleryPhoto.update({ where: { id }, data: { isCover: cover }, include: photoInclude });
-    });
+      throw err;
+    }
   }
 
   // ── Admin moderation ─────────────────────────────────────────────────

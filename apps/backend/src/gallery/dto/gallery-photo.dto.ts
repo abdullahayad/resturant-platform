@@ -1,8 +1,9 @@
-import { IsBoolean, IsIn, IsOptional, IsString, IsUrl, IsUUID, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { CREATABLE_GALLERY_ALBUMS, GALLERY_ALBUMS, type CreatableGalleryAlbumValue, type GalleryAlbumValue } from '../../common/gallery';
 import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
 import { PageQueryDto } from '../../common/pagination';
+import { IsOwnStoragePhotoUrl } from '../../common/ownStoragePhotoUrl';
 
 const AMBIENCE_SUB_CATEGORIES = ['OUTDOOR', 'INDOOR', 'OTHER'] as const;
 
@@ -10,7 +11,7 @@ export class CreateGalleryPhotoDto {
   @IsIn(CREATABLE_GALLERY_ALBUMS)
   album: CreatableGalleryAlbumValue;
 
-  @IsUrl({ require_tld: false })
+  @IsOwnStoragePhotoUrl()
   @MaxLength(2000)
   url: string;
 

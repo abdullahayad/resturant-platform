@@ -498,9 +498,11 @@ model GalleryPhoto {
   reviewId            String?
   url                 String
   caption             String?
-  // At most one true per (restaurantId, album) - enforced in
-  // GalleryService.setCover via a transaction, not a DB constraint, since a
-  // partial unique index isn't expressible in Prisma's schema DSL. Shown
+  // At most one true per (restaurantId, album) - enforced both in
+  // GalleryService.setCover's transaction and, since the
+  // gallery_cover_unique_index migration, by a partial unique index on
+  // (restaurantId, album) WHERE isCover (not expressible as a schema.prisma
+  // @@index, so it only exists in that migration's raw SQL). Shown
   // first within its album (see list()'s orderBy) - the owner's own pick of
   // their best shot, independent of whenever a public customer-facing app
   // exists to also show it there.

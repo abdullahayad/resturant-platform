@@ -200,7 +200,7 @@ describe('EventsService', () => {
     });
 
     it('returns the existing booking instead of creating a duplicate when the same idempotency key resubmits', async () => {
-      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({ id: 'booking1', idempotencyKey: 'key-3' });
+      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({ id: 'booking1', restaurantId, eventId, idempotencyKey: 'key-3' });
 
       const result = await service.createReservation(restaurantId, eventId, {
         idempotencyKey: 'key-3',
@@ -210,10 +210,30 @@ describe('EventsService', () => {
         reservationDate: '2026-09-10',
       });
 
-      expect(result).toEqual({ id: 'booking1', idempotencyKey: 'key-3' });
+      expect(result).toEqual({ id: 'booking1', restaurantId, eventId, idempotencyKey: 'key-3' });
       // Never even looked at the event or capacity - the resubmission
       // short-circuits before any of that.
       expect(prisma.db.restaurantEvent.findUnique).not.toHaveBeenCalled();
+      expect(prisma.db.chefTableBooking.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a key that was already used for a different restaurant/event instead of returning that unrelated booking', async () => {
+      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({
+        id: 'other-booking',
+        restaurantId: 'some-other-restaurant',
+        eventId: 'some-other-event',
+        idempotencyKey: 'key-5',
+      });
+
+      await expect(
+        service.createReservation(restaurantId, eventId, {
+          idempotencyKey: 'key-5',
+          guestName: 'Ali',
+          guestPhone: '0770',
+          partySize: 1,
+          reservationDate: '2026-09-10',
+        }),
+      ).rejects.toThrow(BadRequestException);
       expect(prisma.db.chefTableBooking.create).not.toHaveBeenCalled();
     });
 

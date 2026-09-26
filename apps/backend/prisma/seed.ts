@@ -3,8 +3,18 @@ import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 import { normalizePhone } from '../src/common/phone';
+
+// A fixed, known password only in local dev - a real deploy (this seed
+// script also bootstraps the first admin/demo accounts on a fresh
+// production database) gets a freshly random one instead, logged once at
+// creation time, so no committed source file ever holds a working
+// production credential.
+const isProd = process.env.NODE_ENV === 'production';
+function seedPassword(devPassword: string): string {
+  return isProd ? randomBytes(12).toString('base64url') : devPassword;
+}
 
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -206,18 +216,24 @@ async function main() {
   }
 
   if ((await db.adminUser.count()) === 0) {
+    const password = seedPassword('AdminPass123');
     await db.adminUser.create({
       data: {
         email: 'admin@platform.iq',
-        passwordHash: await bcrypt.hash('AdminPass123', 10),
+        passwordHash: await bcrypt.hash(password, 10),
         fullName: 'Platform Super Admin',
         role: 'SUPER_ADMIN',
       },
     });
-    console.log('Seeded admin login: admin@platform.iq / AdminPass123');
+    console.log(`Seeded admin login: admin@platform.iq / ${password}`);
+    if (isProd) console.log('This is a one-time random password - copy it now and change it after first login.');
   }
 
-  if ((await db.restaurant.count({ where: { ownerEmail: 'demo@restaurant.iq' } })) === 0) {
+  // The demo restaurant (and everything seeded under it below - reviews,
+  // dishes, events, bookings) is sample content for local dev only. A real
+  // production database never gets fake placeholder data, regardless of
+  // password strength.
+  if (!isProd && (await db.restaurant.count({ where: { ownerEmail: 'demo@restaurant.iq' } })) === 0) {
     const [businessType] = await db.businessType.findMany({ take: 1 });
     const [foodCategory] = await db.foodCategory.findMany({ take: 1 });
     const [province] = await db.province.findMany({ take: 1, include: { districts: { take: 1 } } });
@@ -244,7 +260,7 @@ async function main() {
     console.log('Seeded partner login: demo@restaurant.iq / DemoPass123');
   }
 
-  const demoRestaurant = await db.restaurant.findUnique({ where: { ownerEmail: 'demo@restaurant.iq' } });
+  const demoRestaurant = isProd ? null : await db.restaurant.findUnique({ where: { ownerEmail: 'demo@restaurant.iq' } });
   if (demoRestaurant && (await db.review.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
     const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
     // food/staff/ambience trend up over the last 30 days, service trends down —

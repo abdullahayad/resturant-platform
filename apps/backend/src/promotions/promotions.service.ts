@@ -95,8 +95,14 @@ export class PromotionsService {
     }
 
     const effectiveScope = dto.scope ?? existing.scope;
-    if (effectiveScope === 'SPECIFIC_DISHES' && dto.dishIds) {
-      await this.assertDishesBelongToRestaurant(restaurantId, dto.dishIds);
+    // A scope switching *to* SPECIFIC_DISHES in this same request must carry
+    // dishIds (matching create()'s requirement) even if the caller omits the
+    // field entirely - otherwise the promotion saves as SPECIFIC_DISHES with
+    // whatever dishes it had before (none, if it was WHOLE_MENU a moment
+    // ago), silently discounting nothing forever.
+    const scopeChangedToSpecificDishes = dto.scope === 'SPECIFIC_DISHES' && existing.scope !== 'SPECIFIC_DISHES';
+    if (effectiveScope === 'SPECIFIC_DISHES' && (dto.dishIds || scopeChangedToSpecificDishes)) {
+      await this.assertDishesBelongToRestaurant(restaurantId, dto.dishIds ?? []);
     }
 
     // No approval gate to reset here - edits go live immediately, same as

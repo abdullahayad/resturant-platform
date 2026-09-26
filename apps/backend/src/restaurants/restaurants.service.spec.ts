@@ -29,8 +29,10 @@ describe('RestaurantsService', () => {
       db: {
         restaurant: {
           findUnique: jest.fn(),
+          findUniqueOrThrow: jest.fn(),
           create: jest.fn(),
           update: jest.fn(),
+          updateMany: jest.fn(),
           delete: jest.fn(),
         },
         partnerStaffUser: {
@@ -161,12 +163,14 @@ describe('RestaurantsService', () => {
   describe('moderatePublish', () => {
     it('approves a pending review and clears any prior rejection reason', async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ publishStatus: 'PENDING' });
-      prisma.db.restaurant.update.mockResolvedValue({ publishStatus: 'APPROVED' });
+      prisma.db.restaurant.updateMany.mockResolvedValue({ count: 1 });
+      prisma.db.restaurant.findUniqueOrThrow.mockResolvedValue({ publishStatus: 'APPROVED' });
 
       await service.moderatePublish('admin1', 'r1', { status: 'APPROVED' });
 
-      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+      expect(prisma.db.restaurant.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { id: 'r1', publishStatus: 'PENDING' },
           data: expect.objectContaining({
             publishStatus: 'APPROVED',
             publishRejectionReason: null,
@@ -178,12 +182,14 @@ describe('RestaurantsService', () => {
 
     it('declines a pending review with the given reason and resets acknowledgement', async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ publishStatus: 'PENDING' });
-      prisma.db.restaurant.update.mockResolvedValue({ publishStatus: 'REJECTED' });
+      prisma.db.restaurant.updateMany.mockResolvedValue({ count: 1 });
+      prisma.db.restaurant.findUniqueOrThrow.mockResolvedValue({ publishStatus: 'REJECTED' });
 
       await service.moderatePublish('admin1', 'r1', { status: 'REJECTED', rejectionReason: 'Add more photos' });
 
-      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+      expect(prisma.db.restaurant.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { id: 'r1', publishStatus: 'PENDING' },
           data: expect.objectContaining({
             publishStatus: 'REJECTED',
             publishRejectionReason: 'Add more photos',
@@ -191,6 +197,16 @@ describe('RestaurantsService', () => {
           }),
         }),
       );
+    });
+
+    it('refuses to moderate when a concurrent request already moderated it first', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ publishStatus: 'PENDING' });
+      prisma.db.restaurant.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.moderatePublish('admin1', 'r1', { status: 'APPROVED' })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.db.restaurant.findUniqueOrThrow).not.toHaveBeenCalled();
     });
 
     it('refuses to moderate a restaurant with no pending review', async () => {

@@ -39,7 +39,13 @@ const swaggerEnabled = process.env.ENABLE_SWAGGER === 'true';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.use(helmet());
+  // CSP is applied separately below, conditionally, instead of here - a
+  // second helmet() call scoped to /docs used to try to "relax" CSP just
+  // for Swagger, but helmet only ever adds a header, it never removes one
+  // an earlier middleware already set, so this app-wide call setting CSP
+  // unconditionally meant the /docs override never actually took effect
+  // (see security review).
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   // Every route now canonically lives under /v1 (see setGlobalPrefix below),
   // but the app already installed on real phones was built calling the old
@@ -59,11 +65,15 @@ async function bootstrap() {
   });
   app.setGlobalPrefix('v1', { exclude: ['/', ...UNVERSIONED_ROUTES] });
 
-  if (swaggerEnabled) {
-    // Swagger UI's bootstrap script is inline, which the default CSP blocks —
-    // relax CSP only on the /docs path itself, not the whole app.
-    app.use('/docs', helmet({ contentSecurityPolicy: false }));
-  }
+  // CSP applies to every route except /docs - Swagger UI's bootstrap script
+  // is inline, which a real CSP blocks, so /docs runs with none instead
+  // (still gets every other helmet header, from the app-wide call above).
+  const cspMiddleware = helmet.contentSecurityPolicy();
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const path = req.url.split('?')[0];
+    if (swaggerEnabled && (path === '/docs' || path.startsWith('/docs/'))) return next();
+    return cspMiddleware(req, res, next);
+  });
 
   // maxAge lets the browser cache a preflight's "yes, this is allowed"
   // answer instead of re-asking with a separate OPTIONS round-trip before

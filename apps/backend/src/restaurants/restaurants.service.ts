@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomInt } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
@@ -439,7 +440,10 @@ export class RestaurantsService {
   // matches an account — an email-enumeration endpoint would let anyone
   // probe which restaurant owner emails are registered.
   private async generateResetCode() {
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    // crypto.randomInt, not Math.random - a reset code guards real account
+    // access, so it needs a generator whose output can't be predicted from
+    // observing other codes (see security review).
+    const code = String(randomInt(100000, 1000000));
     const passwordResetCodeHash = await bcrypt.hash(code, 10);
     const passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
     return { code, passwordResetCodeHash, passwordResetExpiresAt };
@@ -555,8 +559,12 @@ export class RestaurantsService {
     return { success: true };
   }
 
-  async unregisterPushToken(token: string) {
-    await this.prisma.db.restaurantPushToken.deleteMany({ where: { token } });
+  async unregisterPushToken(restaurantId: string, token: string) {
+    // Scoped to the caller's own restaurant - unlike every other mutation in
+    // this file, this previously deleted by token value alone, letting any
+    // authenticated partner remove a push-token row belonging to a
+    // different restaurant.
+    await this.prisma.db.restaurantPushToken.deleteMany({ where: { token, restaurantId } });
     return { success: true };
   }
 
@@ -650,8 +658,15 @@ export class RestaurantsService {
     if (restaurant.publishStatus !== 'PENDING') {
       throw new BadRequestException('This restaurant has no publish review pending');
     }
-    const updated = await this.prisma.db.restaurant.update({
-      where: { id },
+    // updateMany (not update) so the PENDING check is part of the same
+    // write, not a separate read beforehand - two admins moderating the
+    // same restaurant within the same instant could otherwise both pass the
+    // check above and both write, sending two contradictory notifications.
+    // Whichever request's write actually matches a still-PENDING row wins;
+    // the loser sees the same "no review pending" error a slower duplicate
+    // click would.
+    const { count } = await this.prisma.db.restaurant.updateMany({
+      where: { id, publishStatus: 'PENDING' },
       data: {
         publishStatus: dto.status,
         publishRejectionReason: dto.status === 'REJECTED' ? (dto.rejectionReason ?? null) : null,
@@ -661,6 +676,12 @@ export class RestaurantsService {
         // round was already marked done.
         publishDeclineAcknowledgedAt: null,
       },
+    });
+    if (count === 0) {
+      throw new BadRequestException('This restaurant has no publish review pending');
+    }
+    const updated = await this.prisma.db.restaurant.findUniqueOrThrow({
+      where: { id },
       select: restaurantListSelect,
     });
 

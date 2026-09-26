@@ -77,18 +77,27 @@ export class DishesService {
     }
 
     const where = dto.dishIds ? { id: { in: dto.dishIds }, restaurantId } : { restaurantId, isActive: true };
-    const dishes = await this.prisma.db.dish.findMany({ where, select: { id: true, price: true } });
 
-    return this.prisma.db.$transaction((tx) =>
-      Promise.all(
-        dishes.map((dish) =>
-          tx.dish.update({
-            where: { id: dish.id },
-            data: { price: computeAdjustedPrice(Number(dish.price), dto.type, dto.value) },
-            include: dishInclude,
-          }),
-        ),
-      ),
+    // The read has to happen inside the same transaction as the writes it
+    // feeds - reading current prices beforehand and computing new prices
+    // from that snapshot let a concurrent single-dish edit land in between
+    // and get silently clobbered by this bulk update's stale base price.
+    // Serializable matches the isolation level already used for the other
+    // price/capacity-sensitive transaction in this codebase (event booking).
+    return this.prisma.db.$transaction(
+      async (tx) => {
+        const dishes = await tx.dish.findMany({ where, select: { id: true, price: true } });
+        return Promise.all(
+          dishes.map((dish) =>
+            tx.dish.update({
+              where: { id: dish.id },
+              data: { price: computeAdjustedPrice(Number(dish.price), dto.type, dto.value) },
+              include: dishInclude,
+            }),
+          ),
+        );
+      },
+      { isolationLevel: 'Serializable' },
     );
   }
 

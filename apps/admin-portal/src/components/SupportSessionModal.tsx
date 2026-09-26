@@ -29,6 +29,11 @@ export function SupportSessionModal({ restaurantId, restaurantName, onClose }: S
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [link, setLink] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // The link itself grants full access for its whole 30-minute window, so it
+  // stays hidden by default - showing it plainly by default risked it ending
+  // up in a screen-share, a pasted chat message, or browser history when the
+  // QR (meant to be the only way this gets used) would have done the job.
+  const [linkRevealed, setLinkRevealed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -77,7 +82,15 @@ export function SupportSessionModal({ restaurantId, restaurantName, onClose }: S
             <p className="mt-2 text-xs text-muted-foreground">
               Logged for transparency: this session shows up in Recent Activity, tagged with your name.
             </p>
-            {link && (
+            {link && !linkRevealed && (
+              <button
+                onClick={() => setLinkRevealed(true)}
+                className="mt-3 text-xs font-medium text-muted-foreground underline hover:text-foreground"
+              >
+                Show link instead (avoid sharing this — it grants the same access as the QR)
+              </button>
+            )}
+            {link && linkRevealed && (
               <div className="mt-3 rounded-lg border border-border bg-secondary px-3 py-2 text-left font-mono text-xs break-all text-muted-foreground">
                 {link}
               </div>
