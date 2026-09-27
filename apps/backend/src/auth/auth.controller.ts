@@ -7,7 +7,7 @@ import { TwoFactorCodeDto, VerifyTwoFactorDto } from './dto/two-factor.dto';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AdminJwtPayload } from './jwt-payload';
-import { clearAdminAuthCookies, setAdminAuthCookies } from '../common/adminAuthCookies';
+import { clearAdminAuthCookies, computeAdminCsrfToken, setAdminAuthCookies } from '../common/adminAuthCookies';
 
 // Tighter than the app default — these are the highest-value brute-force
 // targets in the app (see security review).
@@ -31,16 +31,18 @@ export class AuthController {
 
   // The token never reaches the response body - it goes straight into an
   // httpOnly cookie the admin portal's own JS can never read (see
-  // adminAuthCookies.ts). Only the admin's profile comes back for the
-  // frontend to display. A 2FA-enabled admin gets no cookie here at all -
-  // see completeAdminTwoFactor below, the only path that sets one for them.
+  // adminAuthCookies.ts). The admin's profile AND a CSRF token come back in
+  // the body for the frontend to keep in memory and echo back on every
+  // mutating request (see AdminAuthGuard + adminAuthCookies.ts for why this
+  // isn't a cookie). A 2FA-enabled admin gets no cookie here at all - see
+  // completeAdminTwoFactor below, the only path that sets one for them.
   @Post('admin/login')
   async adminLogin(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.auth.adminLogin(dto);
     if ('twoFactorRequired' in result) return result;
 
     setAdminAuthCookies(res, result.accessToken);
-    return { admin: result.admin };
+    return { admin: result.admin, csrfToken: computeAdminCsrfToken(result.admin.id) };
   }
 
   // Tightened further than the controller default - this is the one place
@@ -51,7 +53,7 @@ export class AuthController {
   async completeAdminTwoFactor(@Body() dto: VerifyTwoFactorDto, @Res({ passthrough: true }) res: Response) {
     const { accessToken, admin } = await this.auth.completeAdminTwoFactor(dto.pendingToken, dto.code);
     setAdminAuthCookies(res, accessToken);
-    return { admin };
+    return { admin, csrfToken: computeAdminCsrfToken(admin.id) };
   }
 
   @Post('admin/logout')
@@ -63,7 +65,9 @@ export class AuthController {
   // The admin portal has no other way to know "am I signed in" on page
   // load or refresh - the cookie that answers that is httpOnly, so its own
   // JS can't just check for it directly the way it used to check
-  // localStorage.
+  // localStorage. It also has to re-fetch the CSRF token here on every
+  // fresh load, since that only ever lived in memory (see adminLogin) and a
+  // page refresh wipes it.
   @UseGuards(AdminAuthGuard)
   @Get('admin/me')
   async adminMe(@Req() req: { user: AdminJwtPayload }) {
@@ -71,7 +75,7 @@ export class AuthController {
       where: { id: req.user.sub },
       select: { id: true, fullName: true, role: true, email: true, twoFactorEnabled: true },
     });
-    return { admin };
+    return { admin, csrfToken: computeAdminCsrfToken(admin.id) };
   }
 
   // Self-service 2FA enrollment - any signed-in admin manages only their

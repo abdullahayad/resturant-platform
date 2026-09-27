@@ -473,21 +473,24 @@ export interface FeatureFlagItem {
 
 class UnauthorizedError extends Error {}
 
-// Reads the non-httpOnly CSRF cookie the backend sets alongside the real
-// (httpOnly, unreadable) auth cookie - this page's JS can read this one on
-// purpose, so it can echo it back as a header the backend checks against
-// the same cookie (see AdminAuthGuard). A forged cross-site request would
-// carry the auth cookie automatically but has no way to read this one to
-// produce a matching header.
+// The CSRF token can't live in a cookie the way the auth token does - the
+// admin portal and this API are different domains, so a cookie this API
+// sets is never visible to this page's own document.cookie no matter how
+// its flags are set (that was tried once and silently broke every mutating
+// request - see adminAuthCookies.ts on the backend for the full story).
+// Instead the backend hands this page the token directly in the JSON body
+// of login/me, kept here in memory only (same lifetime as `auth`'s admin
+// profile - wiped on refresh, re-fetched via api.me()).
+let csrfToken: string | null = null
+
 function csrfHeaders(): HeadersInit {
-  const match = document.cookie.match(/(?:^|; )admin_csrf=([^;]*)/)
-  const token = match ? decodeURIComponent(match[1]) : null
-  return token ? { 'x-csrf-token': token } : {}
+  return csrfToken ? { 'x-csrf-token': csrfToken } : {}
 }
 
 async function handle<T>(res: Response): Promise<T> {
   if (res.status === 401) {
     auth.clear()
+    csrfToken = null
     throw new UnauthorizedError('Session expired, please sign in again')
   }
   if (!res.ok) throw new Error(`Request failed: ${res.status}`)
@@ -540,6 +543,7 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.message || 'Invalid email or password')
+    if ('csrfToken' in data) csrfToken = data.csrfToken
     return data
   },
 
@@ -552,6 +556,7 @@ export const api = {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.message || 'Invalid code')
+    csrfToken = data.csrfToken
     return data
   },
 
@@ -561,11 +566,18 @@ export const api = {
 
   async logout(): Promise<void> {
     await fetch(`${API_BASE_URL}/auth/admin/logout`, { method: 'POST', credentials: 'include' })
+    csrfToken = null
   },
 
   // The only way to know "am I still signed in" on a fresh page load - the
   // auth cookie is httpOnly, so this page's own JS can't just check for it.
-  me: (): Promise<{ admin: AdminProfile }> => get('/auth/admin/me'),
+  // Also re-fetches the CSRF token, which only ever lived in memory and is
+  // gone after any page refresh.
+  async me(): Promise<{ admin: AdminProfile }> {
+    const data = await get<{ admin: AdminProfile; csrfToken: string }>('/auth/admin/me')
+    csrfToken = data.csrfToken
+    return { admin: data.admin }
+  },
 
   restaurants: (filters?: {
     status?: RestaurantStatus

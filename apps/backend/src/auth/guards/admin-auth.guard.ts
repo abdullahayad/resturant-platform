@@ -2,7 +2,7 @@ import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/com
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AdminJwtPayload, AppJwtPayload } from '../jwt-payload';
-import { ADMIN_CSRF_COOKIE, ADMIN_CSRF_HEADER, ADMIN_TOKEN_COOKIE } from '../../common/adminAuthCookies';
+import { ADMIN_CSRF_HEADER, ADMIN_TOKEN_COOKIE, computeAdminCsrfToken } from '../../common/adminAuthCookies';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -41,12 +41,12 @@ export class AdminAuthGuard extends JwtAuthGuard {
     // cookie (required since the portal and this API are different sites)
     // means the browser *would* attach it to a forged request from anywhere
     // - this check is what actually stops that forged request from
-    // succeeding, since forging a matching header requires reading a cookie
-    // the forging site was never allowed to read.
+    // succeeding, since forging a matching header requires knowing a value
+    // the forging site was never handed (see adminAuthCookies.ts for why
+    // that value isn't a second cookie).
     if (request.cookies?.[ADMIN_TOKEN_COOKIE] && !SAFE_METHODS.has(request.method)) {
-      const csrfCookie = request.cookies?.[ADMIN_CSRF_COOKIE];
       const csrfHeader = request.headers?.[ADMIN_CSRF_HEADER];
-      if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+      if (!csrfHeader || csrfHeader !== computeAdminCsrfToken(admin.sub)) {
         throw new UnauthorizedException('Missing or invalid CSRF token');
       }
     }
