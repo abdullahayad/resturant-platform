@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { TwoFactorCodeDto, VerifyTwoFactorDto } from './dto/two-factor.dto';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AdminJwtPayload } from './jwt-payload';
@@ -31,10 +32,24 @@ export class AuthController {
   // The token never reaches the response body - it goes straight into an
   // httpOnly cookie the admin portal's own JS can never read (see
   // adminAuthCookies.ts). Only the admin's profile comes back for the
-  // frontend to display.
+  // frontend to display. A 2FA-enabled admin gets no cookie here at all -
+  // see completeAdminTwoFactor below, the only path that sets one for them.
   @Post('admin/login')
   async adminLogin(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { accessToken, admin } = await this.auth.adminLogin(dto);
+    const result = await this.auth.adminLogin(dto);
+    if ('twoFactorRequired' in result) return result;
+
+    setAdminAuthCookies(res, result.accessToken);
+    return { admin: result.admin };
+  }
+
+  // Tightened further than the controller default - this is the one place
+  // a stolen password alone still isn't enough, so it's worth making a
+  // 6-digit-code brute force even slower to attempt.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('admin/login/2fa')
+  async completeAdminTwoFactor(@Body() dto: VerifyTwoFactorDto, @Res({ passthrough: true }) res: Response) {
+    const { accessToken, admin } = await this.auth.completeAdminTwoFactor(dto.pendingToken, dto.code);
     setAdminAuthCookies(res, accessToken);
     return { admin };
   }
@@ -54,8 +69,31 @@ export class AuthController {
   async adminMe(@Req() req: { user: AdminJwtPayload }) {
     const admin = await this.prisma.db.adminUser.findUniqueOrThrow({
       where: { id: req.user.sub },
-      select: { id: true, fullName: true, role: true, email: true },
+      select: { id: true, fullName: true, role: true, email: true, twoFactorEnabled: true },
     });
     return { admin };
+  }
+
+  // Self-service 2FA enrollment - any signed-in admin manages only their
+  // own, never another admin's (that would need SuperAdminGuard, which this
+  // deliberately doesn't use).
+  @UseGuards(AdminAuthGuard)
+  @Post('admin/2fa/setup')
+  startTwoFactorSetup(@Req() req: { user: AdminJwtPayload }) {
+    return this.auth.startTwoFactorSetup(req.user.sub);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Post('admin/2fa/enable')
+  async enableTwoFactor(@Req() req: { user: AdminJwtPayload }, @Body() dto: TwoFactorCodeDto) {
+    await this.auth.enableTwoFactor(req.user.sub, dto.code);
+    return { success: true };
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Post('admin/2fa/disable')
+  async disableTwoFactor(@Req() req: { user: AdminJwtPayload }, @Body() dto: TwoFactorCodeDto) {
+    await this.auth.disableTwoFactor(req.user.sub, dto.code);
+    return { success: true };
   }
 }

@@ -9,6 +9,7 @@ export interface AdminProfile {
   fullName: string
   role: 'SUPER_ADMIN' | 'MODERATOR'
   email: string
+  twoFactorEnabled: boolean
 }
 
 let currentAdmin: AdminProfile | null = null

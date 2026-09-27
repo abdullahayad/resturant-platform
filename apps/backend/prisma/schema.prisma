@@ -258,6 +258,13 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // TOTP two-factor auth. twoFactorSecret is set as soon as setup starts but
+  // twoFactorEnabled only flips to true once the admin proves they can
+  // actually generate a matching code - an unconfirmed secret sitting here
+  // does nothing on its own.
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean @default(false)
+
   reviewedRestaurants        Restaurant[]         @relation("RestaurantReviewedBy")
   publishReviewedRestaurants Restaurant[]         @relation("RestaurantPublishReviewedBy")
   reviewReplyActions         ReviewReply[]        @relation("ReviewReplyModeratedBy")

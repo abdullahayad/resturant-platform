@@ -10,6 +10,7 @@ const publicSelect = {
   role: true,
   isActive: true,
   createdAt: true,
+  twoFactorEnabled: true,
 } as const;
 
 @Injectable()

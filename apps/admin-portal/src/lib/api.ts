@@ -130,6 +130,7 @@ export interface AdminUserItem {
   role: 'SUPER_ADMIN' | 'MODERATOR'
   isActive: boolean
   createdAt: string
+  twoFactorEnabled: boolean
 }
 
 export interface CreateAdminUserPayload {
@@ -525,7 +526,12 @@ export const api = {
   // The token comes back as an httpOnly cookie (see the backend's
   // adminLogin), never in this response body - credentials: 'include' is
   // what makes the browser actually store the Set-Cookie the server sends.
-  async login(email: string, password: string): Promise<{ admin: AdminProfile }> {
+  // A 2FA-enabled admin gets no cookie yet here - just a short-lived
+  // pendingToken to hand to completeTwoFactor() alongside their code.
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{ admin: AdminProfile } | { twoFactorRequired: true; pendingToken: string }> {
     const res = await fetch(`${API_BASE_URL}/auth/admin/login`, {
       method: 'POST',
       credentials: 'include',
@@ -536,6 +542,22 @@ export const api = {
     if (!res.ok) throw new Error(data.message || 'Invalid email or password')
     return data
   },
+
+  async completeTwoFactor(pendingToken: string, code: string): Promise<{ admin: AdminProfile }> {
+    const res = await fetch(`${API_BASE_URL}/auth/admin/login/2fa`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pendingToken, code }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.message || 'Invalid code')
+    return data
+  },
+
+  setupTwoFactor: () => send<{ secret: string; otpauthUrl: string }>('POST', '/auth/admin/2fa/setup'),
+  enableTwoFactor: (code: string) => send<{ success: true }>('POST', '/auth/admin/2fa/enable', { code }),
+  disableTwoFactor: (code: string) => send<{ success: true }>('POST', '/auth/admin/2fa/disable', { code }),
 
   async logout(): Promise<void> {
     await fetch(`${API_BASE_URL}/auth/admin/logout`, { method: 'POST', credentials: 'include' })

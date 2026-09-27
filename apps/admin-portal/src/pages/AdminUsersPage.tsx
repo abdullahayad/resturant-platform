@@ -1,9 +1,171 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import QRCode from 'qrcode'
 import { api, UnauthorizedError, type AdminUserItem } from '@/lib/api'
 import { auth } from '@/lib/auth'
 
 const emptyForm = { email: '', password: '', fullName: '', role: 'MODERATOR' as const }
+
+function TwoFactorCard() {
+  const me = auth.getAdmin()
+  const [enabled, setEnabled] = useState(me?.twoFactorEnabled ?? false)
+  const [setupData, setSetupData] = useState<{ secret: string; qrDataUrl: string } | null>(null)
+  const [enrollCode, setEnrollCode] = useState('')
+  const [showDisableForm, setShowDisableForm] = useState(false)
+  const [disableCode, setDisableCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const startSetup = async () => {
+    setError(null)
+    setBusy(true)
+    try {
+      const { secret, otpauthUrl } = await api.setupTwoFactor()
+      const qrDataUrl = await QRCode.toDataURL(otpauthUrl, { width: 220, margin: 2 })
+      setSetupData({ secret, qrDataUrl })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start setup')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const confirmEnable = async () => {
+    setError(null)
+    setBusy(true)
+    try {
+      await api.enableTwoFactor(enrollCode)
+      setEnabled(true)
+      setSetupData(null)
+      setEnrollCode('')
+      if (me) auth.setAdmin({ ...me, twoFactorEnabled: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid code')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const confirmDisable = async () => {
+    setError(null)
+    setBusy(true)
+    try {
+      await api.disableTwoFactor(disableCode)
+      setEnabled(false)
+      setShowDisableForm(false)
+      setDisableCode('')
+      if (me) auth.setAdmin({ ...me, twoFactorEnabled: false })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid code')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="mb-1 text-sm font-semibold text-primary">Your Account — Two-Factor Authentication</div>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Adds a 6-digit code from an authenticator app (Google Authenticator, Authy, etc.) on top of your password.
+      </p>
+
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
+
+      {!enabled && !setupData && (
+        <button
+          onClick={startSetup}
+          disabled={busy}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {busy ? 'Starting…' : 'Enable Two-Factor Authentication'}
+        </button>
+      )}
+
+      {setupData && (
+        <div className="space-y-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <img src={setupData.qrDataUrl} alt="Scan with your authenticator app" className="rounded-lg border border-border" />
+            <div className="text-sm text-muted-foreground">
+              <div>Scan this with your authenticator app, or enter the code manually:</div>
+              <div className="mt-1 rounded-lg bg-secondary px-2 py-1 font-mono text-xs">{setupData.secret}</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={enrollCode}
+              onChange={(e) => setEnrollCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="6-digit code"
+              className="w-32 rounded-lg border border-border bg-secondary px-3 py-2 text-sm tracking-widest outline-none focus:border-primary"
+            />
+            <button
+              onClick={confirmEnable}
+              disabled={busy || enrollCode.length !== 6}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              Confirm & Enable
+            </button>
+            <button
+              onClick={() => {
+                setSetupData(null)
+                setEnrollCode('')
+                setError(null)
+              }}
+              className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {enabled && !showDisableForm && (
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs text-success">Enabled</span>
+          <button
+            onClick={() => setShowDisableForm(true)}
+            className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+          >
+            Disable
+          </button>
+        </div>
+      )}
+
+      {enabled && showDisableForm && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={disableCode}
+            onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="6-digit code"
+            className="w-32 rounded-lg border border-border bg-secondary px-3 py-2 text-sm tracking-widest outline-none focus:border-primary"
+          />
+          <button
+            onClick={confirmDisable}
+            disabled={busy || disableCode.length !== 6}
+            className="rounded-lg border border-destructive px-4 py-2 text-sm font-semibold text-destructive disabled:opacity-50"
+          >
+            Confirm Disable
+          </button>
+          <button
+            onClick={() => {
+              setShowDisableForm(false)
+              setDisableCode('')
+              setError(null)
+            }}
+            className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function AdminUsersPage() {
   const navigate = useNavigate()
@@ -82,6 +244,8 @@ export function AdminUsersPage() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      <TwoFactorCard />
+
       <div className="rounded-xl border border-border bg-card p-4">
         <div className="mb-3 text-sm font-semibold text-primary">Add Admin</div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -133,6 +297,7 @@ export function AdminUsersPage() {
               <th className="px-4 py-2 font-medium">Email</th>
               <th className="px-4 py-2 font-medium">Role</th>
               <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-4 py-2 font-medium">2FA</th>
               <th className="px-4 py-2 font-medium">Actions</th>
             </tr>
           </thead>
@@ -165,6 +330,13 @@ export function AdminUsersPage() {
                     {admin.isActive ? 'Active' : 'Inactive'}
                   </button>
                 </td>
+                <td className="px-4 py-2">
+                  {admin.twoFactorEnabled ? (
+                    <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs text-success">On</span>
+                  ) : (
+                    <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">Off</span>
+                  )}
+                </td>
                 <td className="px-4 py-2 text-xs text-muted-foreground">
                   {admin.id === me?.id ? 'You' : ''}
                 </td>
@@ -172,7 +344,7 @@ export function AdminUsersPage() {
             ))}
             {admins.length === 0 && !loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                   No admins yet.
                 </td>
               </tr>
