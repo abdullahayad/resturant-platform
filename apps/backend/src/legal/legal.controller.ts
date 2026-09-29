@@ -229,12 +229,14 @@ function renderPage(title: string, sections: Section[]): string {
   h2 { font-size: 16px; margin-top: 32px; margin-bottom: 8px; }
   p { font-size: 15px; margin: 0; }
   a { color: #c97f2e; }
+  .copyright { font-size: 13px; color: #6b6255; margin-top: 56px; padding-top: 16px; border-top: 1px solid rgba(107, 98, 85, 0.25); }
 </style>
 </head>
 <body>
   <h1>${title}</h1>
   <p class="updated">Last updated: ${LAST_UPDATED}</p>
   ${sectionsHtml}
+  <p class="copyright updated">&copy; ${new Date().getFullYear()} LiGETA. All rights reserved.</p>
 </body>
 </html>`;
 }
