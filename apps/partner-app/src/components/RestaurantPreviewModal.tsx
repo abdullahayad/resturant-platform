@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { UtensilsCrossed, ImageOff, ChefHat, CalendarClock, SignalHigh, Wifi, BatteryFull } from 'lucide-react-native';
@@ -18,8 +18,13 @@ interface RestaurantPreviewModalProps {
 }
 
 // Same fixed-position overlay trick as LegalDocumentModal — RN's <Modal>
-// doesn't reliably sit on top of page content on react-native-web.
-const backdropStyle: ViewStyle = { position: 'fixed' as ViewStyle['position'] };
+// doesn't reliably sit on top of page content on react-native-web. 'fixed'
+// is a web-only CSS value though - native's Yoga layout engine doesn't
+// recognize it (logs "Could not parse yoga::PositionType: fixed" and
+// silently fails to apply it), so on Android/iOS this backdrop never
+// actually pinned itself to the screen. 'absolute' is what native needs
+// and fully supports.
+const backdropStyle: ViewStyle = { position: Platform.OS === 'web' ? ('fixed' as ViewStyle['position']) : 'absolute' };
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 

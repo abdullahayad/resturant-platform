@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
@@ -16,8 +16,12 @@ interface BulkPriceUpdateModalProps {
 
 // Same fixed-position overlay trick as the other full-screen modals in this
 // app (LegalDocumentModal, RestaurantPreviewModal) - RN's <Modal> doesn't
-// reliably sit on top of page content on react-native-web.
-const backdropStyle: ViewStyle = { position: 'fixed' as ViewStyle['position'] };
+// reliably sit on top of page content on react-native-web. 'fixed' is a
+// web-only CSS value though - native's Yoga layout engine doesn't recognize
+// it at all (logs "Could not parse yoga::PositionType: fixed" and silently
+// fails to apply it), so the backdrop never actually pinned itself to the
+// screen on Android/iOS. 'absolute' is what native needs and fully supports.
+const backdropStyle: ViewStyle = { position: Platform.OS === 'web' ? ('fixed' as ViewStyle['position']) : 'absolute' };
 
 type Scope = 'all' | 'selected';
 type Direction = 'increase' | 'decrease';

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
@@ -13,11 +13,15 @@ interface LegalDocumentModalProps {
 }
 
 // RN's built-in <Modal> doesn't reliably overlay the full viewport on
-// react-native-web (this app is only ever run/tested via Expo web) — it can
-// render without an opaque backdrop and get layered underneath page content
-// instead of on top of it. A plain fixed-position overlay in the normal
-// render tree is what actually pins over the whole screen here.
-const backdropStyle: ViewStyle = { position: 'fixed' as ViewStyle['position'] };
+// react-native-web — it can render without an opaque backdrop and get
+// layered underneath page content instead of on top of it. A plain
+// fixed-position overlay in the normal render tree is what actually pins
+// over the whole screen there. 'fixed' is a web-only CSS value though -
+// native's Yoga layout engine doesn't recognize it (logs "Could not parse
+// yoga::PositionType: fixed" and silently fails to apply it), so on
+// Android/iOS this backdrop never actually pinned itself to the screen.
+// 'absolute' is what native needs and fully supports.
+const backdropStyle: ViewStyle = { position: Platform.OS === 'web' ? ('fixed' as ViewStyle['position']) : 'absolute' };
 
 export function LegalDocumentModal({ visible, title, sections, onClose }: LegalDocumentModalProps) {
   const { colors } = useTheme();
