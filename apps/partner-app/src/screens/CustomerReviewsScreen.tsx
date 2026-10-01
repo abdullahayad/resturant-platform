@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, QrCode, type LucideIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -54,15 +54,27 @@ export function CustomerReviewsScreen() {
   const { items: visibleReviews, setItems: setReviews, loading, loadingMore, error, reload, loadMore } =
     usePaginatedList(fetchPage);
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
-  useEffect(() => {
-    api
+  const refreshSummary = useCallback(() => {
+    return api
       .reviewsSummary(token)
       .then(setSummary)
       .catch(() => setLoadError(t('common:networkError')));
   }, [token, t]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+  useEffect(() => {
+    refreshSummary();
+  }, [refreshSummary]);
+
+  // Pull-to-refresh - re-fetches both the list and the summary stats above
+  // it, so a new review submitted moments ago (e.g. via the table QR code)
+  // shows up without switching away to another section and back.
+  const onRefresh = useCallback(() => {
+    reload();
+    refreshSummary();
+  }, [reload, refreshSummary]);
   useEffect(() => {
     if (error) setLoadError(t('common:networkError'));
   }, [error, t]);
@@ -191,6 +203,7 @@ export function CustomerReviewsScreen() {
       contentContainerStyle={styles.container}
       onEndReached={loadMore}
       onEndReachedThreshold={0.4}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor={colors.primary} />}
       ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.primary} /> : null}
       ListHeaderComponent={
         <View style={styles.headerGroup}>
