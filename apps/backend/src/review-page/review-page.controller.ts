@@ -232,7 +232,7 @@ function renderPage(restaurantId: string, nonce: string): string {
       <label id="photosLabel"></label>
       <div class="photoGrid" id="photoGrid"></div>
       <button type="button" class="addPhotoBtn" id="addPhotoBtn"></button>
-      <input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden />
+      <input id="photoInput" type="file" accept="image/*" multiple hidden />
 
       <button type="submit" class="btn" id="submitBtn"></button>
       <div class="error" id="formError" hidden></div>
