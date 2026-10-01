@@ -8,6 +8,14 @@ import type { Response } from 'express';
 // here is plain HTML/CSS/JS with no build step, same as the legal pages and
 // the support-session page, since this has to work in any phone's browser
 // with nothing pre-installed.
+const SUB_RATING_CATEGORIES = ['food', 'service', 'staff', 'ambience'] as const;
+
+function fiveStarButtons(starClass: string): string {
+  return [1, 2, 3, 4, 5]
+    .map((value) => `<button type="button" class="${starClass}" data-value="${value}">&#9733;</button>`)
+    .join('');
+}
+
 function renderPage(restaurantId: string, nonce: string): string {
   const safeId = encodeURIComponent(restaurantId);
 
@@ -78,6 +86,20 @@ function renderPage(restaurantId: string, nonce: string): string {
     padding: 2px;
   }
   .star.filled { color: #c97f2e; }
+  .subRatingsTitle { font-size: 12.5px; font-weight: 700; color: #6b6255; text-transform: uppercase; letter-spacing: 0.04em; margin: 18px 0 10px; }
+  .subRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .subLabel { font-size: 13.5px; font-weight: 600; }
+  .subStars { display: flex; gap: 2px; direction: ltr; }
+  .subStar {
+    font-size: 21px;
+    line-height: 1;
+    cursor: pointer;
+    color: #ece4d6;
+    background: none;
+    border: none;
+    padding: 1px;
+  }
+  .subStar.filled { color: #c97f2e; }
   label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
   input, textarea {
     width: 100%;
@@ -140,13 +162,15 @@ function renderPage(restaurantId: string, nonce: string): string {
       <h1 id="restaurantName"></h1>
       <p class="sub" id="prompt"></p>
 
-      <div class="stars" id="stars">
-        <button type="button" class="star" data-value="1">&#9733;</button>
-        <button type="button" class="star" data-value="2">&#9733;</button>
-        <button type="button" class="star" data-value="3">&#9733;</button>
-        <button type="button" class="star" data-value="4">&#9733;</button>
-        <button type="button" class="star" data-value="5">&#9733;</button>
-      </div>
+      <div class="stars" id="stars">${fiveStarButtons('star')}</div>
+
+      <div class="subRatingsTitle" id="subRatingsTitle"></div>
+      ${SUB_RATING_CATEGORIES.map(
+        (category) => `<div class="subRow">
+        <span class="subLabel" id="${category}Label"></span>
+        <div class="subStars" data-category="${category}">${fiveStarButtons('subStar')}</div>
+      </div>`,
+      ).join('')}
 
       <label id="nameLabel" for="reviewerName"></label>
       <input id="reviewerName" maxlength="100" required />
@@ -175,6 +199,11 @@ function renderPage(restaurantId: string, nonce: string): string {
       notFoundTitle: 'غير متاح',
       notFoundText: 'هذا المطعم غير متاح حاليًا لاستقبال التقييمات.',
       prompt: 'كيف كانت زيارتك؟',
+      subRatingsTitle: 'تفاصيل إضافية (اختياري)',
+      foodLabel: 'الطعام',
+      serviceLabel: 'الخدمة',
+      staffLabel: 'الطاقم',
+      ambienceLabel: 'الأجواء',
       nameLabel: 'الاسم',
       textLabel: 'تعليق (اختياري)',
       submit: 'إرسال التقييم',
@@ -190,6 +219,11 @@ function renderPage(restaurantId: string, nonce: string): string {
       notFoundTitle: 'Not available',
       notFoundText: 'This restaurant is not currently accepting reviews.',
       prompt: 'How was your visit?',
+      subRatingsTitle: 'More details (optional)',
+      foodLabel: 'Food',
+      serviceLabel: 'Service',
+      staffLabel: 'Staff',
+      ambienceLabel: 'Ambience',
       nameLabel: 'Your name',
       textLabel: 'Comment (optional)',
       submit: 'Submit review',
@@ -202,8 +236,11 @@ function renderPage(restaurantId: string, nonce: string): string {
     },
   };
 
+  var SUB_RATING_CATEGORIES = ['food', 'service', 'staff', 'ambience'];
+
   var lang = 'ar';
   var rating = 0;
+  var subRating = { food: 0, service: 0, staff: 0, ambience: 0 };
   var restaurantData = null;
 
   var el = {
@@ -216,6 +253,7 @@ function renderPage(restaurantId: string, nonce: string): string {
     restaurantName: document.getElementById('restaurantName'),
     prompt: document.getElementById('prompt'),
     stars: document.querySelectorAll('.star'),
+    subRatingsTitle: document.getElementById('subRatingsTitle'),
     nameLabel: document.getElementById('nameLabel'),
     reviewerName: document.getElementById('reviewerName'),
     textLabel: document.getElementById('textLabel'),
@@ -237,6 +275,10 @@ function renderPage(restaurantId: string, nonce: string): string {
     el.notFoundTitle.textContent = s.notFoundTitle;
     el.notFoundText.textContent = s.notFoundText;
     el.prompt.textContent = s.prompt;
+    el.subRatingsTitle.textContent = s.subRatingsTitle;
+    SUB_RATING_CATEGORIES.forEach(function (category) {
+      document.getElementById(category + 'Label').textContent = s[category + 'Label'];
+    });
     el.nameLabel.textContent = s.nameLabel;
     el.textLabel.textContent = s.textLabel;
     el.submitBtn.textContent = s.submit;
@@ -257,6 +299,19 @@ function renderPage(restaurantId: string, nonce: string): string {
       rating = parseInt(star.getAttribute('data-value'), 10);
       el.stars.forEach(function (s) {
         s.classList.toggle('filled', parseInt(s.getAttribute('data-value'), 10) <= rating);
+      });
+    });
+  });
+
+  document.querySelectorAll('.subStars').forEach(function (group) {
+    var category = group.getAttribute('data-category');
+    var subStars = group.querySelectorAll('.subStar');
+    subStars.forEach(function (star) {
+      star.addEventListener('click', function () {
+        subRating[category] = parseInt(star.getAttribute('data-value'), 10);
+        subStars.forEach(function (s) {
+          s.classList.toggle('filled', parseInt(s.getAttribute('data-value'), 10) <= subRating[category]);
+        });
       });
     });
   });
@@ -287,6 +342,10 @@ function renderPage(restaurantId: string, nonce: string): string {
       body: JSON.stringify({
         reviewerName: name,
         rating: rating,
+        foodRating: subRating.food || undefined,
+        serviceRating: subRating.service || undefined,
+        staffRating: subRating.staff || undefined,
+        ambienceRating: subRating.ambience || undefined,
         text: el.reviewText.value.trim() || undefined,
       }),
     })
