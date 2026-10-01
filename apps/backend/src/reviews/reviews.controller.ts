@@ -6,6 +6,7 @@ import { CreateReviewDto, MyReviewsQuery, NewReviewsCountQuery, ReplyToReviewDto
 import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { StorageService } from '../uploads/storage.service';
+import { isRealImage } from '../common/imageSignature';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const ALLOWED_PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
@@ -38,6 +39,14 @@ export class ReviewsController {
   )
   async uploadPhoto(@UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
+    // The extension check above only looks at the claimed filename, which
+    // costs an attacker nothing to fake - this checks the file's actual
+    // bytes against known image signatures (see common/imageSignature.ts),
+    // so a renamed non-image file is rejected regardless of what it's
+    // called or what Content-Type the client claims.
+    if (!isRealImage(file.buffer)) {
+      throw new BadRequestException('File does not appear to be a valid image');
+    }
     return this.storage.upload(file, 'review-photos');
   }
 
