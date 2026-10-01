@@ -5,16 +5,26 @@ import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { CreateReviewDto, ModerateReviewDto } from './dto/review.dto';
 import type { ModerationStatusValue } from '../common/moderation';
 import { pageOffset } from '../common/pagination';
+import { hashReviewerPhone } from '../common/reviewerPhoneHash';
 
 const withReplyAndPhotos = {
   reply: true,
   photos: { select: { id: true, url: true, moderationStatus: true } },
 } as const;
 
+// `include` above adds relations on top of every scalar column by default -
+// it does NOT narrow which scalar columns come back, so reviewerPhoneHash
+// would otherwise ride along on every one of these responses. This is the
+// one and only place that column is allowed to be excluded from, applied to
+// every read path below - never select or include it directly instead.
+const omitPhoneHash = { reviewerPhoneHash: true } as const;
+
 // How many AI reply-suggestion calls a restaurant can make in one day -
 // this is the app's first paid external API call, so it's capped to keep a
 // bug or a stuck retry loop from quietly running up a bill.
 const DAILY_SUGGESTION_CAP = 30;
+
+const REVIEW_PHONE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
 @Injectable()
 export class ReviewsService {
@@ -35,10 +45,28 @@ export class ReviewsService {
     if (!restaurant || restaurant.status !== 'APPROVED') {
       throw new BadRequestException('Restaurant is not open for reviews');
     }
+
+    const reviewerPhoneHash = hashReviewerPhone(dto.reviewerPhone);
+    const recentFromSamePhone = await this.prisma.db.review.findFirst({
+      where: {
+        restaurantId,
+        reviewerPhoneHash,
+        createdAt: { gte: new Date(Date.now() - REVIEW_PHONE_COOLDOWN_MS) },
+      },
+      select: { id: true },
+    });
+    // A stable, translatable code rather than a human-readable English
+    // sentence - the review page is bilingual and maps this to its own
+    // localized copy rather than just displaying whatever this says.
+    if (recentFromSamePhone) {
+      throw new BadRequestException('review-cooldown-active');
+    }
+
     const review = await this.prisma.db.review.create({
       data: {
         restaurantId,
         reviewerName: dto.reviewerName,
+        reviewerPhoneHash,
         rating: dto.rating,
         foodRating: dto.foodRating,
         serviceRating: dto.serviceRating,
@@ -71,7 +99,7 @@ export class ReviewsService {
         })
         .catch(() => {});
     }
-    return this.prisma.db.review.findUnique({ where: { id: review.id }, include: withReplyAndPhotos });
+    return this.prisma.db.review.findUnique({ where: { id: review.id }, include: withReplyAndPhotos, omit: omitPhoneHash });
   }
 
   async listForRestaurant(restaurantId: string, pageParam?: number, rating?: number) {
@@ -81,7 +109,14 @@ export class ReviewsService {
     const where = { restaurantId, moderationStatus: { not: 'HIDDEN' as const }, rating };
     const { page, skip, take } = pageOffset(pageParam);
     const [items, total] = await Promise.all([
-      this.prisma.db.review.findMany({ where, include: withReplyAndPhotos, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.db.review.findMany({
+        where,
+        include: withReplyAndPhotos,
+        omit: omitPhoneHash,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
       this.prisma.db.review.count({ where }),
     ]);
     return { items, total, page, pageSize: take };
@@ -171,7 +206,7 @@ export class ReviewsService {
       create: { reviewId, text },
       update: { text },
     });
-    return this.prisma.db.review.findUnique({ where: { id: reviewId }, include: withReplyAndPhotos });
+    return this.prisma.db.review.findUnique({ where: { id: reviewId }, include: withReplyAndPhotos, omit: omitPhoneHash });
   }
 
   // Drafts a reply with AI for the owner to edit and send themselves - never
@@ -262,6 +297,7 @@ export class ReviewsService {
           ...withReplyAndPhotos,
           restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
         },
+        omit: omitPhoneHash,
         orderBy: { createdAt: 'desc' },
         skip,
         take,

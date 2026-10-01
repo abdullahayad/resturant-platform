@@ -42,9 +42,12 @@ function renderPage(restaurantId: string, nonce: string): string {
   @media (prefers-color-scheme: dark) {
     body { color: #f2ece3; background: #16130f; }
     .card { background: #221c15 !important; border-color: #3a3226 !important; }
-    .sub, .hint { color: #b3a997 !important; }
+    .sub, .hint, .fieldHint { color: #b3a997 !important; }
     input, textarea { background: #16130f !important; border-color: #3a3226 !important; color: #f2ece3 !important; }
     .error { background: #3a241a !important; color: #e0a155 !important; }
+    .photoThumb { background: #3a3226 !important; }
+    .photoThumb.uploading { color: #b3a997 !important; }
+    .addPhotoBtn { border-color: #3a3226 !important; color: #e0a155 !important; }
   }
   .card {
     width: 100%;
@@ -112,6 +115,50 @@ function renderPage(restaurantId: string, nonce: string): string {
     color: inherit;
   }
   textarea { min-height: 80px; resize: vertical; }
+  .fieldHint { margin: 4px 2px 0; font-size: 11.5px; color: #6b6255; }
+  .photoGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .photoThumb {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #ece4d6;
+  }
+  .photoThumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photoThumb.uploading { display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6b6255; text-align: center; padding: 4px; }
+  .photoRemoveBtn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .addPhotoBtn {
+    margin-top: 10px;
+    border: 1px dashed #ece4d6;
+    border-radius: 10px;
+    background: none;
+    color: #c97f2e;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px;
+    width: 100%;
+    cursor: pointer;
+  }
+  .addPhotoBtn:disabled { opacity: 0.5; cursor: default; }
   .btn {
     display: block;
     width: 100%;
@@ -175,8 +222,17 @@ function renderPage(restaurantId: string, nonce: string): string {
       <label id="nameLabel" for="reviewerName"></label>
       <input id="reviewerName" maxlength="100" required />
 
+      <label id="phoneLabel" for="reviewerPhone"></label>
+      <input id="reviewerPhone" type="tel" inputmode="tel" maxlength="30" required />
+      <p class="fieldHint" id="phoneHint"></p>
+
       <label id="textLabel" for="reviewText"></label>
       <textarea id="reviewText" maxlength="2000"></textarea>
+
+      <label id="photosLabel"></label>
+      <div class="photoGrid" id="photoGrid"></div>
+      <button type="button" class="addPhotoBtn" id="addPhotoBtn"></button>
+      <input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden />
 
       <button type="submit" class="btn" id="submitBtn"></button>
       <div class="error" id="formError" hidden></div>
@@ -205,11 +261,19 @@ function renderPage(restaurantId: string, nonce: string): string {
       staffLabel: 'الطاقم',
       ambienceLabel: 'الأجواء',
       nameLabel: 'الاسم',
+      phoneLabel: 'رقم الهاتف',
+      phoneHint: 'لن يظهر رقمك في التقييم — يُستخدم فقط لمنع التكرار.',
       textLabel: 'تعليق (اختياري)',
+      photosLabel: 'صور (اختياري، حتى 4 صور)',
+      addPhoto: 'إضافة صورة',
       submit: 'إرسال التقييم',
       submitting: 'جارِ الإرسال...',
       pickStarsError: 'الرجاء اختيار تقييم بالنجوم.',
       nameError: 'الرجاء إدخال اسمك.',
+      phoneError: 'الرجاء إدخال رقم هاتفك.',
+      photoLimitError: 'يمكنك إضافة 4 صور كحد أقصى.',
+      photoUploadError: 'تعذر رفع الصورة. حاول مرة أخرى.',
+      cooldownError: 'لقد أرسلت تقييمًا لهذا المطعم مؤخرًا. يمكنك المحاولة مرة أخرى بعد مرور 12 ساعة.',
       genericError: 'تعذر إرسال التقييم. حاول مرة أخرى.',
       successTitle: 'شكرًا لك!',
       successText: 'تم إرسال تقييمك بنجاح.',
@@ -225,11 +289,19 @@ function renderPage(restaurantId: string, nonce: string): string {
       staffLabel: 'Staff',
       ambienceLabel: 'Ambience',
       nameLabel: 'Your name',
+      phoneLabel: 'Phone number',
+      phoneHint: "Your number won't appear on the review — it's only used to prevent duplicate submissions.",
       textLabel: 'Comment (optional)',
+      photosLabel: 'Photos (optional, up to 4)',
+      addPhoto: 'Add Photo',
       submit: 'Submit review',
       submitting: 'Submitting...',
       pickStarsError: 'Please choose a star rating.',
       nameError: 'Please enter your name.',
+      phoneError: 'Please enter your phone number.',
+      photoLimitError: 'You can add up to 4 photos.',
+      photoUploadError: 'Could not upload that photo. Please try again.',
+      cooldownError: "You've already reviewed this restaurant recently. You can leave another review after 12 hours.",
       genericError: 'Could not submit your review. Please try again.',
       successTitle: 'Thank you!',
       successText: 'Your review has been submitted.',
@@ -238,10 +310,13 @@ function renderPage(restaurantId: string, nonce: string): string {
 
   var SUB_RATING_CATEGORIES = ['food', 'service', 'staff', 'ambience'];
 
+  var MAX_PHOTOS = 4;
+
   var lang = 'ar';
   var rating = 0;
   var subRating = { food: 0, service: 0, staff: 0, ambience: 0 };
   var restaurantData = null;
+  var photoUrls = [];
 
   var el = {
     loading: document.getElementById('loading'),
@@ -256,8 +331,15 @@ function renderPage(restaurantId: string, nonce: string): string {
     subRatingsTitle: document.getElementById('subRatingsTitle'),
     nameLabel: document.getElementById('nameLabel'),
     reviewerName: document.getElementById('reviewerName'),
+    phoneLabel: document.getElementById('phoneLabel'),
+    reviewerPhone: document.getElementById('reviewerPhone'),
+    phoneHint: document.getElementById('phoneHint'),
     textLabel: document.getElementById('textLabel'),
     reviewText: document.getElementById('reviewText'),
+    photosLabel: document.getElementById('photosLabel'),
+    photoGrid: document.getElementById('photoGrid'),
+    addPhotoBtn: document.getElementById('addPhotoBtn'),
+    photoInput: document.getElementById('photoInput'),
     submitBtn: document.getElementById('submitBtn'),
     formError: document.getElementById('formError'),
     success: document.getElementById('success'),
@@ -280,7 +362,11 @@ function renderPage(restaurantId: string, nonce: string): string {
       document.getElementById(category + 'Label').textContent = s[category + 'Label'];
     });
     el.nameLabel.textContent = s.nameLabel;
+    el.phoneLabel.textContent = s.phoneLabel;
+    el.phoneHint.textContent = s.phoneHint;
     el.textLabel.textContent = s.textLabel;
+    el.photosLabel.textContent = s.photosLabel;
+    el.addPhotoBtn.textContent = s.addPhoto;
     el.submitBtn.textContent = s.submit;
     el.successTitle.textContent = s.successTitle;
     el.successText.textContent = s.successText;
@@ -316,6 +402,77 @@ function renderPage(restaurantId: string, nonce: string): string {
     });
   });
 
+  function renderAddPhotoButton() {
+    el.addPhotoBtn.hidden = photoUrls.length >= MAX_PHOTOS;
+  }
+
+  function removePhoto(url) {
+    photoUrls = photoUrls.filter(function (u) { return u !== url; });
+    var tile = el.photoGrid.querySelector('[data-url="' + CSS.escape(url) + '"]');
+    if (tile) tile.remove();
+    renderAddPhotoButton();
+  }
+
+  function addPhotoThumb(url) {
+    var tile = document.createElement('div');
+    tile.className = 'photoThumb';
+    tile.setAttribute('data-url', url);
+    var img = document.createElement('img');
+    img.src = url;
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'photoRemoveBtn';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', function () { removePhoto(url); });
+    tile.appendChild(img);
+    tile.appendChild(removeBtn);
+    el.photoGrid.appendChild(tile);
+  }
+
+  el.addPhotoBtn.addEventListener('click', function () { el.photoInput.click(); });
+
+  el.photoInput.addEventListener('change', function () {
+    var s = STRINGS[lang];
+    var files = Array.prototype.slice.call(el.photoInput.files || []);
+    el.photoInput.value = '';
+    if (!files.length) return;
+
+    var remaining = MAX_PHOTOS - photoUrls.length;
+    if (files.length > remaining) {
+      el.formError.textContent = s.photoLimitError;
+      el.formError.hidden = false;
+    }
+    files = files.slice(0, remaining);
+
+    files.forEach(function (file) {
+      var placeholder = document.createElement('div');
+      placeholder.className = 'photoThumb uploading';
+      placeholder.textContent = '...';
+      el.photoGrid.appendChild(placeholder);
+      renderAddPhotoButton();
+
+      var formData = new FormData();
+      formData.append('file', file);
+      fetch('/v1/restaurants/' + restaurantId + '/reviews/photo-upload', { method: 'POST', body: formData })
+        .then(function (res) {
+          if (!res.ok) throw new Error('upload failed');
+          return res.json();
+        })
+        .then(function (data) {
+          placeholder.remove();
+          photoUrls.push(data.url);
+          addPhotoThumb(data.url);
+          renderAddPhotoButton();
+        })
+        .catch(function () {
+          placeholder.remove();
+          el.formError.textContent = s.photoUploadError;
+          el.formError.hidden = false;
+          renderAddPhotoButton();
+        });
+    });
+  });
+
   el.form.addEventListener('submit', function (e) {
     e.preventDefault();
     var s = STRINGS[lang];
@@ -332,6 +489,12 @@ function renderPage(restaurantId: string, nonce: string): string {
       el.formError.hidden = false;
       return;
     }
+    var phone = el.reviewerPhone.value.trim();
+    if (!phone) {
+      el.formError.textContent = s.phoneError;
+      el.formError.hidden = false;
+      return;
+    }
 
     el.submitBtn.disabled = true;
     el.submitBtn.textContent = s.submitting;
@@ -341,21 +504,31 @@ function renderPage(restaurantId: string, nonce: string): string {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         reviewerName: name,
+        reviewerPhone: phone,
         rating: rating,
         foodRating: subRating.food || undefined,
         serviceRating: subRating.service || undefined,
         staffRating: subRating.staff || undefined,
         ambienceRating: subRating.ambience || undefined,
         text: el.reviewText.value.trim() || undefined,
+        photoUrls: photoUrls.length ? photoUrls : undefined,
       }),
     })
       .then(function (res) {
-        if (!res.ok) throw new Error('failed');
-        el.form.hidden = true;
-        el.success.hidden = false;
+        if (res.ok) {
+          el.form.hidden = true;
+          el.success.hidden = false;
+          return;
+        }
+        return res
+          .json()
+          .catch(function () { return {}; })
+          .then(function (body) {
+            throw new Error(body && body.message === 'review-cooldown-active' ? 'cooldown' : 'generic');
+          });
       })
-      .catch(function () {
-        el.formError.textContent = s.genericError;
+      .catch(function (err) {
+        el.formError.textContent = err && err.message === 'cooldown' ? s.cooldownError : s.genericError;
         el.formError.hidden = false;
         el.submitBtn.disabled = false;
         el.submitBtn.textContent = s.submit;

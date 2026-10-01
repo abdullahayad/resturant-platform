@@ -618,6 +618,14 @@ model Review {
   moderationStatus ModerationStatus @default(VISIBLE)
   createdAt        DateTime         @default(now())
 
+  // A one-way HMAC of the reviewer's phone number (see
+  // common/reviewerPhoneHash.ts) - never the raw number, and never selected
+  // by any read path (see reviews.service.ts's omitPhoneHash). Exists
+  // purely so createForRestaurant() can reject a second review from the
+  // same phone at the same restaurant within 12 hours; nothing ever reads
+  // it back to show a reviewer's phone number to anyone.
+  reviewerPhoneHash String?
+
   restaurant Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   reply      ReviewReply?
   // Photos the customer attached when posting this review — stored as
@@ -627,6 +635,7 @@ model Review {
 
   @@index([restaurantId])
   @@index([moderationStatus])
+  @@index([restaurantId, reviewerPhoneHash, createdAt])
   @@map("reviews")
 }
 

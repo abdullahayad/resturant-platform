@@ -6,12 +6,19 @@ import { IsOwnStoragePhotoUrl } from '../../common/ownStoragePhotoUrl';
 
 // Bounds a public, unauthenticated write — same reasoning as every other
 // gated field on this endpoint (see security review).
-const MAX_REVIEW_PHOTOS = 5;
+const MAX_REVIEW_PHOTOS = 4;
 
 export class CreateReviewDto {
   @IsString()
   @MaxLength(100)
   reviewerName: string;
+
+  // Never stored or shown as-is - see common/reviewerPhoneHash.ts. Required
+  // (not optional) so the 12-hour same-phone cooldown this enables can't be
+  // trivially skipped by just leaving the field blank.
+  @IsString()
+  @MaxLength(30)
+  reviewerPhone: string;
 
   @IsInt()
   @Min(1)
