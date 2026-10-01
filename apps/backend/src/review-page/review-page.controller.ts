@@ -1,4 +1,5 @@
-import { Controller, Get, Header, Param } from '@nestjs/common';
+import { Controller, Get, Header, Param, Res } from '@nestjs/common';
+import type { Response } from 'express';
 
 // The page a printed table QR code points to - no app install, no account,
 // no login. A customer scans, sees the restaurant's name, taps a star
@@ -7,7 +8,7 @@ import { Controller, Get, Header, Param } from '@nestjs/common';
 // here is plain HTML/CSS/JS with no build step, same as the legal pages and
 // the support-session page, since this has to work in any phone's browser
 // with nothing pre-installed.
-function renderPage(restaurantId: string): string {
+function renderPage(restaurantId: string, nonce: string): string {
   const safeId = encodeURIComponent(restaurantId);
 
   return `<!DOCTYPE html>
@@ -164,7 +165,7 @@ function renderPage(restaurantId: string): string {
     </div>
   </div>
 
-<script>
+<script nonce="${nonce}">
 (function () {
   var restaurantId = ${JSON.stringify(safeId)};
 
@@ -333,7 +334,7 @@ function renderPage(restaurantId: string): string {
 export class ReviewPageController {
   @Get(':restaurantId')
   @Header('Content-Type', 'text/html')
-  reviewPage(@Param('restaurantId') restaurantId: string) {
-    return renderPage(restaurantId);
+  reviewPage(@Param('restaurantId') restaurantId: string, @Res({ passthrough: true }) res: Response) {
+    return renderPage(restaurantId, res.locals.cspNonce as string);
   }
 }

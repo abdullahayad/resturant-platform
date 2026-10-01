@@ -9,6 +9,7 @@
 import './instrument';
 import { NestFactory } from '@nestjs/core';
 import { RequestMethod, ValidationPipe } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -81,10 +82,32 @@ async function bootstrap() {
     exclude: ['/', ...UNVERSIONED_ROUTES, { path: 'review/:restaurantId', method: RequestMethod.GET }],
   });
 
+  // A fresh random value per request, exposed to route handlers via
+  // res.locals so the review page (the only route with an inline <script>)
+  // can stamp it onto that tag - see the scriptSrc directive below, which
+  // only allows a <script> through if its nonce matches this same value.
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.locals.cspNonce = randomBytes(16).toString('base64');
+    next();
+  });
+
   // CSP applies to every route except /docs - Swagger UI's bootstrap script
   // is inline, which a real CSP blocks, so /docs runs with none instead
   // (still gets every other helmet header, from the app-wide call above).
-  const cspMiddleware = helmet.contentSecurityPolicy();
+  // scriptSrc extends helmet's own defaults with the per-request nonce
+  // above rather than 'unsafe-inline' - an injected <script> from a stored
+  // XSS wouldn't know this request's nonce, so it still gets blocked; only
+  // the one inline script this response itself rendered does.
+  const cspMiddleware = helmet.contentSecurityPolicy({
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      // Must be the same kebab-case key getDefaultDirectives() itself uses
+      // ('script-src', not 'scriptSrc') - helmet treats those as two
+      // different directives rather than one overriding the other, which
+      // throws "duplicate directive" the moment both are present at once.
+      'script-src': ["'self'", (_req: Request, res: Response) => `'nonce-${res.locals.cspNonce}'`],
+    },
+  });
   app.use((req: Request, res: Response, next: NextFunction) => {
     const path = req.url.split('?')[0];
     if (swaggerEnabled && (path === '/docs' || path.startsWith('/docs/'))) return next();
