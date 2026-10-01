@@ -127,6 +127,14 @@ export class RestaurantsController {
     return this.restaurants.picker(status);
   }
 
+  // Public, unauthenticated - powers the QR-code review page's header (see
+  // ReviewPageController). Must stay above the ':id' route below for the
+  // same reason 'picker' does.
+  @Get(':id/review-info')
+  reviewInfo(@Param('id') id: string) {
+    return this.restaurants.getReviewInfo(id);
+  }
+
   @UseGuards(AdminAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {

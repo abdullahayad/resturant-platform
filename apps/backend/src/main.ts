@@ -18,10 +18,12 @@ import { AppModule } from './app.module';
 // Routes that stay at a permanent, unversioned address — either because
 // they're given out externally (the Privacy Policy link goes in the Play
 // Store listing itself; changing it later would mean re-submitting store
-// metadata), or because something outside our own apps depends on the exact
-// path (UptimeRobot pings "/", Swagger serves its own sub-paths under
-// "/docs"). Everything else moves under /v1.
-const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json', 'support-session'];
+// metadata; "review" is printed on a physical QR code at each restaurant's
+// tables, which is even less changeable than a store listing), or because
+// something outside our own apps depends on the exact path (UptimeRobot
+// pings "/", Swagger serves its own sub-paths under "/docs"). Everything
+// else moves under /v1.
+const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json', 'support-session', 'review'];
 
 // Comma-separated list of allowed browser origins, e.g.
 // "http://localhost:5173,https://admin.example.com". Falls back to the

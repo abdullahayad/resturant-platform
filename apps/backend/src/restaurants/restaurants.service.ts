@@ -233,6 +233,23 @@ export class RestaurantsService {
     });
   }
 
+  // Public, unauthenticated - the only restaurant data exposed with no login
+  // at all (see ReviewsController.create, equally public). Deliberately the
+  // bare minimum for the QR-code review page's header: a name to confirm
+  // the customer is reviewing the right place, nothing else. Only answers
+  // for an APPROVED restaurant, same gate createForRestaurant already uses,
+  // so a pending/rejected/suspended restaurant can't collect reviews either.
+  async getReviewInfo(id: string) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { id },
+      select: { nameEn: true, nameAr: true, logoUrl: true, status: true },
+    });
+    if (!restaurant || restaurant.status !== 'APPROVED') {
+      throw new NotFoundException('Restaurant not found');
+    }
+    return { nameEn: restaurant.nameEn, nameAr: restaurant.nameAr, logoUrl: restaurant.logoUrl };
+  }
+
   async findOne(id: string) {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { id },

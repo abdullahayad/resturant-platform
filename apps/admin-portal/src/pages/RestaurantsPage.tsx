@@ -18,6 +18,7 @@ import { FilterTabs } from '@/components/FilterTabs'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 import { Pager } from '@/components/Pager'
 import { SupportSessionModal } from '@/components/SupportSessionModal'
+import { ReviewQrModal } from '@/components/ReviewQrModal'
 
 const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -61,6 +62,7 @@ export function RestaurantsPage() {
   const [detail, setDetail] = useState<RestaurantDetail | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [supportSessionFor, setSupportSessionFor] = useState<{ id: string; nameEn: string } | null>(null)
+  const [reviewQrFor, setReviewQrFor] = useState<{ id: string; nameEn: string } | null>(null)
   // Generation counters so a slower, older request can never overwrite what
   // a newer one already showed - whichever call was started *last* always
   // wins, regardless of which response actually arrives first.
@@ -494,6 +496,15 @@ export function RestaurantsPage() {
                               Manage as this restaurant
                             </button>
                           </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <div className="mb-1 text-xs text-muted-foreground">Customer Reviews</div>
+                            <button
+                              onClick={() => setReviewQrFor({ id: r.id, nameEn: r.nameEn })}
+                              className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-secondary"
+                            >
+                              Table Review QR Code
+                            </button>
+                          </div>
                         </div>
                       )}
                     </td>
@@ -519,6 +530,13 @@ export function RestaurantsPage() {
           restaurantId={supportSessionFor.id}
           restaurantName={supportSessionFor.nameEn}
           onClose={() => setSupportSessionFor(null)}
+        />
+      )}
+      {reviewQrFor && (
+        <ReviewQrModal
+          restaurantId={reviewQrFor.id}
+          restaurantName={reviewQrFor.nameEn}
+          onClose={() => setReviewQrFor(null)}
         />
       )}
     </div>
