@@ -8,7 +8,7 @@
 // review; see jwt-secret.ts and instrument.ts.
 import './instrument';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -70,7 +70,16 @@ async function bootstrap() {
     }
     next();
   });
-  app.setGlobalPrefix('v1', { exclude: ['/', ...UNVERSIONED_ROUTES] });
+  // A plain string here only excludes that EXACT path, not any sub-path -
+  // fine for every unversioned route above except "review", whose actual
+  // route has a param segment (review/:restaurantId). Nest's own router
+  // (separate from the rewrite middleware above, which does prefix-match
+  // correctly) needs that child path spelled out explicitly, or it still
+  // registers the controller under /v1 and this global prefix's bare
+  // 'review' string never matches the real request path at all.
+  app.setGlobalPrefix('v1', {
+    exclude: ['/', ...UNVERSIONED_ROUTES, { path: 'review/:restaurantId', method: RequestMethod.GET }],
+  });
 
   // CSP applies to every route except /docs - Swagger UI's bootstrap script
   // is inline, which a real CSP blocks, so /docs runs with none instead
