@@ -19,5 +19,11 @@
   "suggestReply": "Suggest a reply",
   "aiDraftHint": "AI-suggested — review and edit before posting",
   "suggestFailed": "Could not generate a suggestion right now",
-  "noReviewsMatchFilter": "No reviews match this filter."
+  "noReviewsMatchFilter": "No reviews match this filter.",
+  "qrCardTitle": "Get More Reviews",
+  "qrCardBody": "Print this QR code on your tables so customers can leave a review in seconds — no app needed.",
+  "qrCardButton": "Get Your QR Code",
+  "qrModalTitle": "Table Review QR Code",
+  "qrModalBody": "Print this on a table-tent or sticker. A customer scans it with their phone's regular camera — no app install, no account — and can leave a rating in under a minute.",
+  "shareLink": "Share Link"
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, type LucideIcon } from 'lucide-react-native';
+import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, QrCode, type LucideIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
@@ -14,6 +14,7 @@ import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
 import { api, type Review, type ReviewSummary } from '../lib/api';
 import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
+import { ReviewQrModal } from '../components/ReviewQrModal';
 import { radii, cardShadow } from '../theme/tokens';
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -24,12 +25,13 @@ const categoryIcons: Record<string, LucideIcon> = {
 };
 
 export function CustomerReviewsScreen() {
-  const { token, enabledKeys } = useAuth();
+  const { token, enabledKeys, restaurant } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation('reviews');
   const tier = useBreakpoint();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
@@ -180,6 +182,7 @@ export function CustomerReviewsScreen() {
   );
 
   return (
+    <>
     <FlatList
       data={visibleReviews}
       keyExtractor={(review) => review.id}
@@ -192,6 +195,20 @@ export function CustomerReviewsScreen() {
       ListHeaderComponent={
         <View style={styles.headerGroup}>
           <Text style={styles.title}>{t('title')}</Text>
+
+          <View style={styles.qrCard}>
+            <View style={styles.qrCardIcon}>
+              <QrCode size={20} color={colors.primary} />
+            </View>
+            <View style={styles.flex1}>
+              <Text style={styles.qrCardTitle}>{t('qrCardTitle')}</Text>
+              <Text style={styles.qrCardBody}>{t('qrCardBody')}</Text>
+            </View>
+            <Pressable style={styles.qrCardButton} onPress={() => setQrModalVisible(true)}>
+              <Text style={styles.qrCardButtonText}>{t('qrCardButton')}</Text>
+            </Pressable>
+          </View>
+
           {loadError && <Text style={styles.error}>{loadError}</Text>}
 
           {summary && (
@@ -287,6 +304,8 @@ export function CustomerReviewsScreen() {
       }
       ListEmptyComponent={loading ? <LoadingState /> : !loadError ? <EmptyState icon={Star} message={t('noReviewsMatchFilter')} /> : null}
     />
+    {qrModalVisible && <ReviewQrModal restaurantId={restaurant.id} onClose={() => setQrModalVisible(false)} />}
+    </>
   );
 }
 
@@ -297,6 +316,31 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   footerSpinner: { paddingVertical: 16 },
   title: { fontSize: 20, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13 },
+  flex1: { flex: 1 },
+
+  qrCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 14,
+    ...cardShadow,
+  },
+  qrCardIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryTint15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrCardTitle: { fontSize: 14, fontWeight: '700', color: colors.foreground },
+  qrCardBody: { fontSize: 12, color: colors.mutedForeground, marginTop: 2, lineHeight: 16 },
+  qrCardButton: { borderRadius: radii.sm, backgroundColor: colors.primary, paddingVertical: 9, paddingHorizontal: 12 },
+  qrCardButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 12.5 },
 
   // Row + wrap is fine on wider screens where all three cards fit on one
   // line without wrapping — but React Native's flexbox can miscalculate a
