@@ -134,17 +134,42 @@ const eventTypes: [string, string, string][] = [
 // no-op once any province exists) - an already-seeded database keeps
 // whatever codes it has, including the original 2-letter ones the
 // restaurant_code_scheme migration assigned back when that was the rule.
-const provinces: Record<string, { code: string; districts: [string, string, string][] }> = {
+// `zones` is only set for provinces big enough to need a grouping layer
+// between the province and its real districts (today: just Baghdad, via
+// its two historic sides of the Tigris - see the Zone model's own comment
+// in schema.prisma for why this exists at all). A province with no zones
+// has its districts sit directly underneath it, same as always.
+const provinces: Record<
+  string,
+  { code: string; districts: [string, string, string][]; zones?: Record<string, [string, string, string][]> }
+> = {
   'Baghdad|بغداد': {
     code: 'BAGH',
-    // Deliberately just the two historic sides of the Tigris, not every
-    // real administrative district - Baghdad alone has more restaurants
-    // than most other provinces combined, so this stays coarse-grained on
-    // purpose rather than fragmenting it further.
-    districts: [
-      ['Karkh', 'الكرخ', 'KARK'],
-      ['Rusafa', 'الرصافة', 'RUSA'],
-    ],
+    districts: [],
+    zones: {
+      'Rusafa|الرصافة': [
+        ['Karrada', 'الكرادة', 'KARR'],
+        ['Adhamiya', 'الأعظمية', 'ADHA'],
+        ['Sadr City', 'مدينة الصدر', 'SADR'],
+        ['Zayouna', 'زيونة', 'ZAYO'],
+        ['Baghdad Jadeed', 'بغداد الجديدة', 'BJAD'],
+        ['Ur', 'أور', 'URDI'],
+        ['Shaab', 'الشعب', 'SHAB'],
+        ['Bab al-Sharqi', 'باب الشرقي', 'BABS'],
+        ['Qahira', 'القاهرة', 'QAHI'],
+      ],
+      'Karkh|الكرخ': [
+        ['Mansour', 'المنصور', 'MANS'],
+        ['Yarmouk', 'اليرموك', 'YARM'],
+        ['Amiriya', 'العامرية', 'AMIR'],
+        ['Jihad', 'الجهاد', 'JIHA'],
+        ['Kadhimiya', 'الكاظمية', 'KADH'],
+        ['Ghazaliya', 'الغزالية', 'GHAZ'],
+        ['Hurriya', 'الحرية', 'HURR'],
+        ['Dora', 'الدورة', 'DORA'],
+        ['Washash', 'الوشاش', 'WASH'],
+      ],
+    },
   },
   'Basra|البصرة': {
     code: 'BASR',
@@ -198,9 +223,9 @@ async function main() {
 
   if ((await db.province.count()) === 0) {
     let sortOrder = 0;
-    for (const [key, { code, districts }] of Object.entries(provinces)) {
+    for (const [key, { code, districts, zones }] of Object.entries(provinces)) {
       const [nameEn, nameAr] = key.split('|');
-      await db.province.create({
+      const province = await db.province.create({
         data: {
           nameEn,
           nameAr,
@@ -216,6 +241,35 @@ async function main() {
           },
         },
       });
+
+      // Zones and their districts are created as a second pass, not nested
+      // inside province.create above - a district needs both provinceId
+      // and zoneId set, and Prisma's nested writes can only auto-fill the
+      // one relation it's directly nesting under (zoneId here), not a
+      // separate parallel relation back up to the grandparent province.
+      if (zones) {
+        let zoneSortOrder = 0;
+        for (const [zoneKey, zoneDistricts] of Object.entries(zones)) {
+          const [zNameEn, zNameAr] = zoneKey.split('|');
+          await db.zone.create({
+            data: {
+              provinceId: province.id,
+              nameEn: zNameEn,
+              nameAr: zNameAr,
+              sortOrder: zoneSortOrder++,
+              districts: {
+                create: zoneDistricts.map(([dNameEn, dNameAr, dCode], index) => ({
+                  provinceId: province.id,
+                  nameEn: dNameEn,
+                  nameAr: dNameAr,
+                  code: dCode,
+                  sortOrder: index,
+                })),
+              },
+            },
+          });
+        }
+      }
     }
   }
 

@@ -44,6 +44,7 @@ export function ProfileInfoScreen() {
   const [foodCategoryIds, setFoodCategoryIds] = useState<string[]>([]);
   const [facilityIds, setFacilityIds] = useState<string[]>([]);
   const [provinceId, setProvinceId] = useState<string | null>(null);
+  const [zoneId, setZoneId] = useState<string | null>(null);
   const [districtId, setDistrictId] = useState<string | null>(null);
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
@@ -83,6 +84,13 @@ export function ProfileInfoScreen() {
         setFacilityIds(me.facilities.map((f) => f.facility.id));
         setProvinceId(me.province?.id ?? null);
         setDistrictId(me.district?.id ?? null);
+        // Pre-select the zone this restaurant's current district actually
+        // belongs to (if any), so editing an existing Baghdad restaurant's
+        // profile doesn't land on an empty zone step with its real district
+        // hidden a level down.
+        const currentProvince = pr.find((p) => p.id === me.province?.id);
+        const currentZone = currentProvince?.zones.find((z) => z.districts.some((d) => d.id === me.district?.id));
+        setZoneId(currentZone?.id ?? null);
         setLatitude(me.latitude != null ? String(me.latitude) : '');
         setLongitude(me.longitude != null ? String(me.longitude) : '');
         if (me.openingHours.length === 7) {
@@ -99,6 +107,12 @@ export function ProfileInfoScreen() {
   };
 
   const selectedProvince = provinces.find((p) => p.id === provinceId);
+  const selectedZone = selectedProvince?.zones.find((z) => z.id === zoneId);
+  const districtOptions = selectedProvince
+    ? selectedProvince.zones.length > 0
+      ? (selectedZone?.districts ?? [])
+      : selectedProvince.districts
+    : [];
 
   const hasValidPin = latitude.trim() !== '' && longitude.trim() !== '' && !Number.isNaN(Number(latitude)) && !Number.isNaN(Number(longitude));
 
@@ -240,14 +254,28 @@ export function ProfileInfoScreen() {
           selectedIds={provinceId ? [provinceId] : []}
           onToggle={(id) => {
             setProvinceId(id === provinceId ? null : id);
+            setZoneId(null);
             setDistrictId(null);
           }}
         />
-        {selectedProvince && (
+        {selectedProvince && selectedProvince.zones.length > 0 && (
+          <>
+            <Text style={styles.fieldLabel}>{t('zone')}</Text>
+            <ChipSelect
+              options={selectedProvince.zones.map((z) => ({ id: z.id, label: localizedName(z, language) }))}
+              selectedIds={zoneId ? [zoneId] : []}
+              onToggle={(id) => {
+                setZoneId(id === zoneId ? null : id);
+                setDistrictId(null);
+              }}
+            />
+          </>
+        )}
+        {selectedProvince && (selectedProvince.zones.length === 0 || selectedZone) && (
           <>
             <Text style={styles.fieldLabel}>{t('district')}</Text>
             <ChipSelect
-              options={selectedProvince.districts.map((d) => ({ id: d.id, label: localizedName(d, language) }))}
+              options={districtOptions.map((d) => ({ id: d.id, label: localizedName(d, language) }))}
               selectedIds={districtId ? [districtId] : []}
               onToggle={(id) => setDistrictId(id === districtId ? null : id)}
             />

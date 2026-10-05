@@ -81,8 +81,18 @@ export interface EventTypeItem extends MasterDataItem {
 
 export interface District extends MasterDataItem {}
 
+// A grouping layer between Province and District, only present for
+// provinces big enough to need it (today: just Baghdad, split into its two
+// historic sides of the Tigris). A province with no zones has an empty
+// zones array and its districts sit directly under it, same as always -
+// see RegisterRestaurantScreen's district picker for where this matters.
+export interface Zone extends MasterDataItem {
+  districts: District[];
+}
+
 export interface Province extends MasterDataItem {
   districts: District[];
+  zones: Zone[];
 }
 
 export interface RegisterRestaurantPayload {

@@ -4,8 +4,10 @@ import { CreateMasterDataItemDto, UpdateMasterDataItemDto } from './dto/master-d
 import {
   CreateDistrictDto,
   CreateProvinceDto,
+  CreateZoneDto,
   UpdateDistrictDto,
   UpdateProvinceDto,
+  UpdateZoneDto,
 } from './dto/province-district.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 
@@ -185,5 +187,26 @@ export class MasterDataController {
   @Delete('admin/districts/:id')
   deleteDistrict(@Param('id') id: string) {
     return this.masterData.deleteDistrict(id);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Post('admin/provinces/:id/zones')
+  createZone(@Param('id') provinceId: string, @Body() dto: CreateZoneDto) {
+    return this.masterData.createZone(provinceId, dto);
+  }
+  @UseGuards(AdminAuthGuard)
+  @Patch('admin/zones/:id')
+  updateZone(@Param('id') id: string, @Body() dto: UpdateZoneDto) {
+    return this.masterData.updateZone(id, dto);
+  }
+  @UseGuards(AdminAuthGuard)
+  @Delete('admin/zones/:id')
+  deleteZone(@Param('id') id: string) {
+    return this.masterData.deleteZone(id);
+  }
+  @UseGuards(AdminAuthGuard)
+  @Post('admin/zones/:id/districts')
+  createDistrictForZone(@Param('id') zoneId: string, @Body() dto: CreateDistrictDto) {
+    return this.masterData.createDistrictForZone(zoneId, dto);
   }
 }

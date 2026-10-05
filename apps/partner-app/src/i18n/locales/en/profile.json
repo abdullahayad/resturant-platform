@@ -19,6 +19,7 @@
   "businessTypes": "Business Types",
   "foodCategories": "Food Categories",
   "city": "City",
+  "zone": "Zone",
   "district": "District",
   "pinHint": "Tap or drag the pin to set your exact location",
   "latitude": "Latitude",

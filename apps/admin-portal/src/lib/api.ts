@@ -449,10 +449,26 @@ export interface District {
   code: string
   sortOrder: number
   isActive: boolean
+  zoneId?: string | null
+}
+
+// A grouping layer between Province and District, only present for
+// provinces big enough to need it (today: just Baghdad, split into its two
+// historic sides of the Tigris). A province with no zones has an empty
+// zones array and its districts sit directly under it, same as before this
+// existed - see the Zone model's own comment in schema.prisma.
+export interface Zone {
+  id: string
+  nameEn: string
+  nameAr: string
+  sortOrder: number
+  isActive: boolean
+  districts: District[]
 }
 
 export interface Province extends District {
   districts: District[]
+  zones: Zone[]
 }
 
 export interface FeatureFlagOverrideItem {
@@ -674,9 +690,17 @@ export const api = {
 
   createDistrict: (provinceId: string, payload: { nameEn: string; nameAr: string; code: string; sortOrder?: number }) =>
     send<District>('POST', `/master-data/admin/provinces/${provinceId}/districts`, payload),
-  updateDistrict: (id: string, payload: Partial<MasterDataItemPayload & { code: string }>) =>
+  updateDistrict: (id: string, payload: Partial<MasterDataItemPayload & { code: string; zoneId: string | null }>) =>
     send<District>('PATCH', `/master-data/admin/districts/${id}`, payload),
   deleteDistrict: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/districts/${id}`),
+
+  createZone: (provinceId: string, payload: { nameEn: string; nameAr: string; sortOrder?: number }) =>
+    send<Zone>('POST', `/master-data/admin/provinces/${provinceId}/zones`, payload),
+  updateZone: (id: string, payload: Partial<MasterDataItemPayload>) =>
+    send<Zone>('PATCH', `/master-data/admin/zones/${id}`, payload),
+  deleteZone: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/zones/${id}`),
+  createDistrictForZone: (zoneId: string, payload: { nameEn: string; nameAr: string; code: string; sortOrder?: number }) =>
+    send<District>('POST', `/master-data/admin/zones/${zoneId}/districts`, payload),
 
   reviews: (status?: ModerationStatus, page?: number) => get<Paginated<ReviewItem>>(`/reviews${qsFrom({ status, page })}`),
   moderateReview: (id: string, status: ModerationStatus) =>

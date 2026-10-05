@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, UnauthorizedError, type District, type Province } from '@/lib/api'
+import { api, UnauthorizedError, type District, type Province, type Zone } from '@/lib/api'
 
 const emptyProvinceForm = { nameEn: '', nameAr: '', code: '' }
+const emptyZoneForm = { nameEn: '', nameAr: '' }
 
 export function LocationsPage() {
   const navigate = useNavigate()
@@ -12,6 +13,11 @@ export function LocationsPage() {
   const [newProvince, setNewProvince] = useState(emptyProvinceForm)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [newDistrict, setNewDistrict] = useState(emptyProvinceForm)
+  const [newZone, setNewZone] = useState(emptyZoneForm)
+  // A province can have several zones open at once (e.g. adding districts
+  // to both Rusafa and Karkh in the same visit) - expanding one never
+  // closes another, and nothing auto-collapses after an add.
+  const [expandedZoneIds, setExpandedZoneIds] = useState<Set<string>>(new Set())
 
   const load = () => {
     setLoading(true)
@@ -42,7 +48,7 @@ export function LocationsPage() {
     try {
       setError(null)
       const created = await api.createProvince(newProvince)
-      setProvinces((prev) => [...prev, { ...created, districts: [] }])
+      setProvinces((prev) => [...prev, { ...created, districts: [], zones: [] }])
       setNewProvince(emptyProvinceForm)
     } catch (err) {
       handleWriteError(err)
@@ -137,6 +143,124 @@ export function LocationsPage() {
     }
   }
 
+  // ── zones (Baghdad's Rusafa/Karkh grouping layer, available for any
+  // province that grows large enough to want it) ─────────────────────────
+  const toggleZoneExpanded = (zoneId: string) => {
+    setExpandedZoneIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(zoneId)) next.delete(zoneId)
+      else next.add(zoneId)
+      return next
+    })
+  }
+
+  const addZone = async (provinceId: string) => {
+    if (!newZone.nameEn.trim() || !newZone.nameAr.trim()) return
+    try {
+      setError(null)
+      const created = await api.createZone(provinceId, newZone)
+      setProvinces((prev) =>
+        prev.map((p) => (p.id === provinceId ? { ...p, zones: [...p.zones, { ...created, districts: [] }] } : p)),
+      )
+      setNewZone(emptyZoneForm)
+      setExpandedZoneIds((prev) => new Set(prev).add(created.id))
+    } catch (err) {
+      handleWriteError(err)
+    }
+  }
+
+  const toggleZoneActive = async (provinceId: string, zone: Zone) => {
+    try {
+      setError(null)
+      const updated = await api.updateZone(zone.id, { isActive: !zone.isActive })
+      setProvinces((prev) =>
+        prev.map((p) =>
+          p.id === provinceId
+            ? { ...p, zones: p.zones.map((z) => (z.id === zone.id ? { ...z, ...updated } : z)) }
+            : p,
+        ),
+      )
+    } catch (err) {
+      handleWriteError(err)
+    }
+  }
+
+  const deleteZone = async (provinceId: string, zoneId: string) => {
+    try {
+      setError(null)
+      await api.deleteZone(zoneId)
+      setProvinces((prev) =>
+        prev.map((p) => (p.id === provinceId ? { ...p, zones: p.zones.filter((z) => z.id !== zoneId) } : p)),
+      )
+    } catch (err) {
+      handleWriteError(err)
+    }
+  }
+
+  const addDistrictToZone = async (
+    provinceId: string,
+    zoneId: string,
+    form: { nameEn: string; nameAr: string; code: string },
+  ) => {
+    const created = await api.createDistrictForZone(zoneId, form)
+    setProvinces((prev) =>
+      prev.map((p) =>
+        p.id === provinceId
+          ? { ...p, zones: p.zones.map((z) => (z.id === zoneId ? { ...z, districts: [...z.districts, created] } : z)) }
+          : p,
+      ),
+    )
+  }
+
+  const toggleZoneDistrictActive = async (provinceId: string, zoneId: string, d: District) => {
+    const updated = await api.updateDistrict(d.id, { isActive: !d.isActive })
+    setProvinces((prev) =>
+      prev.map((p) =>
+        p.id === provinceId
+          ? {
+              ...p,
+              zones: p.zones.map((z) =>
+                z.id === zoneId ? { ...z, districts: z.districts.map((x) => (x.id === d.id ? updated : x)) } : z,
+              ),
+            }
+          : p,
+      ),
+    )
+  }
+
+  const saveZoneDistrictCode = async (provinceId: string, zoneId: string, d: District, code: string) => {
+    if (code === d.code || code.trim().length !== 4) return
+    const updated = await api.updateDistrict(d.id, { code })
+    setProvinces((prev) =>
+      prev.map((p) =>
+        p.id === provinceId
+          ? {
+              ...p,
+              zones: p.zones.map((z) =>
+                z.id === zoneId ? { ...z, districts: z.districts.map((x) => (x.id === d.id ? updated : x)) } : z,
+              ),
+            }
+          : p,
+      ),
+    )
+  }
+
+  const deleteZoneDistrict = async (provinceId: string, zoneId: string, districtId: string) => {
+    await api.deleteDistrict(districtId)
+    setProvinces((prev) =>
+      prev.map((p) =>
+        p.id === provinceId
+          ? {
+              ...p,
+              zones: p.zones.map((z) =>
+                z.id === zoneId ? { ...z, districts: z.districts.filter((d) => d.id !== districtId) } : z,
+              ),
+            }
+          : p,
+      ),
+    )
+  }
+
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>
 
   return (
@@ -189,7 +313,11 @@ export function LocationsPage() {
               >
                 <span>{expandedId === p.id ? '▾' : '▸'}</span>
                 {p.nameEn} · {p.nameAr}
-                <span className="text-xs font-normal text-muted-foreground">({p.districts.length} districts)</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({p.zones.length > 0
+                    ? `${p.zones.length} zones, ${p.zones.reduce((sum, z) => sum + z.districts.length, 0)} districts`
+                    : `${p.districts.length} districts`})
+                </span>
               </button>
               <div className="flex items-center gap-3">
                 <input
@@ -217,7 +345,76 @@ export function LocationsPage() {
             </div>
 
             {expandedId === p.id && (
-              <div className="mt-4 space-y-2 border-t border-border pt-4">
+              <div className="mt-4 space-y-4 border-t border-border pt-4">
+                {/* Zones - a province with none skips straight to the flat
+                    district list below, exactly as it always worked. */}
+                {p.zones.map((z) => (
+                  <div key={z.id} className="rounded-lg border border-border/70 bg-secondary/20 p-3">
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => toggleZoneExpanded(z.id)}
+                        className="flex items-center gap-2 text-left text-sm font-semibold"
+                      >
+                        <span>{expandedZoneIds.has(z.id) ? '▾' : '▸'}</span>
+                        {z.nameEn} · {z.nameAr}
+                        <span className="text-xs font-normal text-muted-foreground">({z.districts.length} districts)</span>
+                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggleZoneActive(p.id, z)}
+                          className={
+                            z.isActive
+                              ? 'rounded-full bg-success/15 px-2.5 py-1 text-xs text-success'
+                              : 'rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground'
+                          }
+                        >
+                          {z.isActive ? 'Active' : 'Inactive'}
+                        </button>
+                        <button onClick={() => deleteZone(p.id, z.id)} className="text-xs text-destructive">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    {expandedZoneIds.has(z.id) && (
+                      <ZoneDistricts
+                        provinceId={p.id}
+                        zone={z}
+                        onAdd={addDistrictToZone}
+                        onToggleActive={toggleZoneDistrictActive}
+                        onSaveCode={saveZoneDistrictCode}
+                        onDelete={deleteZoneDistrict}
+                        onError={handleWriteError}
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {/* Add Zone - available on every province, not just Baghdad,
+                    in case another one grows enough to want this later. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={newZone.nameEn}
+                    onChange={(e) => setNewZone((f) => ({ ...f, nameEn: e.target.value }))}
+                    placeholder="Zone name (English)"
+                    className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+                  />
+                  <input
+                    value={newZone.nameAr}
+                    onChange={(e) => setNewZone((f) => ({ ...f, nameAr: e.target.value }))}
+                    placeholder="Zone name (Arabic)"
+                    className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+                  />
+                  <button
+                    onClick={() => addZone(p.id)}
+                    className="rounded-lg border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    + Add Zone
+                  </button>
+                </div>
+
+                {/* Direct (un-zoned) districts - identical to how every
+                    province worked before zones existed. */}
                 {p.districts.map((d) => (
                   <div key={d.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2 text-sm">
                     <span>{d.nameEn} · {d.nameAr}</span>
@@ -242,7 +439,9 @@ export function LocationsPage() {
                     </div>
                   </div>
                 ))}
-                {p.districts.length === 0 && <p className="text-sm text-muted-foreground">No districts yet.</p>}
+                {p.districts.length === 0 && p.zones.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No districts yet.</p>
+                )}
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <input
@@ -277,6 +476,96 @@ export function LocationsPage() {
           </div>
         ))}
         {provinces.length === 0 && <p className="text-sm text-muted-foreground">No provinces yet.</p>}
+      </div>
+    </div>
+  )
+}
+
+// Separated out purely so its own "add district" form field has its own
+// local state - with several zones potentially open at once (see
+// expandedZoneIds above), that form can't live in the parent without being
+// keyed per-zone.
+function ZoneDistricts({
+  provinceId,
+  zone,
+  onAdd,
+  onToggleActive,
+  onSaveCode,
+  onDelete,
+  onError,
+}: {
+  provinceId: string
+  zone: Zone
+  onAdd: (provinceId: string, zoneId: string, form: { nameEn: string; nameAr: string; code: string }) => Promise<void>
+  onToggleActive: (provinceId: string, zoneId: string, d: District) => Promise<void>
+  onSaveCode: (provinceId: string, zoneId: string, d: District, code: string) => Promise<void>
+  onDelete: (provinceId: string, zoneId: string, districtId: string) => Promise<void>
+  onError: (err: unknown) => void
+}) {
+  const [form, setForm] = useState({ nameEn: '', nameAr: '', code: '' })
+
+  const add = async () => {
+    if (!form.nameEn.trim() || !form.nameAr.trim() || form.code.trim().length !== 4) return
+    try {
+      await onAdd(provinceId, zone.id, form)
+      setForm({ nameEn: '', nameAr: '', code: '' })
+    } catch (err) {
+      onError(err)
+    }
+  }
+
+  return (
+    <div className="mt-3 space-y-2 border-t border-border/70 pt-3">
+      {zone.districts.map((d) => (
+        <div key={d.id} className="flex items-center justify-between rounded-lg bg-card px-3 py-2 text-sm">
+          <span>{d.nameEn} · {d.nameAr}</span>
+          <div className="flex items-center gap-3">
+            <input
+              key={d.code}
+              defaultValue={d.code}
+              onBlur={(e) => onSaveCode(provinceId, zone.id, d, e.target.value.toUpperCase()).catch(onError)}
+              maxLength={4}
+              title="Four-letter code used in restaurant codes"
+              className="w-16 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+            />
+            <button
+              onClick={() => onToggleActive(provinceId, zone.id, d).catch(onError)}
+              className={d.isActive ? 'text-xs text-success' : 'text-xs text-muted-foreground'}
+            >
+              {d.isActive ? 'Active' : 'Inactive'}
+            </button>
+            <button onClick={() => onDelete(provinceId, zone.id, d.id).catch(onError)} className="text-xs text-destructive">
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
+      {zone.districts.length === 0 && <p className="text-xs text-muted-foreground">No districts yet.</p>}
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        <input
+          value={form.nameEn}
+          onChange={(e) => setForm((f) => ({ ...f, nameEn: e.target.value }))}
+          placeholder="District name (English)"
+          className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+        />
+        <input
+          value={form.nameAr}
+          onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
+          placeholder="District name (Arabic)"
+          className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
+        />
+        <input
+          value={form.code}
+          onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 4) }))}
+          placeholder="Code"
+          maxLength={4}
+          title="Four-letter code used in restaurant codes"
+          className="w-20 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+        />
+        <button onClick={add} className="rounded-lg border border-border px-3 py-1.5 text-sm text-foreground">
+          Add District
+        </button>
       </div>
     </div>
   )

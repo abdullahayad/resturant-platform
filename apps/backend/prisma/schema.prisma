@@ -210,15 +210,47 @@ model Province {
   updatedAt DateTime @updatedAt
 
   districts   District[]
+  zones       Zone[]
   restaurants Restaurant[]
   featureFlagOverrides FeatureFlagOverride[]
 
   @@map("provinces")
 }
 
+// An optional grouping layer between Province and District - exists purely
+// for provinces too big to browse as one flat district list (Baghdad has
+// more restaurants than most other provinces combined). A province with no
+// zones works exactly as before: its districts sit directly under it. A
+// province with zones (Baghdad: Rusafa, Karkh) groups its real districts
+// under each zone instead - restaurant registration and the restaurant code
+// system are both untouched by this, since a restaurant still just picks a
+// District either way, and codes are still just province code + district
+// code (zones carry no code of their own).
+model Zone {
+  id         String   @id @default(uuid())
+  provinceId String
+  nameEn     String
+  nameAr     String
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  province  Province   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  districts District[]
+
+  @@index([provinceId])
+  @@map("zones")
+}
+
 model District {
   id         String   @id @default(uuid())
   provinceId String
+  // Which zone this district is grouped under, if its province uses zones
+  // at all - null for every district in a province with no zones (every
+  // province except Baghdad today). Deleting a zone demotes its districts
+  // back to direct province-level ones rather than deleting them.
+  zoneId     String?
   nameEn     String
   nameAr     String
   // Four-letter code, unique within its own province (not globally - the
@@ -235,11 +267,13 @@ model District {
   updatedAt  DateTime @updatedAt
 
   province    Province     @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  zone        Zone?        @relation(fields: [zoneId], references: [id], onDelete: SetNull)
   restaurants Restaurant[]
   featureFlagOverrides FeatureFlagOverride[]
 
   @@unique([provinceId, code])
   @@index([provinceId])
+  @@index([zoneId])
   @@map("districts")
 }
 

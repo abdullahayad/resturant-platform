@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateMasterDataItemDto, UpdateMasterDataItemDto } from './dto/master-data-item.dto';
 import type {
   CreateDistrictDto,
   CreateProvinceDto,
+  CreateZoneDto,
   UpdateDistrictDto,
   UpdateProvinceDto,
+  UpdateZoneDto,
 } from './dto/province-district.dto';
 
 // Business types, food categories, menu categories, and facilities are
@@ -70,7 +72,18 @@ export class MasterDataService {
       this.prisma.db.province.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: 'asc' },
-        include: { districts: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+        include: {
+          // Un-zoned districts sit directly under the province, same as
+          // every province had before zones existed - a province with no
+          // zones (everything except Baghdad today) looks identical to
+          // before. Zoned districts are nested under their zone instead.
+          districts: { where: { isActive: true, zoneId: null }, orderBy: { sortOrder: 'asc' } },
+          zones: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+            include: { districts: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+          },
+        },
       }),
     );
   }
@@ -144,7 +157,13 @@ export class MasterDataService {
   allProvinces() {
     return this.prisma.db.province.findMany({
       orderBy: { sortOrder: 'asc' },
-      include: { districts: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        districts: { where: { zoneId: null }, orderBy: { sortOrder: 'asc' } },
+        zones: {
+          orderBy: { sortOrder: 'asc' },
+          include: { districts: { orderBy: { sortOrder: 'asc' } } },
+        },
+      },
     });
   }
 
@@ -176,10 +195,57 @@ export class MasterDataService {
   }
 
   async updateDistrict(id: string, dto: UpdateDistrictDto) {
-    await this.ensureExists(this.prisma.db.district, id);
+    const district = await this.prisma.db.district.findUnique({ where: { id } });
+    if (!district) throw new NotFoundException('Not found');
+    // A district can only move to a zone under its own province - nothing
+    // else in this update stops it from being pointed at some other
+    // province's zone, so this is the one place that actually has to check.
+    if (dto.zoneId) {
+      const zone = await this.prisma.db.zone.findUnique({ where: { id: dto.zoneId }, select: { provinceId: true } });
+      if (!zone || zone.provinceId !== district.provinceId) {
+        throw new BadRequestException("That zone does not belong to this district's province");
+      }
+    }
     return this.prisma.db.district.update({
       where: { id },
       data: { ...dto, code: dto.code ? dto.code.toUpperCase() : undefined },
+    });
+  }
+
+  // ── zones (Baghdad's Rusafa/Karkh grouping layer - see the Zone model's
+  // own comment) ────────────────────────────────────────────────────────
+  async createZone(provinceId: string, dto: CreateZoneDto) {
+    await this.ensureExists(this.prisma.db.province, provinceId);
+    return this.prisma.db.zone.create({
+      data: { provinceId, nameEn: dto.nameEn, nameAr: dto.nameAr, sortOrder: dto.sortOrder ?? 0 },
+    });
+  }
+
+  async updateZone(id: string, dto: UpdateZoneDto) {
+    await this.ensureExists(this.prisma.db.zone, id);
+    return this.prisma.db.zone.update({ where: { id }, data: { ...dto } });
+  }
+
+  async deleteZone(id: string) {
+    await this.ensureExists(this.prisma.db.zone, id);
+    await this.prisma.db.zone.delete({ where: { id } });
+    return { id };
+  }
+
+  // Same shape as createDistrict, just scoped to (and deriving provinceId
+  // from) a zone instead of a province directly.
+  async createDistrictForZone(zoneId: string, dto: CreateDistrictDto) {
+    const zone = await this.prisma.db.zone.findUnique({ where: { id: zoneId }, select: { provinceId: true } });
+    if (!zone) throw new NotFoundException('Zone not found');
+    return this.prisma.db.district.create({
+      data: {
+        provinceId: zone.provinceId,
+        zoneId,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        code: dto.code.toUpperCase(),
+        sortOrder: dto.sortOrder ?? 0,
+      },
     });
   }
 

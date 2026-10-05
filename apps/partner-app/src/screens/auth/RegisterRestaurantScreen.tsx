@@ -37,6 +37,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   const [businessTypeIds, setBusinessTypeIds] = useState<string[]>([]);
   const [foodCategoryIds, setFoodCategoryIds] = useState<string[]>([]);
   const [provinceId, setProvinceId] = useState<string | null>(null);
+  const [zoneId, setZoneId] = useState<string | null>(null);
   const [districtId, setDistrictId] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -61,6 +62,16 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   };
 
   const selectedProvince = provinces.find((p) => p.id === provinceId);
+  const selectedZone = selectedProvince?.zones.find((z) => z.id === zoneId);
+  // Most provinces have no zones at all - the district list is just
+  // whatever sits directly under the province, same as always. A province
+  // with zones (Baghdad: Rusafa/Karkh) picks a zone first, and the district
+  // list underneath is that zone's districts instead.
+  const districtOptions = selectedProvince
+    ? selectedProvince.zones.length > 0
+      ? (selectedZone?.districts ?? [])
+      : selectedProvince.districts
+    : [];
 
   // Catches obviously-wrong values before they ever reach the network - the
   // backend is the real source of truth (it rejects a malformed email
@@ -160,16 +171,31 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
           selectedIds={provinceId ? [provinceId] : []}
           onToggle={(id) => {
             setProvinceId(id === provinceId ? null : id);
+            setZoneId(null);
             setDistrictId(null);
           }}
         />
       </View>
 
-      {selectedProvince && (
+      {selectedProvince && selectedProvince.zones.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>{t('register.zone')}</Text>
+          <ChipSelect
+            options={selectedProvince.zones.map((z) => ({ id: z.id, label: localizedName(z, language) }))}
+            selectedIds={zoneId ? [zoneId] : []}
+            onToggle={(id) => {
+              setZoneId(id === zoneId ? null : id);
+              setDistrictId(null);
+            }}
+          />
+        </View>
+      )}
+
+      {selectedProvince && (selectedProvince.zones.length === 0 || selectedZone) && (
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('register.district')}</Text>
           <ChipSelect
-            options={selectedProvince.districts.map((d) => ({ id: d.id, label: localizedName(d, language) }))}
+            options={districtOptions.map((d) => ({ id: d.id, label: localizedName(d, language) }))}
             selectedIds={districtId ? [districtId] : []}
             onToggle={(id) => setDistrictId(id === districtId ? null : id)}
           />
