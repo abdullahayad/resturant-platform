@@ -23,7 +23,20 @@ export function LocationsPage() {
     setLoading(true)
     api
       .provinces()
-      .then(setProvinces)
+      // The admin portal (static site) and backend API deploy as separate
+      // Render services, so right after a push there's a window where this
+      // new code can hit the still-deploying old API, which has no `zones`
+      // field at all - defaulting missing arrays here avoids a hard crash
+      // during that race instead of relying on both deploys landing at once.
+      .then((data) =>
+        setProvinces(
+          data.map((p) => ({
+            ...p,
+            districts: p.districts ?? [],
+            zones: (p.zones ?? []).map((z) => ({ ...z, districts: z.districts ?? [] })),
+          })),
+        ),
+      )
       .catch((err) => {
         if (err instanceof UnauthorizedError) navigate('/login', { replace: true })
         else setError('Could not reach the server.')
