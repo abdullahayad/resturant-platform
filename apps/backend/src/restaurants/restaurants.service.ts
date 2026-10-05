@@ -95,11 +95,11 @@ export class RestaurantsService {
   ) {}
 
   // City code + district code + a 3-digit number that resets per district
-  // (e.g. "BGKR001" for the 1st restaurant in Karkh, Baghdad). Falls back to
-  // "XX" for a missing segment — province/district are both optional at
+  // (e.g. "BAGHKARK001" for the 1st restaurant in Karkh, Baghdad). Falls back
+  // to "XXXX" for a missing segment — province/district are both optional at
   // registration.
   private async generateCodeNumber(provinceId?: string, districtId?: string): Promise<string> {
-    let provinceCode = 'XX';
+    let provinceCode = 'XXXX';
     if (provinceId) {
       const province = await this.prisma.db.province.findUnique({ where: { id: provinceId }, select: { code: true } });
       if (province) provinceCode = province.code;
@@ -120,11 +120,11 @@ export class RestaurantsService {
   }
 
   // No district to atomically count against — random-with-retry, same
-  // pattern the old global scheme used, scoped under this province (or "XX"
-  // if that's missing too) so the code still reads like a real one.
+  // pattern the old global scheme used, scoped under this province (or
+  // "XXXX" if that's missing too) so the code still reads like a real one.
   private async generateFallbackCode(provinceCode: string): Promise<string> {
     for (let attempt = 0; attempt < 10; attempt++) {
-      const candidate = `${provinceCode}XX${Math.floor(100 + Math.random() * 900)}`;
+      const candidate = `${provinceCode}XXXX${Math.floor(100 + Math.random() * 900)}`;
       const existing = await this.prisma.db.restaurant.findUnique({
         where: { codeNumber: candidate },
         select: { id: true },

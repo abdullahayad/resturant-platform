@@ -38,7 +38,7 @@ export function LocationsPage() {
   }
 
   const addProvince = async () => {
-    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 2) return
+    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 4) return
     try {
       setError(null)
       const created = await api.createProvince(newProvince)
@@ -60,7 +60,7 @@ export function LocationsPage() {
   }
 
   const saveProvinceCode = async (p: Province, code: string) => {
-    if (code === p.code || code.trim().length !== 2) return
+    if (code === p.code || code.trim().length !== 4) return
     try {
       setError(null)
       const updated = await api.updateProvince(p.id, { code })
@@ -71,7 +71,7 @@ export function LocationsPage() {
   }
 
   const saveDistrictCode = async (provinceId: string, d: District, code: string) => {
-    if (code === d.code || code.trim().length !== 2) return
+    if (code === d.code || code.trim().length !== 4) return
     try {
       setError(null)
       const updated = await api.updateDistrict(d.id, { code })
@@ -96,7 +96,7 @@ export function LocationsPage() {
   }
 
   const addDistrict = async (provinceId: string) => {
-    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 2) return
+    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 4) return
     try {
       setError(null)
       const created = await api.createDistrict(provinceId, newDistrict)
@@ -167,11 +167,11 @@ export function LocationsPage() {
           />
           <input
             value={newProvince.code}
-            onChange={(e) => setNewProvince((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 2) }))}
+            onChange={(e) => setNewProvince((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 4) }))}
             placeholder="Code"
-            maxLength={2}
-            title="Two-letter code used in restaurant codes, e.g. BG for Baghdad"
-            className="w-16 rounded-lg border border-border bg-secondary px-3 py-2 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+            maxLength={4}
+            title="Four-letter code used in restaurant codes, e.g. BAGH for Baghdad"
+            className="w-20 rounded-lg border border-border bg-secondary px-3 py-2 text-center font-mono text-sm uppercase outline-none focus:border-primary"
           />
           <button onClick={addProvince} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             Add Province
@@ -196,9 +196,9 @@ export function LocationsPage() {
                   key={p.code}
                   defaultValue={p.code}
                   onBlur={(e) => saveProvinceCode(p, e.target.value.toUpperCase())}
-                  maxLength={2}
-                  title="Two-letter code used in restaurant codes"
-                  className="w-12 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+                  maxLength={4}
+                  title="Four-letter code used in restaurant codes"
+                  className="w-16 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
                 />
                 <button
                   onClick={() => toggleProvinceActive(p)}
@@ -226,9 +226,9 @@ export function LocationsPage() {
                         key={d.code}
                         defaultValue={d.code}
                         onBlur={(e) => saveDistrictCode(p.id, d, e.target.value.toUpperCase())}
-                        maxLength={2}
-                        title="Two-letter code used in restaurant codes"
-                        className="w-12 rounded-lg border border-border bg-card px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+                        maxLength={4}
+                        title="Four-letter code used in restaurant codes"
+                        className="w-16 rounded-lg border border-border bg-card px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
                       />
                       <button
                         onClick={() => toggleDistrictActive(p.id, d)}
@@ -259,11 +259,11 @@ export function LocationsPage() {
                   />
                   <input
                     value={newDistrict.code}
-                    onChange={(e) => setNewDistrict((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 2) }))}
+                    onChange={(e) => setNewDistrict((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 4) }))}
                     placeholder="Code"
-                    maxLength={2}
-                    title="Two-letter code used in restaurant codes, e.g. KR for Karkh"
-                    className="w-16 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+                    maxLength={4}
+                    title="Four-letter code used in restaurant codes, e.g. KARK for Karkh"
+                    className="w-20 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
                   />
                   <button
                     onClick={() => addDistrict(p.id)}
