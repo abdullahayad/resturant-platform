@@ -128,44 +128,48 @@ const eventTypes: [string, string, string][] = [
   ["Chef's Table", 'طاولة الشيف', '👨‍🍳'],
 ];
 
-// Each province/district also carries a 2-letter code — the first/second
-// segment of every restaurant code in it (e.g. "BG" + "KR" -> BGKR001). Must
-// match what the restaurant_code_scheme migration assigns to these same
-// names, so a fresh seed and a migrated existing database land on the same
-// codes.
+// Each province/district also carries a 4-letter code — the first/second
+// segment of every restaurant code in it (e.g. "BAGH" + "KARK" ->
+// BAGHKARK001). Only applies to a fresh database (seedList below is a
+// no-op once any province exists) - an already-seeded database keeps
+// whatever codes it has, including the original 2-letter ones the
+// restaurant_code_scheme migration assigned back when that was the rule.
 const provinces: Record<string, { code: string; districts: [string, string, string][] }> = {
   'Baghdad|بغداد': {
-    code: 'BG',
+    code: 'BAGH',
+    // Deliberately just the two historic sides of the Tigris, not every
+    // real administrative district - Baghdad alone has more restaurants
+    // than most other provinces combined, so this stays coarse-grained on
+    // purpose rather than fragmenting it further.
     districts: [
-      ['Karkh', 'الكرخ', 'KR'],
-      ['Rusafa', 'الرصافة', 'RS'],
-      ['Kadhimiya', 'الكاظمية', 'KD'],
+      ['Karkh', 'الكرخ', 'KARK'],
+      ['Rusafa', 'الرصافة', 'RUSA'],
     ],
   },
   'Basra|البصرة': {
-    code: 'BS',
+    code: 'BASR',
     districts: [
-      ['Basra Center', 'مركز البصرة', 'BC'],
-      ['Zubair', 'الزبير', 'ZB'],
+      ['Basra Center', 'مركز البصرة', 'BSCT'],
+      ['Zubair', 'الزبير', 'ZUBR'],
     ],
   },
   'Erbil|أربيل': {
-    code: 'EB',
+    code: 'ERBL',
     districts: [
-      ['Erbil Center', 'مركز أربيل', 'EC'],
-      ['Ankawa', 'عنكاوا', 'AN'],
+      ['Erbil Center', 'مركز أربيل', 'ERCT'],
+      ['Ankawa', 'عنكاوا', 'ANKW'],
     ],
   },
   'Najaf|النجف': {
-    code: 'NJ',
+    code: 'NAJF',
     districts: [
-      ['Najaf Center', 'مركز النجف', 'NC'],
-      ['Kufa', 'الكوفة', 'KF'],
+      ['Najaf Center', 'مركز النجف', 'NJCT'],
+      ['Kufa', 'الكوفة', 'KUFA'],
     ],
   },
   'Sulaymaniyah|السليمانية': {
-    code: 'SU',
-    districts: [['Sulaymaniyah Center', 'مركز السليمانية', 'SC']],
+    code: 'SULY',
+    districts: [['Sulaymaniyah Center', 'مركز السليمانية', 'SLCT']],
   },
 };
 
@@ -243,7 +247,7 @@ async function main() {
         // Matches the province/district picked just above (first province,
         // first district - Baghdad/Karkh as currently seeded) so a fresh
         // database's demo restaurant already has a code in the new scheme.
-        codeNumber: `${province?.code ?? 'XX'}${province?.districts[0]?.code ?? 'XX'}001`,
+        codeNumber: `${province?.code ?? 'XXXX'}${province?.districts[0]?.code ?? 'XXXX'}001`,
         nameEn: 'Demo Restaurant',
         nameAr: 'مطعم تجريبي',
         phone: '07700000000',
