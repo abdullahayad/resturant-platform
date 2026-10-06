@@ -18,12 +18,12 @@ export class RestaurantFeaturedController {
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Post()
   request(@Req() req: { user: PartnerJwtPayload }, @Body() dto: RequestFeaturedDto) {
-    return this.featured.request(req.user.sub, dto);
+    return this.featured.request(req.user.sub, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Delete(':id')
   cancel(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
-    return this.featured.cancel(req.user.sub, id);
+    return this.featured.cancel(req.user.sub, id, req.user);
   }
 }

@@ -2,18 +2,27 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PaymentAccountsService } from './payment-accounts.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 describe('PaymentAccountsService', () => {
   let service: PaymentAccountsService;
   let prisma: { db: { restaurant: { findUnique: jest.Mock; update: jest.Mock } } };
+  let activityLog: { log: jest.Mock };
   const originalEnv = process.env.PAYMENT_CREDENTIALS_ENCRYPTION_KEY;
+  const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   beforeEach(async () => {
     process.env.PAYMENT_CREDENTIALS_ENCRYPTION_KEY = Buffer.alloc(32, 3).toString('base64');
     prisma = { db: { restaurant: { findUnique: jest.fn(), update: jest.fn() } } };
+    activityLog = { log: jest.fn() };
 
     const module = await Test.createTestingModule({
-      providers: [PaymentAccountsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        PaymentAccountsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: RestaurantActivityLogService, useValue: activityLog },
+      ],
     }).compile();
 
     service = module.get(PaymentAccountsService);
@@ -61,7 +70,7 @@ describe('PaymentAccountsService', () => {
 
   describe('connect', () => {
     it('refuses an unknown gateway id', async () => {
-      await expect(service.connect('r1', 'not-a-real-gateway', { merchantId: 'm1', secret: 's1' })).rejects.toThrow(
+      await expect(service.connect('r1', 'not-a-real-gateway', { merchantId: 'm1', secret: 's1' }, fakeUser)).rejects.toThrow(
         BadRequestException,
       );
       expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
@@ -75,7 +84,7 @@ describe('PaymentAccountsService', () => {
         qiCardConnectedAt: null,
       });
 
-      await service.connect('r1', 'zaincash', { merchantId: 'm1', secret: 'top-secret' });
+      await service.connect('r1', 'zaincash', { merchantId: 'm1', secret: 'top-secret' }, fakeUser);
 
       expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -101,7 +110,7 @@ describe('PaymentAccountsService', () => {
         qiCardConnectedAt: null,
       });
 
-      await service.disconnect('r1', 'qicard');
+      await service.disconnect('r1', 'qicard', fakeUser);
 
       expect(prisma.db.restaurant.update).toHaveBeenCalledWith({
         where: { id: 'r1' },

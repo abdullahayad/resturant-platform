@@ -12,7 +12,7 @@ export class StoriesController {
   @UseGuards(ApprovedPartnerGuard)
   @Post()
   create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreateStoryDto) {
-    return this.stories.create(req.user.sub, dto);
+    return this.stories.create(req.user.sub, dto, req.user);
   }
 
   @UseGuards(PartnerAuthGuard)

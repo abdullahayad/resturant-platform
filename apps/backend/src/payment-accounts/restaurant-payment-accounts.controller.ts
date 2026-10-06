@@ -18,12 +18,12 @@ export class RestaurantPaymentAccountsController {
   @UseGuards(ApprovedPartnerGuard)
   @Put(':gateway')
   connect(@Req() req: { user: PartnerJwtPayload }, @Param('gateway') gateway: string, @Body() dto: ConnectPaymentGatewayDto) {
-    return this.paymentAccounts.connect(req.user.sub, gateway, dto);
+    return this.paymentAccounts.connect(req.user.sub, gateway, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Delete(':gateway')
   disconnect(@Req() req: { user: PartnerJwtPayload }, @Param('gateway') gateway: string) {
-    return this.paymentAccounts.disconnect(req.user.sub, gateway);
+    return this.paymentAccounts.disconnect(req.user.sub, gateway, req.user);
   }
 }

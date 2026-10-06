@@ -2,11 +2,15 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { GalleryService } from './gallery.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 describe('GalleryService', () => {
   let service: GalleryService;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed-shape mock (nested model mocks plus a bare $transaction mock)
   let prisma: any;
+  let activityLog: { log: jest.Mock };
+  const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   beforeEach(async () => {
     prisma = {
@@ -28,9 +32,14 @@ describe('GalleryService', () => {
     };
     // $transaction just runs the callback with a tx that reuses the same mocks.
     prisma.db.$transaction.mockImplementation((cb: (tx: unknown) => unknown) => cb(prisma.db));
+    activityLog = { log: jest.fn() };
 
     const module = await Test.createTestingModule({
-      providers: [GalleryService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        GalleryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: RestaurantActivityLogService, useValue: activityLog },
+      ],
     }).compile();
 
     service = module.get(GalleryService);
@@ -39,14 +48,14 @@ describe('GalleryService', () => {
   describe('create', () => {
     it('requires an ambienceSubCategory for the Ambience album', async () => {
       await expect(
-        service.create('r1', { album: 'AMBIENCE', url: 'http://x/a.jpg' } as never),
+        service.create('r1', { album: 'AMBIENCE', url: 'http://x/a.jpg' } as never, fakeUser),
       ).rejects.toThrow(BadRequestException);
       expect(prisma.db.galleryPhoto.create).not.toHaveBeenCalled();
     });
 
     it('rejects a dishId on a non-Food album', async () => {
       await expect(
-        service.create('r1', { album: 'AMBIENCE', ambienceSubCategory: 'INDOOR', url: 'http://x/a.jpg', dishId: 'd1' } as never),
+        service.create('r1', { album: 'AMBIENCE', ambienceSubCategory: 'INDOOR', url: 'http://x/a.jpg', dishId: 'd1' } as never, fakeUser),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -54,7 +63,7 @@ describe('GalleryService', () => {
       prisma.db.dish.findUnique.mockResolvedValueOnce({ restaurantId: 'other' });
 
       await expect(
-        service.create('r1', { album: 'FOOD', url: 'http://x/a.jpg', dishId: 'd1' } as never),
+        service.create('r1', { album: 'FOOD', url: 'http://x/a.jpg', dishId: 'd1' } as never, fakeUser),
       ).rejects.toThrow(NotFoundException);
       expect(prisma.db.galleryPhoto.create).not.toHaveBeenCalled();
     });
@@ -63,7 +72,7 @@ describe('GalleryService', () => {
       prisma.db.dish.findUnique.mockResolvedValueOnce({ restaurantId: 'r1' });
       prisma.db.galleryPhoto.create.mockResolvedValueOnce({ id: 'p1' });
 
-      const result = await service.create('r1', { album: 'FOOD', url: 'http://x/a.jpg', dishId: 'd1' } as never);
+      const result = await service.create('r1', { album: 'FOOD', url: 'http://x/a.jpg', dishId: 'd1' } as never, fakeUser);
 
       expect(result).toEqual({ id: 'p1' });
       expect(prisma.db.galleryPhoto.create).toHaveBeenCalledTimes(1);
@@ -86,7 +95,7 @@ describe('GalleryService', () => {
     it('refuses to remove a photo belonging to a different restaurant', async () => {
       prisma.db.galleryPhoto.findUnique.mockResolvedValueOnce({ restaurantId: 'other' });
 
-      await expect(service.remove('r1', 'p1')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('r1', 'p1', fakeUser)).rejects.toThrow(NotFoundException);
       expect(prisma.db.galleryPhoto.delete).not.toHaveBeenCalled();
     });
   });
@@ -103,7 +112,7 @@ describe('GalleryService', () => {
     it('refuses to set a cover on a photo belonging to a different restaurant', async () => {
       prisma.db.galleryPhoto.findUnique.mockResolvedValueOnce({ restaurantId: 'other', album: 'FOOD' });
 
-      await expect(service.setCover('r1', 'p1', true)).rejects.toThrow(NotFoundException);
+      await expect(service.setCover('r1', 'p1', true, fakeUser)).rejects.toThrow(NotFoundException);
       expect(prisma.db.galleryPhoto.updateMany).not.toHaveBeenCalled();
     });
 
@@ -111,7 +120,7 @@ describe('GalleryService', () => {
       prisma.db.galleryPhoto.findUnique.mockResolvedValueOnce({ restaurantId: 'r1', album: 'FOOD' });
       prisma.db.galleryPhoto.update.mockResolvedValueOnce({ id: 'p1', isCover: true });
 
-      await service.setCover('r1', 'p1', true);
+      await service.setCover('r1', 'p1', true, fakeUser);
 
       expect(prisma.db.galleryPhoto.updateMany).toHaveBeenCalledWith({
         where: { restaurantId: 'r1', album: 'FOOD', isCover: true },
@@ -126,7 +135,7 @@ describe('GalleryService', () => {
       prisma.db.galleryPhoto.findUnique.mockResolvedValueOnce({ restaurantId: 'r1', album: 'FOOD' });
       prisma.db.galleryPhoto.update.mockResolvedValueOnce({ id: 'p1', isCover: false });
 
-      await service.setCover('r1', 'p1', false);
+      await service.setCover('r1', 'p1', false, fakeUser);
 
       expect(prisma.db.galleryPhoto.updateMany).not.toHaveBeenCalled();
       expect(prisma.db.galleryPhoto.update).toHaveBeenCalledWith(

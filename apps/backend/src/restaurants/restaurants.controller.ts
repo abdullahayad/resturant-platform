@@ -53,7 +53,7 @@ export class RestaurantsController {
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('me')
   updateMe(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateRestaurantProfileDto) {
-    return this.restaurants.updateProfile(req.user.sub, dto);
+    return this.restaurants.updateProfile(req.user.sub, dto, req.user);
   }
 
   @UseGuards(PartnerAuthGuard)
@@ -65,25 +65,25 @@ export class RestaurantsController {
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('me/notifications')
   updateNotifications(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateNotificationPrefsDto) {
-    return this.restaurants.updateNotificationPrefs(req.user.sub, dto);
+    return this.restaurants.updateNotificationPrefs(req.user.sub, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('me/hours')
   updateHours(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateOpeningHoursDto) {
-    return this.restaurants.updateOpeningHours(req.user.sub, dto.days);
+    return this.restaurants.updateOpeningHours(req.user.sub, dto.days, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Post('me/publish-submit')
   submitForPublish(@Req() req: { user: PartnerJwtPayload }) {
-    return this.restaurants.submitForPublish(req.user.sub);
+    return this.restaurants.submitForPublish(req.user.sub, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('me/publish-acknowledge')
   acknowledgePublishDecline(@Req() req: { user: PartnerJwtPayload }) {
-    return this.restaurants.acknowledgePublishDecline(req.user.sub);
+    return this.restaurants.acknowledgePublishDecline(req.user.sub, req.user);
   }
 
   // Any logged-in device (manager or staff, any role) can register/unregister

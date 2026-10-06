@@ -8,6 +8,9 @@ import type { ModerationStatusValue } from '../common/moderation';
 import { normalizePhone } from '../common/phone';
 import { pageOffset } from '../common/pagination';
 import { Prisma } from '../../generated/prisma/client';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import { diffFields, summarizeChanges } from '../restaurant-activity-log/diff-fields';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const eventSelect = {
   id: true,
@@ -52,6 +55,7 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly push: PushService,
     private readonly loyalty: LoyaltyService,
+    private readonly activityLog: RestaurantActivityLogService,
   ) {}
 
   async list(restaurantId: string) {
@@ -114,8 +118,8 @@ export class EventsService {
     return [...oneOff, ...recurring];
   }
 
-  create(restaurantId: string, dto: CreateEventDto) {
-    return this.prisma.db.restaurantEvent.create({
+  async create(restaurantId: string, dto: CreateEventDto, user: PartnerJwtPayload) {
+    const event = await this.prisma.db.restaurantEvent.create({
       data: {
         restaurantId,
         eventTypeId: dto.eventTypeId,
@@ -133,11 +137,13 @@ export class EventsService {
       },
       select: eventSelect,
     });
+    await this.activityLog.log({ restaurantId, section: 'chefTable', summary: `Created event '${event.titleEn}'`, user });
+    return event;
   }
 
-  async update(restaurantId: string, id: string, dto: UpdateEventDto) {
-    await this.ensureOwnership(restaurantId, id);
-    return this.prisma.db.restaurantEvent.update({
+  async update(restaurantId: string, id: string, dto: UpdateEventDto, user: PartnerJwtPayload) {
+    const before = await this.ensureOwnership(restaurantId, id);
+    const after = await this.prisma.db.restaurantEvent.update({
       where: { id },
       data: {
         eventTypeId: dto.eventTypeId,
@@ -164,17 +170,30 @@ export class EventsService {
       },
       select: eventSelect,
     });
+
+    const changes = diffFields(
+      { titleEn: before.titleEn, price: before.price?.toString() ?? null, capacity: before.capacity, isActive: before.isActive },
+      { titleEn: after.titleEn, price: after.price?.toString() ?? null, capacity: after.capacity, isActive: after.isActive },
+      { titleEn: 'Title', price: 'Price', capacity: 'Capacity', isActive: 'Active' },
+    );
+    if (changes.length) {
+      await this.activityLog.log({ restaurantId, section: 'chefTable', summary: `'${after.titleEn}' — ${summarizeChanges(changes)}`, changes, user });
+    }
+
+    return after;
   }
 
-  async remove(restaurantId: string, id: string) {
-    await this.ensureOwnership(restaurantId, id);
+  async remove(restaurantId: string, id: string, user: PartnerJwtPayload) {
+    const event = await this.ensureOwnership(restaurantId, id);
     await this.prisma.db.restaurantEvent.delete({ where: { id } });
+    await this.activityLog.log({ restaurantId, section: 'chefTable', summary: `Removed event '${event.titleEn}'`, user });
     return { id };
   }
 
   private async ensureOwnership(restaurantId: string, id: string) {
     const event = await this.prisma.db.restaurantEvent.findUnique({ where: { id } });
     if (!event || event.restaurantId !== restaurantId) throw new NotFoundException('Event not found');
+    return event;
   }
 
   // ── Reservations ──────────────────────────────────────────────────
@@ -353,7 +372,7 @@ export class EventsService {
     return { count };
   }
 
-  async updateReservationStatus(restaurantId: string, id: string, dto: UpdateReservationStatusDto) {
+  async updateReservationStatus(restaurantId: string, id: string, dto: UpdateReservationStatusDto, user: PartnerJwtPayload) {
     const booking = await this.prisma.db.chefTableBooking.findUnique({ where: { id } });
     if (!booking || booking.restaurantId !== restaurantId) throw new NotFoundException('Reservation not found');
     const updated = await this.prisma.db.chefTableBooking.update({
@@ -362,6 +381,15 @@ export class EventsService {
       select: reservationSelect,
     });
     this.loyalty.maybeAutoIssue(booking.guestPhoneNormalized).catch(() => {});
+    if (booking.status !== updated.status) {
+      await this.activityLog.log({
+        restaurantId,
+        section: 'reservations',
+        summary: `Marked reservation for ${booking.guestName} as ${updated.status}`,
+        changes: [{ field: 'Status', from: booking.status, to: updated.status }],
+        user,
+      });
+    }
     return updated;
   }
 

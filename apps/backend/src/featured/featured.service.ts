@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { GrantFeaturedDto, ModerateFeaturedDto, RequestFeaturedDto } from './dto/featured.dto';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const restaurantSummary = { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } as const;
 
@@ -21,7 +23,10 @@ function isCurrentlyFeatured(p: FeaturedLike): boolean {
 
 @Injectable()
 export class FeaturedService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: RestaurantActivityLogService,
+  ) {}
 
   // ── Restaurant-facing ──────────────────────────────────────────────────
 
@@ -33,7 +38,7 @@ export class FeaturedService {
     return placements.map((p) => ({ ...p, isCurrentlyActive: isCurrentlyFeatured(p) }));
   }
 
-  async request(restaurantId: string, dto: RequestFeaturedDto) {
+  async request(restaurantId: string, dto: RequestFeaturedDto, user: PartnerJwtPayload) {
     const existingPending = await this.prisma.db.featuredPlacement.findFirst({
       where: { restaurantId, status: 'PENDING' },
       select: { id: true },
@@ -42,7 +47,7 @@ export class FeaturedService {
       throw new ConflictException('You already have a featured placement request awaiting review');
     }
 
-    return this.prisma.db.featuredPlacement.create({
+    const placement = await this.prisma.db.featuredPlacement.create({
       data: {
         restaurantId,
         initiator: 'RESTAURANT',
@@ -51,14 +56,17 @@ export class FeaturedService {
         endDate: dto.endDate ? new Date(dto.endDate) : null,
       },
     });
+    await this.activityLog.log({ restaurantId, section: 'advertising', summary: 'Requested featured placement', user });
+    return placement;
   }
 
-  async cancel(restaurantId: string, id: string) {
+  async cancel(restaurantId: string, id: string, user: PartnerJwtPayload) {
     const placement = await this.ensureOwnership(restaurantId, id);
     if (placement.status !== 'PENDING') {
       throw new BadRequestException('Only a pending request can be withdrawn');
     }
     await this.prisma.db.featuredPlacement.delete({ where: { id } });
+    await this.activityLog.log({ restaurantId, section: 'advertising', summary: 'Cancelled featured placement request', user });
     return { id };
   }
 

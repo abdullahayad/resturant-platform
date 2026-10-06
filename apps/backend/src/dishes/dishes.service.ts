@@ -3,6 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MAX_PRICE, type BulkUpdatePricesDto, type CreateDishDto, type ModerateDishDto, type PriceAdjustmentType, type UpdateDishDto } from './dto/dish.dto';
 import type { ModerationStatusValue } from '../common/moderation';
 import { pageOffset } from '../common/pagination';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import { diffFields, summarizeChanges } from '../restaurant-activity-log/diff-fields';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const dishInclude = { menuCategory: true } as const;
 
@@ -18,7 +21,10 @@ function computeAdjustedPrice(currentPrice: number, type: PriceAdjustmentType, v
 
 @Injectable()
 export class DishesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: RestaurantActivityLogService,
+  ) {}
 
   // Full, unpaginated - see DishesController.list for why this stays as-is.
   list(restaurantId: string) {
@@ -39,25 +45,46 @@ export class DishesService {
     return { items, total, page, pageSize: take };
   }
 
-  create(restaurantId: string, dto: CreateDishDto) {
-    return this.prisma.db.dish.create({
+  async create(restaurantId: string, dto: CreateDishDto, user: PartnerJwtPayload) {
+    const dish = await this.prisma.db.dish.create({
       data: { restaurantId, ...dto },
       include: dishInclude,
     });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'menu',
+      summary: `Added dish '${dish.nameEn}' (${dish.price})`,
+      user,
+    });
+    return dish;
   }
 
-  async update(restaurantId: string, dishId: string, dto: UpdateDishDto) {
+  async update(restaurantId: string, dishId: string, dto: UpdateDishDto, user: PartnerJwtPayload) {
     await this.ensureOwned(restaurantId, dishId);
-    return this.prisma.db.dish.update({
+    const before = await this.prisma.db.dish.findUnique({ where: { id: dishId } });
+    const after = await this.prisma.db.dish.update({
       where: { id: dishId },
       data: dto,
       include: dishInclude,
     });
+    if (before) {
+      const changes = diffFields(
+        { nameEn: before.nameEn, nameAr: before.nameAr, price: before.price.toString(), isMostOrdered: before.isMostOrdered },
+        { nameEn: after.nameEn, nameAr: after.nameAr, price: after.price.toString(), isMostOrdered: after.isMostOrdered },
+        { nameEn: 'Name (EN)', nameAr: 'Name (AR)', price: 'Price', isMostOrdered: 'Most Ordered' },
+      );
+      if (changes.length) {
+        await this.activityLog.log({ restaurantId, section: 'menu', summary: `'${after.nameEn}' — ${summarizeChanges(changes)}`, changes, user });
+      }
+    }
+    return after;
   }
 
-  async remove(restaurantId: string, dishId: string) {
+  async remove(restaurantId: string, dishId: string, user: PartnerJwtPayload) {
     await this.ensureOwned(restaurantId, dishId);
+    const dish = await this.prisma.db.dish.findUnique({ where: { id: dishId }, select: { nameEn: true } });
     await this.prisma.db.dish.update({ where: { id: dishId }, data: { isActive: false } });
+    await this.activityLog.log({ restaurantId, section: 'menu', summary: `Removed dish '${dish?.nameEn ?? dishId}'`, user });
     return { id: dishId };
   }
 
@@ -68,7 +95,7 @@ export class DishesService {
   // not trusted from that preview (two staff editing at once, or a stale
   // screen, shouldn't be able to push a preview-computed price that no
   // longer matches reality).
-  async bulkUpdatePrices(restaurantId: string, dto: BulkUpdatePricesDto) {
+  async bulkUpdatePrices(restaurantId: string, dto: BulkUpdatePricesDto, user: PartnerJwtPayload) {
     if (dto.dishIds) {
       const owned = await this.prisma.db.dish.count({ where: { id: { in: dto.dishIds }, restaurantId } });
       if (owned !== dto.dishIds.length) {
@@ -84,9 +111,11 @@ export class DishesService {
     // and get silently clobbered by this bulk update's stale base price.
     // Serializable matches the isolation level already used for the other
     // price/capacity-sensitive transaction in this codebase (event booking).
-    return this.prisma.db.$transaction(
+    const beforePrices = new Map<string, string>();
+    const updated = await this.prisma.db.$transaction(
       async (tx) => {
         const dishes = await tx.dish.findMany({ where, select: { id: true, price: true } });
+        dishes.forEach((d) => beforePrices.set(d.id, d.price.toString()));
         return Promise.all(
           dishes.map((dish) =>
             tx.dish.update({
@@ -99,6 +128,19 @@ export class DishesService {
       },
       { isolationLevel: 'Serializable' },
     );
+
+    if (updated.length) {
+      const changes = updated.map((d) => ({ field: d.nameEn, from: beforePrices.get(d.id) ?? null, to: d.price.toString() }));
+      await this.activityLog.log({
+        restaurantId,
+        section: 'menu',
+        summary: `Updated prices for ${updated.length} dish${updated.length === 1 ? '' : 'es'}`,
+        changes,
+        user,
+      });
+    }
+
+    return updated;
   }
 
   private async ensureOwned(restaurantId: string, dishId: string) {

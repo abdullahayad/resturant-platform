@@ -23,18 +23,18 @@ export class GalleryController {
   @UseGuards(ApprovedPartnerGuard)
   @Post()
   create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreateGalleryPhotoDto) {
-    return this.gallery.create(req.user.sub, dto);
+    return this.gallery.create(req.user.sub, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Delete(':id')
   remove(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
-    return this.gallery.remove(req.user.sub, id);
+    return this.gallery.remove(req.user.sub, id, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Patch(':id/cover')
   setCover(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: SetGalleryCoverDto) {
-    return this.gallery.setCover(req.user.sub, id, dto.cover);
+    return this.gallery.setCover(req.user.sub, id, dto.cover, req.user);
   }
 }

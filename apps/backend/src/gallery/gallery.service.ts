@@ -5,14 +5,21 @@ import type { GalleryAlbumValue } from '../common/gallery';
 import type { ModerationStatusValue } from '../common/moderation';
 import { pageOffset } from '../common/pagination';
 import { Prisma, type AmbienceSubCategory } from '../../generated/prisma/client';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const photoInclude = {
   dish: { select: { id: true, nameEn: true, isMostOrdered: true, menuCategory: true } },
 } as const;
 
+const ALBUM_LABELS: Record<string, string> = { FOOD: 'Food', AMBIENCE: 'Ambience', MENU: 'Menu', REVIEW: 'Review' };
+
 @Injectable()
 export class GalleryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: RestaurantActivityLogService,
+  ) {}
 
   async list(
     restaurantId: string,
@@ -44,7 +51,7 @@ export class GalleryService {
     return { items, total, page, pageSize: take };
   }
 
-  async create(restaurantId: string, dto: CreateGalleryPhotoDto) {
+  async create(restaurantId: string, dto: CreateGalleryPhotoDto, user: PartnerJwtPayload) {
     if (dto.album === 'AMBIENCE' && !dto.ambienceSubCategory) {
       throw new BadRequestException('ambienceSubCategory is required for the Ambience album');
     }
@@ -56,7 +63,7 @@ export class GalleryService {
       if (!dish || dish.restaurantId !== restaurantId) throw new NotFoundException('Dish not found');
     }
 
-    return this.prisma.db.galleryPhoto.create({
+    const photo = await this.prisma.db.galleryPhoto.create({
       data: {
         restaurantId,
         album: dto.album,
@@ -67,12 +74,25 @@ export class GalleryService {
       },
       include: photoInclude,
     });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'gallery',
+      summary: `Added a photo to ${ALBUM_LABELS[dto.album] ?? dto.album}`,
+      user,
+    });
+    return photo;
   }
 
-  async remove(restaurantId: string, id: string) {
-    const photo = await this.prisma.db.galleryPhoto.findUnique({ where: { id }, select: { restaurantId: true } });
+  async remove(restaurantId: string, id: string, user: PartnerJwtPayload) {
+    const photo = await this.prisma.db.galleryPhoto.findUnique({ where: { id }, select: { restaurantId: true, album: true } });
     if (!photo || photo.restaurantId !== restaurantId) throw new NotFoundException('Photo not found');
     await this.prisma.db.galleryPhoto.delete({ where: { id } });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'gallery',
+      summary: `Removed a photo from ${ALBUM_LABELS[photo.album] ?? photo.album}`,
+      user,
+    });
     return { id };
   }
 
@@ -80,7 +100,7 @@ export class GalleryService {
   // cover in the same (restaurant, album), which is what actually keeps
   // "at most one cover per album" true, since that's not something a DB
   // constraint enforces here (see the isCover field comment in schema.prisma).
-  async setCover(restaurantId: string, id: string, cover: boolean) {
+  async setCover(restaurantId: string, id: string, cover: boolean, user: PartnerJwtPayload) {
     const photo = await this.prisma.db.galleryPhoto.findUnique({
       where: { id },
       select: { restaurantId: true, album: true },
@@ -88,7 +108,7 @@ export class GalleryService {
     if (!photo || photo.restaurantId !== restaurantId) throw new NotFoundException('Photo not found');
 
     try {
-      return await this.prisma.db.$transaction(async (tx) => {
+      const result = await this.prisma.db.$transaction(async (tx) => {
         if (cover) {
           await tx.galleryPhoto.updateMany({
             where: { restaurantId, album: photo.album, isCover: true },
@@ -97,6 +117,15 @@ export class GalleryService {
         }
         return tx.galleryPhoto.update({ where: { id }, data: { isCover: cover }, include: photoInclude });
       });
+      await this.activityLog.log({
+        restaurantId,
+        section: 'gallery',
+        summary: cover
+          ? `Set a new cover photo for ${ALBUM_LABELS[photo.album] ?? photo.album}`
+          : `Removed the cover photo for ${ALBUM_LABELS[photo.album] ?? photo.album}`,
+        user,
+      });
+      return result;
     } catch (err) {
       // The partial unique index (one cover per restaurantId+album) is the
       // real backstop for this - two near-simultaneous setCover(true) calls

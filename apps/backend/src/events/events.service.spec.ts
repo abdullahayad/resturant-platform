@@ -4,6 +4,7 @@ import { EventsService } from './events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
 import { Prisma } from '../../generated/prisma/client';
 
 describe('EventsService', () => {
@@ -77,6 +78,7 @@ describe('EventsService', () => {
             maybeAutoIssue: jest.fn().mockResolvedValue(undefined),
           },
         },
+        { provide: RestaurantActivityLogService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 

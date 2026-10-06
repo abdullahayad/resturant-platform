@@ -32,18 +32,18 @@ export class ChefsController {
     @Param('role') role: string,
     @Body() dto: UpsertChefProfileDto,
   ) {
-    return this.chefs.upsertProfile(req.user.sub, resolveRole(role), dto);
+    return this.chefs.upsertProfile(req.user.sub, resolveRole(role), dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Delete(':role')
   remove(@Req() req: { user: PartnerJwtPayload }, @Param('role') role: string) {
-    return this.chefs.removeProfile(req.user.sub, resolveRole(role));
+    return this.chefs.removeProfile(req.user.sub, resolveRole(role), req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Patch('crew')
   updateCrew(@Req() req: { user: PartnerJwtPayload }, @Body() dto: UpdateCrewDto) {
-    return this.chefs.updateCrew(req.user.sub, dto);
+    return this.chefs.updateCrew(req.user.sub, dto, req.user);
   }
 }

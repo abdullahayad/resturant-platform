@@ -5,13 +5,17 @@ import { RestaurantsService } from './restaurants.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { PushService } from '../push/push.service';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
 import type { RegisterRestaurantDto } from './dto/register-restaurant.dto';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 import { Prisma } from '../../generated/prisma/client';
 
 describe('RestaurantsService', () => {
   let service: RestaurantsService;
   let prisma: { db: Record<string, Record<string, jest.Mock>> };
   let jwt: { signAsync: jest.Mock };
+  let activityLog: { log: jest.Mock };
+  const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   const baseRegisterDto: RegisterRestaurantDto = {
     nameEn: 'Test Restaurant',
@@ -36,6 +40,7 @@ describe('RestaurantsService', () => {
           delete: jest.fn(),
         },
         partnerStaffUser: {
+          findUnique: jest.fn(),
           delete: jest.fn(),
         },
         restaurantChain: {
@@ -50,6 +55,7 @@ describe('RestaurantsService', () => {
       },
     };
     jwt = { signAsync: jest.fn().mockResolvedValue('token') };
+    activityLog = { log: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -58,6 +64,7 @@ describe('RestaurantsService', () => {
         { provide: JwtService, useValue: jwt },
         { provide: EmailService, useValue: { send: jest.fn() } },
         { provide: PushService, useValue: { sendToRestaurants: jest.fn().mockResolvedValue(undefined) } },
+        { provide: RestaurantActivityLogService, useValue: activityLog },
       ],
     }).compile();
 
@@ -127,7 +134,7 @@ describe('RestaurantsService', () => {
         .mockResolvedValueOnce({ id: 'r1', publishStatus: 'PENDING' }); // findOne() after update
       prisma.db.restaurant.update.mockResolvedValue({});
 
-      await service.submitForPublish('r1');
+      await service.submitForPublish('r1', fakeUser);
 
       expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ publishStatus: 'PENDING' }) }),
@@ -140,26 +147,26 @@ describe('RestaurantsService', () => {
         .mockResolvedValueOnce({ id: 'r1', publishStatus: 'PENDING' });
       prisma.db.restaurant.update.mockResolvedValue({});
 
-      await expect(service.submitForPublish('r1')).resolves.toBeDefined();
+      await expect(service.submitForPublish('r1', fakeUser)).resolves.toBeDefined();
     });
 
     it('refuses to resubmit while a review is already pending', async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ publishStatus: 'PENDING' });
 
-      await expect(service.submitForPublish('r1')).rejects.toThrow(BadRequestException);
+      await expect(service.submitForPublish('r1', fakeUser)).rejects.toThrow(BadRequestException);
       expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
     });
 
     it('refuses to resubmit once already approved and live', async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ publishStatus: 'APPROVED' });
 
-      await expect(service.submitForPublish('r1')).rejects.toThrow(BadRequestException);
+      await expect(service.submitForPublish('r1', fakeUser)).rejects.toThrow(BadRequestException);
     });
 
     it('throws NotFoundException for a restaurant that does not exist', async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.submitForPublish('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.submitForPublish('missing', fakeUser)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -228,7 +235,7 @@ describe('RestaurantsService', () => {
         .mockResolvedValueOnce({ id: 'r1' }); // findOne() after update
       prisma.db.restaurant.update.mockResolvedValue({});
 
-      await service.acknowledgePublishDecline('r1');
+      await service.acknowledgePublishDecline('r1', fakeUser);
 
       expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { publishDeclineAcknowledgedAt: expect.any(Date) } }),
@@ -238,7 +245,7 @@ describe('RestaurantsService', () => {
     it('refuses to acknowledge when there is nothing declined', async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ publishStatus: 'PENDING' });
 
-      await expect(service.acknowledgePublishDecline('r1')).rejects.toThrow(BadRequestException);
+      await expect(service.acknowledgePublishDecline('r1', fakeUser)).rejects.toThrow(BadRequestException);
     });
   });
 

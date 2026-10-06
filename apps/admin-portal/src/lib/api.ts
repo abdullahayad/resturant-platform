@@ -61,52 +61,60 @@ interface AdminActivityRestaurant {
   codeNumber: string
 }
 
-interface MasterDataName {
-  nameEn: string
-  nameAr: string
+// Matches the partner-app's own ScreenKey values (src/lib/nav.ts) for every
+// section a restaurant can actually make changes in.
+export type RestaurantActivitySection =
+  | 'profile'
+  | 'menu'
+  | 'gallery'
+  | 'promotions'
+  | 'advertising'
+  | 'chefManagement'
+  | 'chefTable'
+  | 'reviews'
+  | 'reservations'
+  | 'announcements'
+  | 'settings'
+
+export type AdminActivitySection = RestaurantActivitySection | 'blockedUpload' | 'adminSupportSession'
+
+export const SECTION_LABELS: Record<AdminActivitySection, string> = {
+  profile: 'Profile & Info',
+  menu: 'Menu Management',
+  gallery: 'Photo Gallery',
+  promotions: 'Promotions',
+  advertising: 'Advertising',
+  chefManagement: 'Chef Management',
+  chefTable: 'Chef Table & Events',
+  reviews: 'Customer Reviews',
+  reservations: 'Reservations',
+  announcements: 'Inbox',
+  settings: 'Settings & Staff',
+  blockedUpload: 'Blocked Uploads',
+  adminSupportSession: 'Admin Access',
 }
 
-// Deliberately only what a restaurant itself adds (new dishes/photos/
-// promotions/events) - not restaurant.updatedAt, which also changes on an
-// admin's own actions (approve/reject/suspend/set chain/etc.). Each variant
-// carries enough to actually look at what was posted (image, name/title,
-// description) without a second request.
+export interface ActivityChange {
+  field: string
+  from: unknown
+  to: unknown
+}
+
+// One item per restaurant self-service change (any section), plus the two
+// admin-side exceptions: a blocked upload (something moderation stopped)
+// and an admin "Manage as this restaurant" session - neither is the
+// restaurant's own action, so both stay their own item types rather than
+// reading as if the restaurant did it.
 export type AdminActivityItem =
   | {
-      type: 'dish'
+      type: 'restaurantActivity'
       id: string
       createdAt: string
-      nameEn: string
-      nameAr: string
-      photoUrl: string | null
-      price: string
-      menuCategory: MasterDataName | null
+      section: RestaurantActivitySection
+      summary: string
+      changes: ActivityChange[] | null
       restaurant: AdminActivityRestaurant
-    }
-  | { type: 'photo'; id: string; createdAt: string; album: string; url: string; caption: string | null; restaurant: AdminActivityRestaurant }
-  | {
-      type: 'promotion'
-      id: string
-      createdAt: string
-      titleEn: string
-      titleAr: string
-      descriptionEn: string | null
-      descriptionAr: string | null
-      photoUrl: string | null
-      discountType: string
-      discountValue: string
-      restaurant: AdminActivityRestaurant
-    }
-  | {
-      type: 'event'
-      id: string
-      createdAt: string
-      titleEn: string
-      titleAr: string
-      descriptionEn: string | null
-      descriptionAr: string | null
-      photoUrl: string | null
-      restaurant: AdminActivityRestaurant
+      actor: { kind: 'owner' | 'staff' | 'admin'; name: string | null }
     }
   // restaurant is null only for the rare case of an admin's own upload
   // getting blocked (see the backend's uploads/moderation.service.ts).
@@ -639,7 +647,8 @@ export const api = {
     ),
 
   chains: () => get<Chain[]>('/chains'),
-  adminActivity: (page?: number) => get<Paginated<AdminActivityItem>>(`/admin-activity${qsFrom({ page })}`),
+  adminActivity: (page?: number, section?: AdminActivitySection) =>
+    get<Paginated<AdminActivityItem>>(`/admin-activity${qsFrom({ page, section })}`),
   recentBlockedCount: () => get<{ count: number }>('/admin-activity/recent-blocked-count'),
   createChain: (payload: { nameEn: string; nameAr: string }) => send<Chain>('POST', '/chains', payload),
   updateChain: (id: string, payload: { nameEn: string; nameAr: string }) =>

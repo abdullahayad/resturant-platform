@@ -30,11 +30,11 @@ export class RestaurantAnnouncementsController {
 
   @Patch(':id/acknowledge')
   markAcknowledged(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
-    return this.notifications.markAcknowledged(req.user.sub, id);
+    return this.notifications.markAcknowledged(req.user.sub, id, req.user);
   }
 
   @Patch(':id/reply')
   reply(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: ReplyToAnnouncementDto) {
-    return this.notifications.reply(req.user.sub, id, dto.text);
+    return this.notifications.reply(req.user.sub, id, dto.text, req.user);
   }
 }

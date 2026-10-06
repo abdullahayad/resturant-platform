@@ -2,11 +2,15 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DishesService } from './dishes.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 describe('DishesService', () => {
   let service: DishesService;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed-shape mock (nested model mocks plus a bare $transaction mock)
   let prisma: any;
+  let activityLog: { log: jest.Mock };
+  const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   beforeEach(async () => {
     prisma = {
@@ -22,9 +26,14 @@ describe('DishesService', () => {
     };
     // $transaction just runs the callback with a tx that reuses the same mocks.
     prisma.db.$transaction.mockImplementation((cb: (tx: unknown) => unknown) => cb(prisma.db));
+    activityLog = { log: jest.fn() };
 
     const module = await Test.createTestingModule({
-      providers: [DishesService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        DishesService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: RestaurantActivityLogService, useValue: activityLog },
+      ],
     }).compile();
 
     service = module.get(DishesService);
@@ -46,7 +55,7 @@ describe('DishesService', () => {
     it('refuses to remove a dish belonging to a different restaurant', async () => {
       prisma.db.dish.findUnique.mockResolvedValueOnce({ restaurantId: 'other' });
 
-      await expect(service.remove('r1', 'dish1')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('r1', 'dish1', fakeUser)).rejects.toThrow(NotFoundException);
       expect(prisma.db.dish.update).not.toHaveBeenCalled();
     });
 
@@ -54,7 +63,7 @@ describe('DishesService', () => {
       prisma.db.dish.findUnique.mockResolvedValueOnce({ restaurantId: 'r1' });
       prisma.db.dish.update.mockResolvedValueOnce({});
 
-      await service.remove('r1', 'dish1');
+      await service.remove('r1', 'dish1', fakeUser);
 
       expect(prisma.db.dish.update).toHaveBeenCalledWith({ where: { id: 'dish1' }, data: { isActive: false } });
     });
@@ -108,7 +117,7 @@ describe('DishesService', () => {
         Promise.resolve({ id: where.id, price: data.price }),
       );
 
-      const result = await service.bulkUpdatePrices('r1', { type: 'PERCENTAGE', value: 10 });
+      const result = await service.bulkUpdatePrices('r1', { type: 'PERCENTAGE', value: 10 }, fakeUser);
 
       expect(prisma.db.dish.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { restaurantId: 'r1', isActive: true } }),
@@ -125,7 +134,7 @@ describe('DishesService', () => {
         Promise.resolve({ id: where.id, price: data.price }),
       );
 
-      const result = await service.bulkUpdatePrices('r1', { type: 'FIXED_AMOUNT', value: -10000 });
+      const result = await service.bulkUpdatePrices('r1', { type: 'FIXED_AMOUNT', value: -10000 }, fakeUser);
 
       expect(result).toEqual([{ id: 'd1', price: 1 }]);
     });
@@ -136,9 +145,11 @@ describe('DishesService', () => {
         { id: 'd1', price: 1000 },
         { id: 'd2', price: 2000 },
       ]);
-      prisma.db.dish.update.mockResolvedValue({});
+      prisma.db.dish.update.mockImplementation(({ where, data }: { where: { id: string }; data: { price: number } }) =>
+        Promise.resolve({ id: where.id, nameEn: 'X', price: data.price }),
+      );
 
-      await service.bulkUpdatePrices('r1', { type: 'FIXED_AMOUNT', value: 100, dishIds: ['d1', 'd2'] });
+      await service.bulkUpdatePrices('r1', { type: 'FIXED_AMOUNT', value: 100, dishIds: ['d1', 'd2'] }, fakeUser);
 
       expect(prisma.db.dish.count).toHaveBeenCalledWith({ where: { id: { in: ['d1', 'd2'] }, restaurantId: 'r1' } });
       expect(prisma.db.dish.findMany).toHaveBeenCalledWith(
@@ -150,7 +161,7 @@ describe('DishesService', () => {
       prisma.db.dish.count.mockResolvedValueOnce(1); // only 1 of 2 requested ids actually belongs to r1
 
       await expect(
-        service.bulkUpdatePrices('r1', { type: 'FIXED_AMOUNT', value: 100, dishIds: ['d1', 'd2'] }),
+        service.bulkUpdatePrices('r1', { type: 'FIXED_AMOUNT', value: 100, dishIds: ['d1', 'd2'] }, fakeUser),
       ).rejects.toThrow(BadRequestException);
       expect(prisma.db.dish.findMany).not.toHaveBeenCalled();
     });

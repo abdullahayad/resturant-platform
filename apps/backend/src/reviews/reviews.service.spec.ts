@@ -4,6 +4,7 @@ import { ReviewsService } from './reviews.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
 
 // hashReviewerPhone() needs a real JWT_SECRET (it's an HMAC key, not an
 // auth token) - these tests exercise the real hash/normalize logic rather
@@ -49,6 +50,7 @@ describe('ReviewsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PushService, useValue: push },
         { provide: FeatureFlagsService, useValue: { resolveEnabledKeys: jest.fn() } },
+        { provide: RestaurantActivityLogService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 

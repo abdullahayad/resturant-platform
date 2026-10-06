@@ -3,6 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CreatePromotionDto, ModeratePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { pageOffset } from '../common/pagination';
 import { isPromotionLiveNow, type PromotionForPricing } from './promotion-pricing';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import { diffFields, summarizeChanges } from '../restaurant-activity-log/diff-fields';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const promotionInclude = {
   dishes: { include: { dish: { select: { id: true, nameEn: true, nameAr: true, price: true } } } },
@@ -11,7 +14,10 @@ const promotionInclude = {
 
 @Injectable()
 export class PromotionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: RestaurantActivityLogService,
+  ) {}
 
   async list(restaurantId: string, pageParam?: number) {
     const where = { restaurantId };
@@ -50,13 +56,13 @@ export class PromotionsService {
     };
   }
 
-  async create(restaurantId: string, dto: CreatePromotionDto) {
+  async create(restaurantId: string, dto: CreatePromotionDto, user: PartnerJwtPayload) {
     this.assertDiscountValue(dto.discountType, dto.discountValue);
     if (dto.scope === 'SPECIFIC_DISHES') {
       await this.assertDishesBelongToRestaurant(restaurantId, dto.dishIds ?? []);
     }
 
-    return this.prisma.db.promotion.create({
+    const created = await this.prisma.db.promotion.create({
       data: {
         restaurantId,
         titleEn: dto.titleEn,
@@ -83,9 +89,11 @@ export class PromotionsService {
       },
       include: promotionInclude,
     });
+    await this.activityLog.log({ restaurantId, section: 'promotions', summary: `Created promotion '${created.titleEn}'`, user });
+    return created;
   }
 
-  async update(restaurantId: string, id: string, dto: UpdatePromotionDto) {
+  async update(restaurantId: string, id: string, dto: UpdatePromotionDto, user: PartnerJwtPayload) {
     const existing = await this.ensureOwnership(restaurantId, id);
 
     const effectiveType = dto.discountType ?? existing.discountType;
@@ -109,7 +117,7 @@ export class PromotionsService {
     // creation (see the status field's comment in schema.prisma). An admin
     // can still take a promotion down via the moderate() endpoint below;
     // this edit path never touches status either way.
-    return this.prisma.db.promotion.update({
+    const updated = await this.prisma.db.promotion.update({
       where: { id },
       data: {
         titleEn: dto.titleEn,
@@ -141,11 +149,33 @@ export class PromotionsService {
       },
       include: promotionInclude,
     });
+
+    const changes = diffFields(
+      {
+        titleEn: existing.titleEn,
+        discountType: existing.discountType,
+        discountValue: existing.discountValue.toString(),
+        isActive: existing.isActive,
+      },
+      {
+        titleEn: updated.titleEn,
+        discountType: updated.discountType,
+        discountValue: updated.discountValue.toString(),
+        isActive: updated.isActive,
+      },
+      { titleEn: 'Title', discountType: 'Discount Type', discountValue: 'Discount Value', isActive: 'Active' },
+    );
+    if (changes.length) {
+      await this.activityLog.log({ restaurantId, section: 'promotions', summary: `'${updated.titleEn}' — ${summarizeChanges(changes)}`, changes, user });
+    }
+
+    return updated;
   }
 
-  async remove(restaurantId: string, id: string) {
-    await this.ensureOwnership(restaurantId, id);
+  async remove(restaurantId: string, id: string, user: PartnerJwtPayload) {
+    const existing = await this.ensureOwnership(restaurantId, id);
     await this.prisma.db.promotion.delete({ where: { id } });
+    await this.activityLog.log({ restaurantId, section: 'promotions', summary: `Removed promotion '${existing.titleEn}'`, user });
     return { id };
   }
 

@@ -34,18 +34,18 @@ export class RestaurantPromotionsController {
   @UseGuards(ApprovedPartnerGuard)
   @Post()
   create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreatePromotionDto) {
-    return this.promotions.create(req.user.sub, dto);
+    return this.promotions.create(req.user.sub, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Patch(':id')
   update(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: UpdatePromotionDto) {
-    return this.promotions.update(req.user.sub, id, dto);
+    return this.promotions.update(req.user.sub, id, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Delete(':id')
   remove(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
-    return this.promotions.remove(req.user.sub, id);
+    return this.promotions.remove(req.user.sub, id, req.user);
   }
 }

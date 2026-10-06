@@ -17,6 +17,8 @@ import { PushService } from '../push/push.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 import { pageOffset } from '../common/pagination';
 import type { RestaurantClassValue } from '../common/restaurantClass';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import { diffFields, summarizeChanges } from '../restaurant-activity-log/diff-fields';
 
 const restaurantListSelect = {
   id: true,
@@ -92,6 +94,7 @@ export class RestaurantsService {
     private readonly jwt: JwtService,
     private readonly email: EmailService,
     private readonly push: PushService,
+    private readonly activityLog: RestaurantActivityLogService,
   ) {}
 
   // City code + district code + a 3-digit number that resets per district
@@ -361,8 +364,28 @@ export class RestaurantsService {
     return { accessToken, restaurant: { id: restaurant.id, nameEn: restaurant.nameEn, nameAr: restaurant.nameAr } };
   }
 
-  async updateProfile(id: string, dto: UpdateRestaurantProfileDto) {
-    await this.ensureExists(id);
+  // user is only present for the partner self-service route (restaurants/me)
+  // - omitted when an admin edits a restaurant directly (PATCH /:id), since
+  // that's an admin action, not the restaurant's own change, and out of
+  // scope for this activity log (same reasoning AdminActivityService's own
+  // comment gives for excluding admin-driven changes from reading as if the
+  // restaurant made them).
+  async updateProfile(id: string, dto: UpdateRestaurantProfileDto, user?: PartnerJwtPayload) {
+    const before = await this.prisma.db.restaurant.findUnique({
+      where: { id },
+      select: {
+        nameEn: true,
+        nameAr: true,
+        phone: true,
+        logoUrl: true,
+        province: { select: { nameEn: true } },
+        district: { select: { nameEn: true } },
+        businessTypes: { select: { businessType: { select: { nameEn: true } } } },
+        foodCategories: { select: { foodCategory: { select: { nameEn: true } } } },
+        facilities: { select: { facility: { select: { nameEn: true } } } },
+      },
+    });
+    if (!before) throw new NotFoundException('Restaurant not found');
 
     if (dto.phone !== undefined) {
       const existingPhone = await this.prisma.db.restaurant.findUnique({
@@ -409,6 +432,62 @@ export class RestaurantsService {
       });
     }
 
+    const after = await this.prisma.db.restaurant.findUnique({
+      where: { id },
+      select: {
+        nameEn: true,
+        nameAr: true,
+        phone: true,
+        logoUrl: true,
+        province: { select: { nameEn: true } },
+        district: { select: { nameEn: true } },
+        businessTypes: { select: { businessType: { select: { nameEn: true } } } },
+        foodCategories: { select: { foodCategory: { select: { nameEn: true } } } },
+        facilities: { select: { facility: { select: { nameEn: true } } } },
+      },
+    });
+    if (after) {
+      const listKey = (names: string[]) => (names.length ? [...names].sort().join(', ') : null);
+      const changes = diffFields(
+        {
+          nameEn: before.nameEn,
+          nameAr: before.nameAr,
+          phone: before.phone,
+          province: before.province?.nameEn ?? null,
+          district: before.district?.nameEn ?? null,
+          logoUrl: before.logoUrl,
+          businessTypes: listKey(before.businessTypes.map((b) => b.businessType.nameEn)),
+          foodCategories: listKey(before.foodCategories.map((f) => f.foodCategory.nameEn)),
+          facilities: listKey(before.facilities.map((f) => f.facility.nameEn)),
+        },
+        {
+          nameEn: after.nameEn,
+          nameAr: after.nameAr,
+          phone: after.phone,
+          province: after.province?.nameEn ?? null,
+          district: after.district?.nameEn ?? null,
+          logoUrl: after.logoUrl,
+          businessTypes: listKey(after.businessTypes.map((b) => b.businessType.nameEn)),
+          foodCategories: listKey(after.foodCategories.map((f) => f.foodCategory.nameEn)),
+          facilities: listKey(after.facilities.map((f) => f.facility.nameEn)),
+        },
+        {
+          nameEn: 'Name (EN)',
+          nameAr: 'Name (AR)',
+          phone: 'Phone',
+          province: 'Province',
+          district: 'District',
+          logoUrl: 'Logo',
+          businessTypes: 'Business Types',
+          foodCategories: 'Food Categories',
+          facilities: 'Facilities',
+        },
+      );
+      if (changes.length && user) {
+        await this.activityLog.log({ restaurantId: id, section: 'profile', summary: summarizeChanges(changes), changes, user });
+      }
+    }
+
     return this.findOne(id);
   }
 
@@ -417,12 +496,12 @@ export class RestaurantsService {
   // endpoint either way, branching on which kind of session this is.
   async changePassword(user: PartnerJwtPayload, dto: ChangePasswordDto) {
     if (user.staffId) {
-      return this.changeStaffPassword(user.sub, user.staffId, dto);
+      return this.changeStaffPassword(user.sub, user.staffId, dto, user);
     }
-    return this.changeOwnerPassword(user.sub, dto);
+    return this.changeOwnerPassword(user.sub, dto, user);
   }
 
-  private async changeOwnerPassword(id: string, dto: ChangePasswordDto) {
+  private async changeOwnerPassword(id: string, dto: ChangePasswordDto, user: PartnerJwtPayload) {
     const restaurant = await this.prisma.db.restaurant.findUnique({ where: { id } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
@@ -434,6 +513,7 @@ export class RestaurantsService {
       where: { id },
       data: { ownerPasswordHash, tokenVersion: { increment: 1 } },
     });
+    await this.activityLog.log({ restaurantId: id, section: 'settings', summary: 'Changed account password', user });
 
     // Bumping tokenVersion invalidates every previously issued token,
     // including the one used to make this request — issue a fresh one so
@@ -447,7 +527,7 @@ export class RestaurantsService {
     return { success: true, accessToken };
   }
 
-  private async changeStaffPassword(restaurantId: string, staffId: string, dto: ChangePasswordDto) {
+  private async changeStaffPassword(restaurantId: string, staffId: string, dto: ChangePasswordDto, user: PartnerJwtPayload) {
     const staff = await this.prisma.db.partnerStaffUser.findUnique({ where: { id: staffId } });
     if (!staff) throw new NotFoundException('Staff account not found');
 
@@ -459,6 +539,7 @@ export class RestaurantsService {
       where: { id: staffId },
       data: { passwordHash, tokenVersion: { increment: 1 } },
     });
+    await this.activityLog.log({ restaurantId, section: 'settings', summary: 'Changed account password', user });
 
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { id: restaurantId },
@@ -578,13 +659,29 @@ export class RestaurantsService {
     throw new BadRequestException('Invalid or expired code');
   }
 
-  async updateNotificationPrefs(id: string, dto: UpdateNotificationPrefsDto) {
-    await this.ensureExists(id);
-    return this.prisma.db.restaurant.update({
+  async updateNotificationPrefs(id: string, dto: UpdateNotificationPrefsDto, user: PartnerJwtPayload) {
+    const before = await this.prisma.db.restaurant.findUnique({
+      where: { id },
+      select: { notifyNewReview: true, notifyNewBooking: true },
+    });
+    if (!before) throw new NotFoundException('Restaurant not found');
+
+    const updated = await this.prisma.db.restaurant.update({
       where: { id },
       data: { notifyNewReview: dto.notifyNewReview, notifyNewBooking: dto.notifyNewBooking },
       select: restaurantDetailSelect,
     });
+
+    const changes = diffFields(
+      before,
+      { notifyNewReview: updated.notifyNewReview, notifyNewBooking: updated.notifyNewBooking },
+      { notifyNewReview: 'Notify on new review', notifyNewBooking: 'Notify on new booking' },
+    );
+    if (changes.length) {
+      await this.activityLog.log({ restaurantId: id, section: 'settings', summary: summarizeChanges(changes), changes, user });
+    }
+
+    return updated;
   }
 
   // Upsert on the token itself (not restaurantId) so a device that logs into
@@ -634,15 +731,34 @@ export class RestaurantsService {
   // every related table cascades from there (see schema.prisma).
   async deleteAccount(user: PartnerJwtPayload) {
     if (user.staffId) {
+      const staff = await this.prisma.db.partnerStaffUser.findUnique({ where: { id: user.staffId } });
       await this.prisma.db.partnerStaffUser.delete({ where: { id: user.staffId } });
+      // The staff row (and its staffId FK on this log row) is gone by now,
+      // so the staff's name goes directly into the summary text - it's the
+      // only place that name survives for this entry to still read correctly.
+      await this.activityLog.log({
+        restaurantId: user.sub,
+        section: 'settings',
+        summary: `Staff member '${staff?.fullName ?? 'Unknown'}' removed their own account`,
+        user,
+      });
       return { deleted: 'staff' as const };
     }
+    // The restaurant row cascades away immediately, taking this log entry
+    // with it - logged anyway for consistency with every other delete action,
+    // even though it can never actually be seen afterward.
+    await this.activityLog.log({ restaurantId: user.sub, section: 'settings', summary: 'Deleted the restaurant account', user });
     await this.prisma.db.restaurant.delete({ where: { id: user.sub } });
     return { deleted: 'restaurant' as const };
   }
 
-  async updateOpeningHours(id: string, days: DayHoursDto[]) {
+  async updateOpeningHours(id: string, days: DayHoursDto[], user: PartnerJwtPayload) {
     await this.ensureExists(id);
+    const before = await this.prisma.db.openingHours.findMany({
+      where: { restaurantId: id },
+      orderBy: { dayOfWeek: 'asc' },
+    });
+
     await this.prisma.db.openingHours.deleteMany({ where: { restaurantId: id } });
     await this.prisma.db.openingHours.createMany({
       data: days.map((d) => ({
@@ -653,6 +769,22 @@ export class RestaurantsService {
         closeTime: d.isClosed ? null : (d.closeTime ?? null),
       })),
     });
+
+    const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const describeDay = (d?: { isClosed: boolean; openTime: string | null; closeTime: string | null }) =>
+      !d ? null : d.isClosed ? 'Closed' : `${d.openTime ?? '?'}–${d.closeTime ?? '?'}`;
+    const changes = DAY_NAMES.map((name, dayOfWeek) => {
+      const b = before.find((x) => x.dayOfWeek === dayOfWeek);
+      const a = days.find((x) => x.dayOfWeek === dayOfWeek);
+      const from = describeDay(b);
+      const to = a ? (a.isClosed ? 'Closed' : `${a.openTime ?? '?'}–${a.closeTime ?? '?'}`) : from;
+      return from !== to ? { field: name, from, to } : null;
+    }).filter((c): c is { field: string; from: string | null; to: string | null } => c !== null);
+
+    if (changes.length) {
+      await this.activityLog.log({ restaurantId: id, section: 'profile', summary: `Updated business hours — ${summarizeChanges(changes)}`, changes, user });
+    }
+
     return this.findOne(id);
   }
 
@@ -660,7 +792,7 @@ export class RestaurantsService {
   // (the restaurant edited their profile after a decline and is submitting
   // again) — resubmission after a decline no longer requires an admin to
   // reopen it first.
-  async submitForPublish(id: string) {
+  async submitForPublish(id: string, user: PartnerJwtPayload) {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { id },
       select: { publishStatus: true },
@@ -680,6 +812,7 @@ export class RestaurantsService {
         publishDeclineAcknowledgedAt: null,
       },
     });
+    await this.activityLog.log({ restaurantId: id, section: 'settings', summary: 'Submitted for publish review', user });
     return this.findOne(id);
   }
 
@@ -755,7 +888,7 @@ export class RestaurantsService {
   // Restaurant-side "Mark as Done" — the decline notice stays flagged as
   // needing attention until the restaurant explicitly dismisses it, not
   // just by viewing it.
-  async acknowledgePublishDecline(id: string) {
+  async acknowledgePublishDecline(id: string, user: PartnerJwtPayload) {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { id },
       select: { publishStatus: true },
@@ -768,6 +901,7 @@ export class RestaurantsService {
       where: { id },
       data: { publishDeclineAcknowledgedAt: new Date() },
     });
+    await this.activityLog.log({ restaurantId: id, section: 'settings', summary: 'Acknowledged publish decline', user });
     return this.findOne(id);
   }
 

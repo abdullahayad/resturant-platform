@@ -11,10 +11,7 @@ describe('AdminActivityService', () => {
   beforeEach(async () => {
     prisma = {
       db: {
-        dish: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
-        galleryPhoto: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
-        promotion: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
-        restaurantEvent: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+        restaurantActivityLog: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
         blockedUpload: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
         adminSupportSession: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
       },
@@ -27,90 +24,147 @@ describe('AdminActivityService', () => {
     service = module.get(AdminActivityService);
   });
 
-  // price/discountValue only need a .toFixed() method, same as a real
-  // Prisma Decimal - a plain JS number satisfies that without pulling in
-  // the Decimal class just for these tests.
-  it('merges dishes, photos, promotions, and events across every restaurant, newest first', async () => {
-    prisma.db.dish.findMany.mockResolvedValueOnce([
-      {
-        id: 'd1',
-        nameEn: 'Kebab',
-        nameAr: 'كباب',
-        photoUrl: null,
-        price: 5000,
-        menuCategory: null,
-        createdAt: new Date('2026-09-15T10:00:00Z'),
+  describe('a section selected (e.g. "menu")', () => {
+    it('queries RestaurantActivityLog filtered to that section with plain skip/take pagination', async () => {
+      prisma.db.restaurantActivityLog.findMany.mockResolvedValueOnce([
+        {
+          id: 'a1',
+          section: 'menu',
+          summary: "Added dish 'Kebab' (5000)",
+          changes: null,
+          createdAt: new Date('2026-09-15T10:00:00Z'),
+          restaurant: restaurant('r1'),
+          staff: null,
+          impersonatedByAdmin: null,
+        },
+      ]);
+      prisma.db.restaurantActivityLog.count.mockResolvedValueOnce(1);
+
+      const result = await service.recentActivity(1, 'menu');
+
+      expect(prisma.db.restaurantActivityLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { section: 'menu' }, skip: 0, take: 20 }),
+      );
+      expect(result.items).toEqual([
+        expect.objectContaining({
+          type: 'restaurantActivity',
+          id: 'a1',
+          section: 'menu',
+          summary: "Added dish 'Kebab' (5000)",
+          changes: null,
+          restaurant: restaurant('r1'),
+          actor: { kind: 'owner', name: null },
+        }),
+      ]);
+      expect(result.total).toBe(1);
+    });
+
+    it('resolves the actor to staff when staffId is set, and to an admin when impersonatedByAdminId is set', async () => {
+      prisma.db.restaurantActivityLog.findMany.mockResolvedValueOnce([
+        {
+          id: 'a1',
+          section: 'profile',
+          summary: 'District: Rusafa → Zayouna',
+          changes: [{ field: 'District', from: 'Rusafa', to: 'Zayouna' }],
+          createdAt: new Date(),
+          restaurant: restaurant('r1'),
+          staff: { fullName: 'Sara Staff' },
+          impersonatedByAdmin: null,
+        },
+        {
+          id: 'a2',
+          section: 'profile',
+          summary: 'Name (EN): Old → New',
+          changes: [{ field: 'Name (EN)', from: 'Old', to: 'New' }],
+          createdAt: new Date(),
+          restaurant: restaurant('r1'),
+          staff: null,
+          impersonatedByAdmin: { fullName: 'Ali Admin' },
+        },
+      ]);
+      prisma.db.restaurantActivityLog.count.mockResolvedValueOnce(2);
+
+      const result = await service.recentActivity(1, 'profile');
+
+      expect(result.items[0]).toEqual(expect.objectContaining({ actor: { kind: 'staff', name: 'Sara Staff' } }));
+      expect(result.items[1]).toEqual(expect.objectContaining({ actor: { kind: 'admin', name: 'Ali Admin' } }));
+    });
+  });
+
+  describe('section: "blockedUpload"', () => {
+    it('queries BlockedUpload directly, including one with no restaurant (an admin\'s own blocked upload)', async () => {
+      prisma.db.blockedUpload.findMany.mockResolvedValueOnce([
+        { id: 'b1', originalName: 'bad.jpg', createdAt: new Date('2026-09-15T14:00:00Z'), restaurant: restaurant('r1') },
+        { id: 'b2', originalName: 'other.png', createdAt: new Date('2026-09-15T09:00:00Z'), restaurant: null },
+      ]);
+      prisma.db.blockedUpload.count.mockResolvedValueOnce(2);
+
+      const result = await service.recentActivity(1, 'blockedUpload');
+
+      expect(result.items[0]).toEqual(expect.objectContaining({ type: 'blockedUpload', originalName: 'bad.jpg', restaurant: restaurant('r1') }));
+      expect(result.items[1]).toEqual(expect.objectContaining({ type: 'blockedUpload', restaurant: null }));
+      expect(prisma.db.restaurantActivityLog.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('section: "adminSupportSession"', () => {
+    it('queries AdminSupportSession directly, tagged with the admin who started it', async () => {
+      prisma.db.adminSupportSession.findMany.mockResolvedValueOnce([
+        { id: 's1', createdAt: new Date('2026-09-15T11:00:00Z'), admin: { fullName: 'Ali Admin' }, restaurant: restaurant('r1') },
+      ]);
+      prisma.db.adminSupportSession.count.mockResolvedValueOnce(1);
+
+      const result = await service.recentActivity(1, 'adminSupportSession');
+
+      expect(result.items[0]).toEqual(expect.objectContaining({ type: 'adminSupportSession', adminName: 'Ali Admin', restaurant: restaurant('r1') }));
+    });
+  });
+
+  describe('no section ("All")', () => {
+    it('merges restaurant activity, blocked uploads, and support sessions, newest first', async () => {
+      prisma.db.restaurantActivityLog.findMany.mockResolvedValueOnce([
+        {
+          id: 'a1',
+          section: 'menu',
+          summary: 'x',
+          changes: null,
+          createdAt: new Date('2026-09-15T10:00:00Z'),
+          restaurant: restaurant('r1'),
+          staff: null,
+          impersonatedByAdmin: null,
+        },
+      ]);
+      prisma.db.blockedUpload.findMany.mockResolvedValueOnce([
+        { id: 'b1', originalName: 'bad.jpg', createdAt: new Date('2026-09-15T14:00:00Z'), restaurant: restaurant('r2') },
+      ]);
+      prisma.db.adminSupportSession.findMany.mockResolvedValueOnce([
+        { id: 's1', createdAt: new Date('2026-09-15T08:00:00Z'), admin: { fullName: 'Ali Admin' }, restaurant: restaurant('r3') },
+      ]);
+
+      const result = await service.recentActivity(1);
+
+      expect(result.items.map((i) => i.id)).toEqual(['b1', 'a1', 's1']);
+    });
+
+    it('page 1 returns the 20 most recent items across all sources combined', async () => {
+      const manyRows = Array.from({ length: 25 }, (_, i) => ({
+        id: `a${i}`,
+        section: 'menu',
+        summary: 'x',
+        changes: null,
+        createdAt: new Date(2026, 8, 15, 0, i),
         restaurant: restaurant('r1'),
-      },
-    ]);
-    prisma.db.galleryPhoto.findMany.mockResolvedValueOnce([
-      { id: 'p1', album: 'FOOD', url: 'https://example.com/p1.jpg', caption: null, createdAt: new Date('2026-09-15T12:00:00Z'), restaurant: restaurant('r2') },
-    ]);
-    prisma.db.promotion.findMany.mockResolvedValueOnce([
-      {
-        id: 'pr1',
-        titleEn: 'Sale',
-        titleAr: 'تخفيض',
-        descriptionEn: null,
-        descriptionAr: null,
-        photoUrl: null,
-        discountType: 'PERCENTAGE',
-        discountValue: 20,
-        createdAt: new Date('2026-09-15T08:00:00Z'),
-        restaurant: restaurant('r3'),
-      },
-    ]);
+        staff: null,
+        impersonatedByAdmin: null,
+      }));
+      prisma.db.restaurantActivityLog.findMany.mockResolvedValueOnce(manyRows.slice(5, 25));
+      prisma.db.restaurantActivityLog.count.mockResolvedValueOnce(25);
 
-    const result = await service.recentActivity(1);
+      const result = await service.recentActivity(1);
 
-    expect(result.items.map((i) => i.id)).toEqual(['p1', 'd1', 'pr1']);
-    expect(result.items[0]).toEqual(expect.objectContaining({ type: 'photo', restaurant: restaurant('r2') }));
-  });
-
-  it('merges in blocked uploads, including one with no restaurant (an admin\'s own blocked upload)', async () => {
-    prisma.db.blockedUpload.findMany.mockResolvedValueOnce([
-      { id: 'b1', originalName: 'bad.jpg', createdAt: new Date('2026-09-15T14:00:00Z'), restaurant: restaurant('r1') },
-      { id: 'b2', originalName: 'other.png', createdAt: new Date('2026-09-15T09:00:00Z'), restaurant: null },
-    ]);
-
-    const result = await service.recentActivity(1);
-
-    expect(result.items[0]).toEqual(
-      expect.objectContaining({ type: 'blockedUpload', originalName: 'bad.jpg', restaurant: restaurant('r1') }),
-    );
-    expect(result.items[1]).toEqual(expect.objectContaining({ type: 'blockedUpload', restaurant: null }));
-  });
-
-  it('page 1 returns the 20 most recent items across all sources combined', async () => {
-    const manyDishes = Array.from({ length: 25 }, (_, i) => ({
-      id: `d${i}`,
-      nameEn: 'X',
-      nameAr: 'X',
-      photoUrl: null,
-      price: 1000,
-      menuCategory: null,
-      createdAt: new Date(2026, 8, 15, 0, i),
-      restaurant: restaurant('r1'),
-    }));
-    prisma.db.dish.findMany.mockResolvedValueOnce(manyDishes.slice(5, 25));
-    prisma.db.dish.count.mockResolvedValueOnce(25);
-
-    const result = await service.recentActivity(1);
-
-    expect(result.items).toHaveLength(20);
-    expect(result.total).toBe(25);
-  });
-
-  it('merges in "Manage as this restaurant" support sessions, tagged with the admin who started them', async () => {
-    prisma.db.adminSupportSession.findMany.mockResolvedValueOnce([
-      { id: 's1', createdAt: new Date('2026-09-15T11:00:00Z'), admin: { fullName: 'Ali Admin' }, restaurant: restaurant('r1') },
-    ]);
-
-    const result = await service.recentActivity(1);
-
-    expect(result.items[0]).toEqual(
-      expect.objectContaining({ type: 'adminSupportSession', adminName: 'Ali Admin', restaurant: restaurant('r1') }),
-    );
+      expect(result.items).toHaveLength(20);
+      expect(result.total).toBe(25);
+    });
   });
 
   describe('recentBlockedCount', () => {

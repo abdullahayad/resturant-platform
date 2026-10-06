@@ -307,6 +307,7 @@ model AdminUser {
   reviewedFeatured           FeaturedPlacement[]
   issuedLoyaltyRewards       LoyaltyReward[]
   supportSessions            AdminSupportSession[]
+  impersonatedActivityLogs   RestaurantActivityLog[]
 
   @@map("admin_users")
 }
@@ -446,6 +447,7 @@ model Restaurant {
   featureFlagOverrides FeatureFlagOverride[]
   blockedUploads    BlockedUpload[]
   adminSupportSessions AdminSupportSession[]
+  activityLogs      RestaurantActivityLog[]
 
   @@index([status])
   @@index([publishStatus])
@@ -940,6 +942,7 @@ model PartnerStaffUser {
   passwordResetExpiresAt DateTime?
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  activityLogs RestaurantActivityLog[]
 
   @@map("partner_staff_users")
 }
@@ -1059,6 +1062,38 @@ model AdminSupportSession {
 
   @@index([restaurantId])
   @@map("admin_support_sessions")
+}
+
+// One row per self-service change a restaurant (owner or staff) makes to
+// their own data - the generic replacement for the old "just watch a few
+// Prisma tables" approach, covering every section a restaurant can edit, not
+// just dish/photo/promotion/event creation. `section` matches the
+// partner-app's own ScreenKey values (see FeatureFlag.key's comment below)
+// so the admin portal's section picker and a restaurant's own sidebar always
+// agree on names. `changes` holds old→new field diffs for edits; left null
+// for pure create/delete/status-flip actions where there's nothing to diff.
+// Actor is resolved via staffId/impersonatedByAdminId rather than stored as
+// a name, so a rename later doesn't make old entries read wrong - absence of
+// both means the restaurant owner made the change directly.
+model RestaurantActivityLog {
+  id           String  @id @default(uuid())
+  restaurantId String
+  section      String
+  summary      String
+  changes      Json?
+
+  staffId               String?
+  impersonatedByAdminId String?
+
+  createdAt DateTime @default(now())
+
+  restaurant          Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  staff               PartnerStaffUser? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  impersonatedByAdmin AdminUser?        @relation(fields: [impersonatedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([restaurantId, createdAt])
+  @@index([section, createdAt])
+  @@map("restaurant_activity_logs")
 }
 
 // ────────────────────────────────────────────────────────────────────────────

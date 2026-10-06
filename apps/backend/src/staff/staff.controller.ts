@@ -18,18 +18,18 @@ export class StaffController {
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Post()
   invite(@Req() req: { user: PartnerJwtPayload }, @Body() dto: InviteStaffDto) {
-    return this.staff.invite(req.user.sub, dto);
+    return this.staff.invite(req.user.sub, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch(':id')
   update(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: UpdateStaffDto) {
-    return this.staff.update(req.user.sub, id, dto);
+    return this.staff.update(req.user.sub, id, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Delete(':id')
   remove(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
-    return this.staff.remove(req.user.sub, id);
+    return this.staff.remove(req.user.sub, id, req.user);
   }
 }

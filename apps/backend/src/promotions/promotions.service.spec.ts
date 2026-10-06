@@ -1,12 +1,16 @@
 import { Test } from '@nestjs/testing';
 import { PromotionsService } from './promotions.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 describe('PromotionsService', () => {
   let service: PromotionsService;
   let prisma: {
     db: { promotion: { count: jest.Mock; create: jest.Mock; findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock } };
   };
+  let activityLog: { log: jest.Mock };
+  const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   beforeEach(async () => {
     prisma = {
@@ -20,9 +24,14 @@ describe('PromotionsService', () => {
         },
       },
     };
+    activityLog = { log: jest.fn() };
 
     const module = await Test.createTestingModule({
-      providers: [PromotionsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        PromotionsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: RestaurantActivityLogService, useValue: activityLog },
+      ],
     }).compile();
 
     service = module.get(PromotionsService);
@@ -32,16 +41,20 @@ describe('PromotionsService', () => {
     it('goes live immediately (status APPROVED) instead of waiting on admin review', async () => {
       prisma.db.promotion.create.mockResolvedValueOnce({});
 
-      await service.create('r1', {
-        titleEn: 'Sale',
-        titleAr: 'تخفيض',
-        discountType: 'PERCENTAGE',
-        discountValue: 10,
-        scope: 'WHOLE_MENU',
-        isRecurring: false,
-        validFrom: '2026-09-01',
-        validUntil: '2026-09-30',
-      });
+      await service.create(
+        'r1',
+        {
+          titleEn: 'Sale',
+          titleAr: 'تخفيض',
+          discountType: 'PERCENTAGE',
+          discountValue: 10,
+          scope: 'WHOLE_MENU',
+          isRecurring: false,
+          validFrom: '2026-09-01',
+          validUntil: '2026-09-30',
+        },
+        fakeUser,
+      );
 
       expect(prisma.db.promotion.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ status: 'APPROVED' }) }),
@@ -57,9 +70,14 @@ describe('PromotionsService', () => {
         discountValue: 10,
         scope: 'WHOLE_MENU',
       });
-      prisma.db.promotion.update.mockResolvedValueOnce({});
+      prisma.db.promotion.update.mockResolvedValueOnce({
+        titleEn: 'New title',
+        discountType: 'PERCENTAGE',
+        discountValue: 10,
+        isActive: true,
+      });
 
-      await service.update('r1', 'p1', { titleEn: 'New title' });
+      await service.update('r1', 'p1', { titleEn: 'New title' }, fakeUser);
 
       const data = prisma.db.promotion.update.mock.calls[0][0].data;
       expect(data).not.toHaveProperty('status');

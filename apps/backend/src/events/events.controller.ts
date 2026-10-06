@@ -20,19 +20,19 @@ export class EventsController {
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Post('restaurants/me/events')
   create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreateEventDto) {
-    return this.events.create(req.user.sub, dto);
+    return this.events.create(req.user.sub, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Patch('restaurants/me/events/:id')
   update(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: UpdateEventDto) {
-    return this.events.update(req.user.sub, id, dto);
+    return this.events.update(req.user.sub, id, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Delete('restaurants/me/events/:id')
   remove(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
-    return this.events.remove(req.user.sub, id);
+    return this.events.remove(req.user.sub, id, req.user);
   }
 
   @UseGuards(ManagerOrOwnerGuard)
@@ -58,7 +58,7 @@ export class EventsController {
     @Param('id') id: string,
     @Body() dto: UpdateReservationStatusDto,
   ) {
-    return this.events.updateReservationStatus(req.user.sub, id, dto);
+    return this.events.updateReservationStatus(req.user.sub, id, dto, req.user);
   }
 
   // Public — for a future customer-facing app. No auth: anyone can see what

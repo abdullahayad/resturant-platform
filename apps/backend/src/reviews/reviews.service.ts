@@ -6,6 +6,8 @@ import type { CreateReviewDto, ModerateReviewDto } from './dto/review.dto';
 import type { ModerationStatusValue } from '../common/moderation';
 import { pageOffset } from '../common/pagination';
 import { hashReviewerPhone } from '../common/reviewerPhoneHash';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const withReplyAndPhotos = {
   reply: true,
@@ -35,6 +37,7 @@ export class ReviewsService {
     private readonly prisma: PrismaService,
     private readonly push: PushService,
     private readonly featureFlags: FeatureFlagsService,
+    private readonly activityLog: RestaurantActivityLogService,
   ) {}
 
   async createForRestaurant(restaurantId: string, dto: CreateReviewDto) {
@@ -197,14 +200,22 @@ export class ReviewsService {
     };
   }
 
-  async reply(restaurantId: string, reviewId: string, text: string) {
+  async reply(restaurantId: string, reviewId: string, text: string, user: PartnerJwtPayload) {
     const review = await this.prisma.db.review.findUnique({ where: { id: reviewId }, select: { restaurantId: true } });
     if (!review || review.restaurantId !== restaurantId) throw new NotFoundException('Review not found');
 
+    const existingReply = await this.prisma.db.reviewReply.findUnique({ where: { reviewId }, select: { text: true } });
     await this.prisma.db.reviewReply.upsert({
       where: { reviewId },
       create: { reviewId, text },
       update: { text },
+    });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'reviews',
+      summary: existingReply ? 'Updated reply to a review' : 'Replied to a review',
+      changes: existingReply && existingReply.text !== text ? [{ field: 'Reply', from: existingReply.text, to: text }] : undefined,
+      user,
     });
     return this.prisma.db.review.findUnique({ where: { id: reviewId }, include: withReplyAndPhotos, omit: omitPhoneHash });
   }

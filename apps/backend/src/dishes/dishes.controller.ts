@@ -29,7 +29,7 @@ export class DishesController {
   @UseGuards(ApprovedPartnerGuard)
   @Post()
   create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreateDishDto) {
-    return this.dishes.create(req.user.sub, dto);
+    return this.dishes.create(req.user.sub, dto, req.user);
   }
 
   // Declared before the :id route below so "bulk-price" isn't swallowed as
@@ -37,18 +37,18 @@ export class DishesController {
   @UseGuards(ApprovedPartnerGuard)
   @Patch('bulk-price')
   bulkUpdatePrices(@Req() req: { user: PartnerJwtPayload }, @Body() dto: BulkUpdatePricesDto) {
-    return this.dishes.bulkUpdatePrices(req.user.sub, dto);
+    return this.dishes.bulkUpdatePrices(req.user.sub, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Patch(':id')
   update(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: UpdateDishDto) {
-    return this.dishes.update(req.user.sub, id, dto);
+    return this.dishes.update(req.user.sub, id, dto, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard)
   @Delete(':id')
   remove(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string) {
-    return this.dishes.remove(req.user.sub, id);
+    return this.dishes.remove(req.user.sub, id, req.user);
   }
 }

@@ -3,12 +3,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import type { CreateNotificationDto } from './dto/notification.dto';
 import { pageOffset } from '../common/pagination';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushService,
+    private readonly activityLog: RestaurantActivityLogService,
   ) {}
 
   async create(adminId: string, dto: CreateNotificationDto) {
@@ -160,25 +163,39 @@ export class NotificationsService {
     });
   }
 
-  async markAcknowledged(restaurantId: string, notificationId: string) {
+  async markAcknowledged(restaurantId: string, notificationId: string, user: PartnerJwtPayload) {
     const recipient = await this.ensureRecipient(restaurantId, notificationId);
-    return this.prisma.db.notificationRecipient.update({
+    const updated = await this.prisma.db.notificationRecipient.update({
       where: { id: recipient.id },
       data: { readAt: recipient.readAt ?? new Date(), acknowledgedAt: new Date() },
       include: { notification: true },
     });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'announcements',
+      summary: `Marked '${recipient.notification.titleEn}' as done`,
+      user,
+    });
+    return updated;
   }
 
   // One reply per recipient, not a thread — rejects a second attempt rather
   // than overwriting the first.
-  async reply(restaurantId: string, notificationId: string, text: string) {
+  async reply(restaurantId: string, notificationId: string, text: string, user: PartnerJwtPayload) {
     const recipient = await this.ensureRecipient(restaurantId, notificationId);
     if (recipient.replyText) throw new BadRequestException('You have already replied to this announcement');
-    return this.prisma.db.notificationRecipient.update({
+    const updated = await this.prisma.db.notificationRecipient.update({
       where: { id: recipient.id },
       data: { replyText: text, repliedAt: new Date() },
       include: { notification: true },
     });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'announcements',
+      summary: `Replied to '${recipient.notification.titleEn}'`,
+      user,
+    });
+    return updated;
   }
 
   private async ensureRecipient(restaurantId: string, notificationId: string) {

@@ -9,6 +9,7 @@ import { SupportSessionPageController } from './support-session/support-session-
 import { ReviewPageController } from './review-page/review-page.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { RestaurantActivityLogModule } from './restaurant-activity-log/restaurant-activity-log.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { AuthModule } from './auth/auth.module';
@@ -42,6 +43,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     // endpoint) can tighten this further with @Throttle().
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 100 }] }),
     PrismaModule,
+    RestaurantActivityLogModule,
     AuthModule,
     MasterDataModule,
     RestaurantsModule,

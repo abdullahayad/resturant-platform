@@ -2,11 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptSecret } from '../common/secretEncryption';
 import { PAYMENT_GATEWAYS, type ConnectPaymentGatewayDto, type PaymentGatewayId } from './dto/payment-account.dto';
+import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
+import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 const gatewayColumns = {
   zaincash: { merchantId: 'zainCashMerchantId', secret: 'zainCashSecretEncrypted', connectedAt: 'zainCashConnectedAt' },
   qicard: { merchantId: 'qiCardMerchantId', secret: 'qiCardSecretEncrypted', connectedAt: 'qiCardConnectedAt' },
 } as const;
+
+const GATEWAY_LABELS: Record<string, string> = { zaincash: 'ZainCash', qicard: 'Qi Card' };
 
 // Shows "connected" state without ever revealing the merchant id in full -
 // it isn't the secret, but there's no reason to echo it back verbatim either.
@@ -17,7 +21,10 @@ function maskMerchantId(merchantId: string): string {
 
 @Injectable()
 export class PaymentAccountsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: RestaurantActivityLogService,
+  ) {}
 
   private assertValidGateway(gateway: string): asserts gateway is PaymentGatewayId {
     if (!PAYMENT_GATEWAYS.includes(gateway as PaymentGatewayId)) {
@@ -49,7 +56,7 @@ export class PaymentAccountsService {
     };
   }
 
-  async connect(restaurantId: string, gateway: string, dto: ConnectPaymentGatewayDto) {
+  async connect(restaurantId: string, gateway: string, dto: ConnectPaymentGatewayDto, user: PartnerJwtPayload) {
     this.assertValidGateway(gateway);
     const columns = gatewayColumns[gateway];
 
@@ -61,11 +68,19 @@ export class PaymentAccountsService {
         [columns.connectedAt]: new Date(),
       },
     });
+    // Never log merchantId/secret values - just the fact that a connection
+    // was made, same reasoning as never logging a password change's values.
+    await this.activityLog.log({
+      restaurantId,
+      section: 'settings',
+      summary: `Connected ${GATEWAY_LABELS[gateway] ?? gateway} payment account`,
+      user,
+    });
 
     return this.get(restaurantId);
   }
 
-  async disconnect(restaurantId: string, gateway: string) {
+  async disconnect(restaurantId: string, gateway: string, user: PartnerJwtPayload) {
     this.assertValidGateway(gateway);
     const columns = gatewayColumns[gateway];
 
@@ -76,6 +91,12 @@ export class PaymentAccountsService {
         [columns.secret]: null,
         [columns.connectedAt]: null,
       },
+    });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'settings',
+      summary: `Disconnected ${GATEWAY_LABELS[gateway] ?? gateway} payment account`,
+      user,
     });
 
     return this.get(restaurantId);
