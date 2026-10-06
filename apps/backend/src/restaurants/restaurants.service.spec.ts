@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 import { RestaurantsService } from './restaurants.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
@@ -15,6 +16,7 @@ describe('RestaurantsService', () => {
   let prisma: { db: Record<string, Record<string, jest.Mock>> };
   let jwt: { signAsync: jest.Mock };
   let activityLog: { log: jest.Mock };
+  let email: { send: jest.Mock };
   const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   const baseRegisterDto: RegisterRestaurantDto = {
@@ -41,6 +43,7 @@ describe('RestaurantsService', () => {
         },
         partnerStaffUser: {
           findUnique: jest.fn(),
+          update: jest.fn(),
           delete: jest.fn(),
         },
         restaurantChain: {
@@ -56,13 +59,14 @@ describe('RestaurantsService', () => {
     };
     jwt = { signAsync: jest.fn().mockResolvedValue('token') };
     activityLog = { log: jest.fn() };
+    email = { send: jest.fn().mockResolvedValue(true) };
 
     const module = await Test.createTestingModule({
       providers: [
         RestaurantsService,
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwt },
-        { provide: EmailService, useValue: { send: jest.fn() } },
+        { provide: EmailService, useValue: email },
         { provide: PushService, useValue: { sendToRestaurants: jest.fn().mockResolvedValue(undefined) } },
         { provide: RestaurantActivityLogService, useValue: activityLog },
       ],
@@ -280,6 +284,135 @@ describe('RestaurantsService', () => {
       expect(prisma.db.restaurant.delete).toHaveBeenCalledWith({ where: { id: 'r1' } });
       expect(prisma.db.partnerStaffUser.delete).not.toHaveBeenCalled();
       expect(result).toEqual({ deleted: 'restaurant' });
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('generates and stores a reset code on the restaurant when the email matches an owner', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      const result = await service.forgotPassword({ email: 'owner@test.iq' });
+
+      expect(result).toEqual({ success: true });
+      expect(prisma.db.partnerStaffUser.findUnique).not.toHaveBeenCalled();
+      const data = prisma.db.restaurant.update.mock.calls[0][0];
+      expect(data.where).toEqual({ id: 'r1' });
+      expect(data.data.passwordResetCodeHash).toEqual(expect.any(String));
+      // Within a few seconds of "now + 15 minutes" - not asserting an exact
+      // timestamp, which would make this test flaky.
+      const expectedExpiry = Date.now() + 15 * 60 * 1000;
+      expect(Math.abs(data.data.passwordResetExpiresAt.getTime() - expectedExpiry)).toBeLessThan(5000);
+      expect(email.send).toHaveBeenCalledWith('owner@test.iq', expect.any(String), expect.stringContaining('reset code'));
+    });
+
+    it('falls back to the staff table and generates a code there when no owner matches', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
+      prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce({ id: 's1' });
+      prisma.db.partnerStaffUser.update.mockResolvedValueOnce({});
+
+      const result = await service.forgotPassword({ email: 'staff@test.iq' });
+
+      expect(result).toEqual({ success: true });
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+      const data = prisma.db.partnerStaffUser.update.mock.calls[0][0];
+      expect(data.where).toEqual({ id: 's1' });
+      expect(data.data.passwordResetCodeHash).toEqual(expect.any(String));
+      expect(email.send).toHaveBeenCalledWith('staff@test.iq', expect.any(String), expect.stringContaining('reset code'));
+    });
+
+    it('still returns success for an email matching neither table, without sending anything - anti-enumeration', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
+      prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce(null);
+
+      const result = await service.forgotPassword({ email: 'nobody@test.iq' });
+
+      expect(result).toEqual({ success: true });
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+      expect(prisma.db.partnerStaffUser.update).not.toHaveBeenCalled();
+      expect(email.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('resets the owner password, bumps tokenVersion, and clears the reset code on a valid restaurant code', async () => {
+      const codeHash = await bcrypt.hash('123456', 10);
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({
+        id: 'r1',
+        passwordResetCodeHash: codeHash,
+        passwordResetExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      const result = await service.resetPassword({ email: 'owner@test.iq', code: '123456', newPassword: 'newPass123' });
+
+      expect(result).toEqual({ success: true });
+      expect(prisma.db.partnerStaffUser.findUnique).not.toHaveBeenCalled();
+      const data = prisma.db.restaurant.update.mock.calls[0][0];
+      expect(data.where).toEqual({ id: 'r1' });
+      expect(data.data.tokenVersion).toEqual({ increment: 1 });
+      expect(data.data.passwordResetCodeHash).toBeNull();
+      expect(data.data.passwordResetExpiresAt).toBeNull();
+      expect(data.data.ownerPasswordHash).not.toBe('newPass123'); // stored hashed, never plaintext
+    });
+
+    it('resets the staff password on a valid staff code, independently of the restaurant table', async () => {
+      const codeHash = await bcrypt.hash('654321', 10);
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
+      prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce({
+        id: 's1',
+        passwordResetCodeHash: codeHash,
+        passwordResetExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      });
+      prisma.db.partnerStaffUser.update.mockResolvedValueOnce({});
+
+      const result = await service.resetPassword({ email: 'staff@test.iq', code: '654321', newPassword: 'newPass456' });
+
+      expect(result).toEqual({ success: true });
+      const data = prisma.db.partnerStaffUser.update.mock.calls[0][0];
+      expect(data.where).toEqual({ id: 's1' });
+      expect(data.data.tokenVersion).toEqual({ increment: 1 });
+      expect(data.data.passwordResetCodeHash).toBeNull();
+      expect(data.data.passwordHash).not.toBe('newPass456');
+    });
+
+    it('rejects a code that does not match the stored hash', async () => {
+      const codeHash = await bcrypt.hash('123456', 10);
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({
+        id: 'r1',
+        passwordResetCodeHash: codeHash,
+        passwordResetExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      });
+      prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.resetPassword({ email: 'owner@test.iq', code: '000000', newPassword: 'newPass123' })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a correct code that has already expired', async () => {
+      const codeHash = await bcrypt.hash('123456', 10);
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({
+        id: 'r1',
+        passwordResetCodeHash: codeHash,
+        passwordResetExpiresAt: new Date(Date.now() - 60 * 1000), // expired a minute ago
+      });
+      prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.resetPassword({ email: 'owner@test.iq', code: '123456', newPassword: 'newPass123' })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects when no account has ever requested a reset code', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1', passwordResetCodeHash: null, passwordResetExpiresAt: null });
+      prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.resetPassword({ email: 'owner@test.iq', code: '123456', newPassword: 'newPass123' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
