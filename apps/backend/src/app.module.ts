@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
+import { SecurityAlertThrottlerGuard } from './common/security-alert-throttler.guard';
 import { AppController } from './app.controller';
 import { LegalController } from './legal/legal.controller';
 import { SupportSessionPageController } from './support-session/support-session-page.controller';
@@ -74,7 +75,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     // Must come before any other exception filter (none currently exist).
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
     AppService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: SecurityAlertThrottlerGuard },
   ],
 })
 export class AppModule {}
