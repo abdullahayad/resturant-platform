@@ -38,6 +38,18 @@ export class FeaturedService {
     return placements.map((p) => ({ ...p, isCurrentlyActive: isCurrentlyFeatured(p) }));
   }
 
+  // For the public restaurant page's "Featured" badge - narrowed to
+  // APPROVED+active at the DB level (cheap, a restaurant has very few
+  // placement rows), then the same date-window check every other caller
+  // of isCurrentlyFeatured already uses.
+  async isFeatured(restaurantId: string): Promise<boolean> {
+    const placements = await this.prisma.db.featuredPlacement.findMany({
+      where: { restaurantId, status: 'APPROVED', isActive: true },
+      select: { status: true, isActive: true, startDate: true, endDate: true },
+    });
+    return placements.some(isCurrentlyFeatured);
+  }
+
   async request(restaurantId: string, dto: RequestFeaturedDto, user: PartnerJwtPayload) {
     const existingPending = await this.prisma.db.featuredPlacement.findFirst({
       where: { restaurantId, status: 'PENDING' },

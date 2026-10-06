@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
 import { PromotionsService } from '../promotions/promotions.service';
+import { ReviewsService } from '../reviews/reviews.service';
+import { FeaturedService } from '../featured/featured.service';
 import { computeDiscountedPrice } from '../promotions/promotion-pricing';
 
 // Everything a customer would actually be able to see, once a public app
@@ -60,6 +62,8 @@ export class PreviewService {
     private readonly prisma: PrismaService,
     private readonly events: EventsService,
     private readonly promotions: PromotionsService,
+    private readonly reviews: ReviewsService,
+    private readonly featured: FeaturedService,
   ) {}
 
   async get(restaurantId: string) {
@@ -88,6 +92,48 @@ export class PreviewService {
       events,
       overallAverage: overallAverage != null ? Number(overallAverage.toFixed(1)) : null,
       totalReviews,
+    };
+  }
+
+  // The actual public page - same shape as the owner's own preview above,
+  // plus real review content (not just the aggregate) and a Featured
+  // badge, and gated on the restaurant actually being live. Deliberately a
+  // separate method rather than a flag on get(): the owner's own preview
+  // must stay visible regardless of publish status, so the gate can never
+  // leak into that path by accident.
+  async getPublic(restaurantId: string) {
+    const restaurant = await this.prisma.db.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { ...previewSelect, status: true, publishStatus: true },
+    });
+    if (!restaurant || restaurant.status !== 'APPROVED' || restaurant.publishStatus !== 'APPROVED') {
+      throw new NotFoundException('Restaurant not found');
+    }
+
+    const [events, activePromotions, reviewsPage, isFeatured] = await Promise.all([
+      this.events.publicList(restaurantId),
+      this.promotions.activePromotionsNow(restaurantId),
+      this.reviews.listForRestaurant(restaurantId, 1),
+      this.featured.isFeatured(restaurantId),
+    ]);
+
+    const { reviews, dishes, status: _status, publishStatus: _publishStatus, ...rest } = restaurant;
+    const totalReviews = reviews.length;
+    const overallAverage = totalReviews ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews : null;
+
+    const dishesWithPricing = dishes.map((dish) => {
+      const discounted = computeDiscountedPrice(Number(dish.price), activePromotions, dish.id);
+      return { ...dish, discountedPrice: discounted != null ? discounted.toFixed(2) : null };
+    });
+
+    return {
+      ...rest,
+      dishes: dishesWithPricing,
+      events,
+      overallAverage: overallAverage != null ? Number(overallAverage.toFixed(1)) : null,
+      totalReviews,
+      isFeatured,
+      reviews: reviewsPage.items,
     };
   }
 }

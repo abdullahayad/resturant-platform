@@ -6,5 +6,6 @@ import { FeaturedService } from './featured.service';
 @Module({
   controllers: [RestaurantFeaturedController, AdminFeaturedController],
   providers: [FeaturedService],
+  exports: [FeaturedService],
 })
 export class FeaturedModule {}

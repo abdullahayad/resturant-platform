@@ -10,5 +10,6 @@ import { FeatureFlagsModule } from '../feature-flags/feature-flags.module';
   imports: [PushModule, UploadsModule, FeatureFlagsModule],
   controllers: [ReviewsController, AdminReviewsController],
   providers: [ReviewsService],
+  exports: [ReviewsService],
 })
 export class ReviewsModule {}

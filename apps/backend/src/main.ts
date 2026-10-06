@@ -24,7 +24,15 @@ import { AppModule } from './app.module';
 // something outside our own apps depends on the exact path (UptimeRobot
 // pings "/", Swagger serves its own sub-paths under "/docs"). Everything
 // else moves under /v1.
-const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json', 'support-session', 'review'];
+const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json', 'support-session', 'review', 'restaurant'];
+
+// Helmet's default CSP img-src is 'self' data: only - every uploaded photo
+// (reviews, gallery, logos) lives on a different host (STORAGE_PUBLIC_URL),
+// so without this those <img> tags are silently blocked by the browser on
+// every public HTML page (review page, public restaurant page). Computed
+// once at startup rather than per-request since the storage host never
+// changes at runtime.
+const storageOrigin = new URL(process.env.STORAGE_PUBLIC_URL ?? process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000').origin;
 
 // Comma-separated list of allowed browser origins, e.g.
 // "http://localhost:5173,https://admin.example.com". Falls back to the
@@ -79,7 +87,12 @@ async function bootstrap() {
   // registers the controller under /v1 and this global prefix's bare
   // 'review' string never matches the real request path at all.
   app.setGlobalPrefix('v1', {
-    exclude: ['/', ...UNVERSIONED_ROUTES, { path: 'review/:restaurantId', method: RequestMethod.GET }],
+    exclude: [
+      '/',
+      ...UNVERSIONED_ROUTES,
+      { path: 'review/:restaurantId', method: RequestMethod.GET },
+      { path: 'restaurant/:id', method: RequestMethod.GET },
+    ],
   });
 
   // A fresh random value per request, exposed to route handlers via
@@ -106,6 +119,7 @@ async function bootstrap() {
       // different directives rather than one overriding the other, which
       // throws "duplicate directive" the moment both are present at once.
       'script-src': ["'self'", (_req: Request, res: Response) => `'nonce-${res.locals.cspNonce}'`],
+      'img-src': ["'self'", 'data:', storageOrigin],
     },
   });
   app.use((req: Request, res: Response, next: NextFunction) => {
