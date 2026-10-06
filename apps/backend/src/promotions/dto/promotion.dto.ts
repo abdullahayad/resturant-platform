@@ -18,9 +18,9 @@ import {
 } from 'class-validator';
 import { PageQueryDto } from '../../common/pagination';
 
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const DISCOUNT_TYPES = ['PERCENTAGE', 'FIXED_AMOUNT'] as const;
-const SCOPES = ['WHOLE_MENU', 'SPECIFIC_DISHES'] as const;
+export const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+export const DISCOUNT_TYPES = ['PERCENTAGE', 'FIXED_AMOUNT'] as const;
+export const SCOPES = ['WHOLE_MENU', 'SPECIFIC_DISHES'] as const;
 export const MAX_FIXED_DISCOUNT = 10_000_000;
 
 export class CreatePromotionDto {

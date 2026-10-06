@@ -23,6 +23,30 @@ export function isPromotionLiveNow(promo: PromotionSchedule, now: Date): boolean
   return now >= promo.validFrom && now <= promo.validUntil;
 }
 
+export type PromotionLiveStatus = 'OFF' | 'SCHEDULED' | 'LIVE' | 'EXPIRED' | 'RECURRING_LIVE' | 'RECURRING_WAITING';
+
+export interface PromotionScheduleState extends PromotionSchedule {
+  isActive: boolean;
+  status: string;
+}
+
+// A richer label than isPromotionLiveNow's plain boolean - that function
+// can't tell "not live yet" apart from "already over", which is exactly
+// what a restaurant needs to see on their own promotions list (today
+// nothing in the UI distinguishes the two, and the dashboard's "Active
+// Now" count doesn't even check dates - see summary()'s fix in
+// promotions.service.ts).
+export function promotionLiveStatus(promo: PromotionScheduleState, now: Date): PromotionLiveStatus {
+  if (!promo.isActive || promo.status === 'REJECTED') return 'OFF';
+  if (promo.isRecurring) {
+    return isPromotionLiveNow(promo, now) ? 'RECURRING_LIVE' : 'RECURRING_WAITING';
+  }
+  if (!promo.validFrom || !promo.validUntil) return 'OFF';
+  if (now < promo.validFrom) return 'SCHEDULED';
+  if (now > promo.validUntil) return 'EXPIRED';
+  return 'LIVE';
+}
+
 export interface PromotionForPricing {
   scope: 'WHOLE_MENU' | 'SPECIFIC_DISHES';
   discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';

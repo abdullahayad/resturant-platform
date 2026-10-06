@@ -13,7 +13,7 @@ import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { StatCard } from '../components/StatCard';
 import { useAuth } from '../lib/AuthContext';
-import { api, type Dish, type PromotionItem, type PromotionsSummary } from '../lib/api';
+import { api, type Dish, type PromotionItem, type PromotionsSummary, type PromotionTemplate } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
@@ -27,6 +27,14 @@ function formatDiscount(p: PromotionItem, t: TFunction): string {
 function formatScope(p: PromotionItem, t: TFunction): string {
   if (p.scope === 'WHOLE_MENU') return t('wholeMenu');
   return t('onDishes', { dishes: p.dishes.map((d) => d.dish.nameEn).join(', ') || '—' });
+}
+
+function formatLiveStatus(p: PromotionItem, t: TFunction): string {
+  if (p.liveStatus === 'RECURRING_WAITING' || p.liveStatus === 'RECURRING_LIVE') {
+    const day = p.recurringDayOfWeek != null ? t(`common:days.${DAY_KEYS[p.recurringDayOfWeek]}`) : '';
+    return t(`liveStatus.${p.liveStatus}`, { day });
+  }
+  return t(`liveStatus.${p.liveStatus}`);
 }
 
 function formatSchedule(p: PromotionItem, t: TFunction): string {
@@ -71,6 +79,17 @@ export function PromotionsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const [templates, setTemplates] = useState<PromotionTemplate[]>([]);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [templateBusyId, setTemplateBusyId] = useState<string | null>(null);
+  // Which promotion card has its inline "name this template" mini-form open
+  // - a simple expand-in-place rather than a modal, since nothing like a
+  // text-input dialog exists anywhere else in this app to reuse, and
+  // Alert.prompt is iOS-only so it can't be the cross-platform answer here.
+  const [savingTemplateId, setSavingTemplateId] = useState<string | null>(null);
+  const [templateNameInput, setTemplateNameInput] = useState('');
+  const [appliedFromTemplate, setAppliedFromTemplate] = useState(false);
+
   const fetchPage = useCallback((page: number) => api.myPromotions(token, page), [token]);
   const {
     items: promotions,
@@ -99,6 +118,11 @@ export function PromotionsScreen() {
     api.promotionsSummary(token).then(setSummary).catch(() => setSummaryError(t('summary.loadFailed')));
   }, [token, t]);
   useEffect(loadSummary, [loadSummary]);
+
+  const loadTemplates = useCallback(() => {
+    api.promotionTemplates(token).then(setTemplates).catch(() => setTemplatesError(t('common:networkError')));
+  }, [token, t]);
+  useEffect(loadTemplates, [loadTemplates]);
 
   const submit = async () => {
     setFormError(null);
@@ -142,6 +166,7 @@ export function PromotionsScreen() {
       });
       setPromotions((prev) => [created, ...prev]);
       setForm(emptyForm);
+      setAppliedFromTemplate(false);
       loadSummary();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : t('createFailed'));
@@ -178,6 +203,81 @@ export function PromotionsScreen() {
     }
   };
 
+  const startSaveTemplate = (promo: PromotionItem) => {
+    setSavingTemplateId(promo.id);
+    setTemplateNameInput('');
+    setTemplatesError(null);
+  };
+
+  const confirmSaveTemplate = async (promo: PromotionItem) => {
+    if (!templateNameInput.trim()) {
+      setTemplatesError(t('templates.nameRequired'));
+      return;
+    }
+    setTemplateBusyId(promo.id);
+    try {
+      const created = await api.createPromotionTemplate(token, {
+        name: templateNameInput.trim(),
+        titleEn: promo.titleEn,
+        titleAr: promo.titleAr,
+        descriptionEn: promo.descriptionEn ?? undefined,
+        descriptionAr: promo.descriptionAr ?? undefined,
+        photoUrl: promo.photoUrl ?? undefined,
+        discountType: promo.discountType,
+        discountValue: Number(promo.discountValue),
+        scope: promo.scope,
+        dishIds: promo.scope === 'SPECIFIC_DISHES' ? promo.dishes.map((d) => d.dish.id) : undefined,
+        isRecurring: promo.isRecurring,
+        recurringDayOfWeek: promo.recurringDayOfWeek ?? undefined,
+        startTime: promo.startTime ?? undefined,
+        endTime: promo.endTime ?? undefined,
+      });
+      setTemplates((prev) => [created, ...prev]);
+      setSavingTemplateId(null);
+    } catch (err) {
+      setTemplatesError(err instanceof Error ? err.message : t('templates.saveFailed'));
+    } finally {
+      setTemplateBusyId(null);
+    }
+  };
+
+  const deleteTemplate = async (id: string) => {
+    setTemplateBusyId(id);
+    setTemplatesError(null);
+    try {
+      await api.deletePromotionTemplate(token, id);
+      setTemplates((prev) => prev.filter((tpl) => tpl.id !== id));
+    } catch (err) {
+      setTemplatesError(err instanceof Error ? err.message : t('templates.deleteFailed'));
+    } finally {
+      setTemplateBusyId(null);
+    }
+  };
+
+  // Pre-fills the existing create-form state from a saved template - the
+  // restaurant reviews/adjusts (picks fresh dates if one-time) and taps the
+  // same "Publish Promotion" button already below, so the actual
+  // create-promotion request and its validation never has to be duplicated.
+  const useTemplate = (tpl: PromotionTemplate) => {
+    setForm({
+      titleEn: tpl.titleEn,
+      titleAr: tpl.titleAr,
+      descriptionEn: tpl.descriptionEn ?? '',
+      discountType: tpl.discountType,
+      discountValue: tpl.discountValue,
+      scope: tpl.scope,
+      dishIds: tpl.dishIds,
+      isRecurring: tpl.isRecurring,
+      validFrom: '',
+      validUntil: '',
+      recurringDayOfWeek: tpl.recurringDayOfWeek ?? 0,
+      startTime: tpl.startTime ?? '',
+      endTime: tpl.endTime ?? '',
+    });
+    setAppliedFromTemplate(true);
+    setFormError(null);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('title')}</Text>
@@ -210,6 +310,28 @@ export function PromotionsScreen() {
                 <Text style={styles.cardTitle}>{p.titleEn} · {p.titleAr}</Text>
                 <Text style={styles.cardMeta}>{formatDiscount(p, t)} · {formatScope(p, t)}</Text>
                 <Text style={styles.cardMeta}>{formatSchedule(p, t)}</Text>
+                <View style={styles.liveStatusRow}>
+                  <View
+                    style={[
+                      styles.liveStatusPill,
+                      (p.liveStatus === 'LIVE' || p.liveStatus === 'RECURRING_LIVE') && styles.liveStatusPillLive,
+                      p.liveStatus === 'SCHEDULED' && styles.liveStatusPillScheduled,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.liveStatusPillText,
+                        (p.liveStatus === 'LIVE' || p.liveStatus === 'RECURRING_LIVE') && styles.liveStatusPillTextLive,
+                        p.liveStatus === 'SCHEDULED' && styles.liveStatusPillTextScheduled,
+                      ]}
+                    >
+                      {formatLiveStatus(p, t)}
+                    </Text>
+                  </View>
+                </View>
+                {p.liveStatus === 'SCHEDULED' && p.validFrom && (
+                  <Text style={styles.cardMeta}>{t('goesLiveOn', { date: new Date(p.validFrom).toLocaleDateString() })}</Text>
+                )}
               </View>
               <View
                 style={[
@@ -239,10 +361,43 @@ export function PromotionsScreen() {
                   <Text style={styles.toggleLink}>{p.isActive ? t('turnOff') : t('turnOn')}</Text>
                 </Pressable>
               )}
+              <Pressable onPress={() => startSaveTemplate(p)} disabled={busyId === p.id}>
+                <Text style={styles.toggleLink}>{t('templates.saveAsTemplate')}</Text>
+              </Pressable>
               <Pressable onPress={() => remove(p.id)} disabled={busyId === p.id}>
                 <Text style={styles.removeButtonText}>{t('delete')}</Text>
               </Pressable>
             </View>
+            {savingTemplateId === p.id && (
+              <View style={styles.inlineTemplateForm}>
+                <FormField
+                  label={t('templates.nameLabel')}
+                  value={templateNameInput}
+                  onChangeText={setTemplateNameInput}
+                  placeholder={t('templates.namePlaceholder')}
+                />
+                {templatesError && <Text style={styles.error}>{templatesError}</Text>}
+                <View style={styles.row}>
+                  <Pressable
+                    style={[styles.button, styles.primaryButton, styles.flex1]}
+                    onPress={() => confirmSaveTemplate(p)}
+                    disabled={templateBusyId === p.id}
+                  >
+                    {templateBusyId === p.id ? (
+                      <ActivityIndicator color={colors.primaryForeground} />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>{t('templates.save')}</Text>
+                    )}
+                  </Pressable>
+                  <Pressable
+                    style={[styles.button, styles.secondaryButton, styles.flex1]}
+                    onPress={() => setSavingTemplateId(null)}
+                  >
+                    <Text style={styles.secondaryButtonText}>{t('templates.cancel')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
           </View>
         ))}
         {loading ? (
@@ -258,7 +413,35 @@ export function PromotionsScreen() {
       </View>
 
       <View style={styles.formCard}>
+        <Text style={styles.formTitle}>{t('templates.title')}</Text>
+        {templatesError && !savingTemplateId && <Text style={styles.error}>{templatesError}</Text>}
+        {templates.length === 0 ? (
+          <Text style={styles.hint}>{t('templates.noTemplatesYet')}</Text>
+        ) : (
+          <View style={styles.list}>
+            {templates.map((tpl) => (
+              <View key={tpl.id} style={styles.templateCard}>
+                <View style={styles.flex1}>
+                  <Text style={styles.cardTitle}>{tpl.name}</Text>
+                  <Text style={styles.cardMeta}>{tpl.titleEn} · {tpl.titleAr}</Text>
+                </View>
+                <View style={styles.cardActions}>
+                  <Pressable onPress={() => useTemplate(tpl)}>
+                    <Text style={styles.toggleLink}>{t('templates.use')}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => deleteTemplate(tpl.id)} disabled={templateBusyId === tpl.id}>
+                    <Text style={styles.removeButtonText}>{t('templates.delete')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.formCard}>
         <Text style={styles.formTitle}>{t('createPromotion')}</Text>
+        {appliedFromTemplate && <Text style={styles.hint}>{t('templates.appliedHint')}</Text>}
         <FormField label={t('titleEnLabel')} value={form.titleEn} onChangeText={(v) => setForm((f) => ({ ...f, titleEn: v }))} placeholder={t('titleEnPlaceholder')} />
         <FormField label={t('titleArLabel')} value={form.titleAr} onChangeText={(v) => setForm((f) => ({ ...f, titleAr: v }))} placeholder={t('titleArPlaceholder')} />
         <FormField
@@ -393,6 +576,27 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   toggleLink: { color: colors.primary, fontSize: 12, fontWeight: '600' },
   removeButtonText: { color: colors.destructive, fontSize: 12, fontWeight: '600' },
 
+  liveStatusRow: { flexDirection: 'row', marginTop: 4 },
+  liveStatusPill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: colors.secondary },
+  liveStatusPillLive: { backgroundColor: colors.successTint15 },
+  liveStatusPillScheduled: { backgroundColor: colors.primaryTint15 },
+  liveStatusPillText: { fontSize: 11, fontWeight: '700', color: colors.mutedForeground },
+  liveStatusPillTextLive: { color: colors.success },
+  liveStatusPillTextScheduled: { color: colors.primary },
+
+  templateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 14,
+  },
+  inlineTemplateForm: { gap: 10, marginTop: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
+
   formCard: {
     gap: 12,
     borderRadius: radii.lg,
@@ -407,4 +611,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   button: { borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
+  secondaryButton: { backgroundColor: colors.secondary },
+  secondaryButtonText: { color: colors.foreground, fontWeight: '700', fontSize: 14 },
 });

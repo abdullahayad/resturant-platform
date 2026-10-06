@@ -63,5 +63,29 @@
     "PENDING": "قيد الانتظار",
     "APPROVED": "موافق عليه",
     "REJECTED": "مرفوض"
+  },
+  "liveStatus": {
+    "OFF": "متوقف",
+    "SCHEDULED": "مجدوَل",
+    "LIVE": "نشط الآن",
+    "EXPIRED": "منتهي",
+    "RECURRING_LIVE": "نشط الآن",
+    "RECURRING_WAITING": "نشط كل {{day}}"
+  },
+  "goesLiveOn": "يبدأ في {{date}}",
+  "templates": {
+    "title": "القوالب",
+    "noTemplatesYet": "لا توجد قوالب محفوظة بعد — احفظ عرضاً أدناه كقالب لإعادة استخدامه.",
+    "use": "استخدام",
+    "delete": "حذف",
+    "saveAsTemplate": "حفظ كقالب",
+    "namePlaceholder": "مثال: ساعة سعيدة",
+    "nameLabel": "اسم القالب",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "saveFailed": "تعذر حفظ القالب — حاول مرة أخرى",
+    "deleteFailed": "تعذر حذف القالب — حاول مرة أخرى",
+    "nameRequired": "أدخل اسماً لهذا القالب.",
+    "appliedHint": "تم تعبئة النموذج أدناه من قالبك — راجعه ثم انشره عند الجاهزية."
   }
 }

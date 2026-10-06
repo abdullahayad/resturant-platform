@@ -442,6 +442,7 @@ model Restaurant {
   chefProfiles      ChefProfile[]
   notifications     NotificationRecipient[]
   promotions        Promotion[]
+  promotionTemplates PromotionTemplate[]
   featuredPlacements FeaturedPlacement[]
   pushTokens        RestaurantPushToken[]
   featureFlagOverrides FeatureFlagOverride[]
@@ -881,6 +882,44 @@ model PromotionDish {
 
   @@unique([promotionId, dishId])
   @@map("promotion_dishes")
+}
+
+// A reusable promotion setup a restaurant can save (e.g. "Happy Hour") and
+// apply again later instead of re-entering every field - deliberately not
+// a real Promotion row with some "draft" flag; applying one just assembles
+// a normal create() call from these saved values. No validFrom/validUntil
+// here on purpose - a frozen date range would be meaningless to reuse,
+// applying always asks for a fresh one (unless the template is recurring,
+// which needs no date range at all). dishIds is a plain array rather than
+// a join table - a template isn't a live relational object the way a
+// Promotion is, and a dish deleted since the template was saved is just
+// silently dropped when applied, not an error.
+model PromotionTemplate {
+  id            String   @id @default(uuid())
+  restaurantId  String
+  name          String // the template's own label, e.g. "Happy Hour" - distinct from titleEn/titleAr, which is what customers see on the resulting promotion
+  titleEn       String
+  titleAr       String
+  descriptionEn String?
+  descriptionAr String?
+  photoUrl      String?
+
+  discountType PromotionDiscountType
+  discountValue Decimal @db.Decimal(10, 2)
+  scope        PromotionScope
+  dishIds      String[]
+
+  isRecurring        Boolean @default(false)
+  recurringDayOfWeek Int?
+  startTime          String?
+  endTime            String?
+
+  createdAt DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@map("promotion_templates")
 }
 
 // ────────────────────────────────────────────────────────────────────────────

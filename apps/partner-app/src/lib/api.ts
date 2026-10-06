@@ -319,6 +319,7 @@ export interface RequestFeaturedPayload {
 export type PromotionDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 export type PromotionScope = 'WHOLE_MENU' | 'SPECIFIC_DISHES';
 export type PromotionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type PromotionLiveStatus = 'OFF' | 'SCHEDULED' | 'LIVE' | 'EXPIRED' | 'RECURRING_LIVE' | 'RECURRING_WAITING';
 
 export interface PromotionItem {
   id: string;
@@ -341,6 +342,43 @@ export interface PromotionItem {
   isActive: boolean;
   createdAt: string;
   dishes: { dish: { id: string; nameEn: string; nameAr: string } }[];
+  liveStatus: PromotionLiveStatus;
+}
+
+export interface PromotionTemplate {
+  id: string;
+  name: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  photoUrl: string | null;
+  discountType: PromotionDiscountType;
+  discountValue: string;
+  scope: PromotionScope;
+  dishIds: string[];
+  isRecurring: boolean;
+  recurringDayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  createdAt: string;
+}
+
+export interface PromotionTemplatePayload {
+  name: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  photoUrl?: string;
+  discountType: PromotionDiscountType;
+  discountValue: number;
+  scope: PromotionScope;
+  dishIds?: string[];
+  isRecurring: boolean;
+  recurringDayOfWeek?: number;
+  startTime?: string;
+  endTime?: string;
 }
 
 // Bookkeeping only, not real performance stats - there's no customer app
@@ -832,6 +870,14 @@ export const api = {
     send<PromotionItem>('PATCH', `/restaurants/me/promotions/${id}`, token, payload),
   deletePromotion: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/promotions/${id}`, token),
+
+  promotionTemplates: (token: string) => get<PromotionTemplate[]>('/restaurants/me/promotions/templates', token),
+  createPromotionTemplate: (token: string, payload: PromotionTemplatePayload) =>
+    send<PromotionTemplate>('POST', '/restaurants/me/promotions/templates', token, payload),
+  deletePromotionTemplate: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/promotions/templates/${id}`, token),
+  applyPromotionTemplate: (token: string, id: string, payload: { validFrom?: string; validUntil?: string }) =>
+    send<PromotionItem>('POST', `/restaurants/me/promotions/templates/${id}/apply`, token, payload),
 
   // Full, unpaginated - the calendar view needs every reservation to show
   // accurate day counts across a month, not just a page of them.

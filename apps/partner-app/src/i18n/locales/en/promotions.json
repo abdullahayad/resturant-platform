@@ -63,5 +63,29 @@
     "PENDING": "Pending",
     "APPROVED": "Approved",
     "REJECTED": "Rejected"
+  },
+  "liveStatus": {
+    "OFF": "Off",
+    "SCHEDULED": "Scheduled",
+    "LIVE": "Live Now",
+    "EXPIRED": "Expired",
+    "RECURRING_LIVE": "Live Now",
+    "RECURRING_WAITING": "Live on {{day}}s"
+  },
+  "goesLiveOn": "Goes live {{date}}",
+  "templates": {
+    "title": "Templates",
+    "noTemplatesYet": "No saved templates yet — save a promotion below as a template to reuse it.",
+    "use": "Use",
+    "delete": "Delete",
+    "saveAsTemplate": "Save as Template",
+    "namePlaceholder": "e.g. Happy Hour",
+    "nameLabel": "Template name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saveFailed": "Could not save template — try again",
+    "deleteFailed": "Could not delete template — try again",
+    "nameRequired": "Give this template a name.",
+    "appliedHint": "Filled in below from your template — review and publish when ready."
   }
 }

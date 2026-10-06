@@ -1,4 +1,11 @@
-import { computeDiscountedPrice, isPromotionLiveNow, type PromotionForPricing, type PromotionSchedule } from './promotion-pricing';
+import {
+  computeDiscountedPrice,
+  isPromotionLiveNow,
+  promotionLiveStatus,
+  type PromotionForPricing,
+  type PromotionSchedule,
+  type PromotionScheduleState,
+} from './promotion-pricing';
 
 describe('isPromotionLiveNow', () => {
   const recurring = (overrides: Partial<PromotionSchedule> = {}): PromotionSchedule => ({
@@ -38,6 +45,57 @@ describe('isPromotionLiveNow', () => {
     };
     expect(isPromotionLiveNow(oneOff, new Date('2026-09-15T12:00:00.000Z'))).toBe(true);
     expect(isPromotionLiveNow(oneOff, new Date('2026-10-01T12:00:00.000Z'))).toBe(false);
+  });
+});
+
+describe('promotionLiveStatus', () => {
+  const oneOff = (overrides: Partial<PromotionScheduleState> = {}): PromotionScheduleState => ({
+    isRecurring: false,
+    validFrom: new Date('2026-09-10T00:00:00.000Z'),
+    validUntil: new Date('2026-09-20T00:00:00.000Z'),
+    recurringDayOfWeek: null,
+    startTime: null,
+    endTime: null,
+    isActive: true,
+    status: 'APPROVED',
+    ...overrides,
+  });
+
+  it('is OFF when the restaurant has turned it off, regardless of dates', () => {
+    expect(promotionLiveStatus(oneOff({ isActive: false }), new Date('2026-09-15T00:00:00.000Z'))).toBe('OFF');
+  });
+
+  it('is OFF when an admin has rejected it, regardless of dates', () => {
+    expect(promotionLiveStatus(oneOff({ status: 'REJECTED' }), new Date('2026-09-15T00:00:00.000Z'))).toBe('OFF');
+  });
+
+  it('is SCHEDULED before validFrom', () => {
+    expect(promotionLiveStatus(oneOff(), new Date('2026-09-01T00:00:00.000Z'))).toBe('SCHEDULED');
+  });
+
+  it('is LIVE between validFrom and validUntil', () => {
+    expect(promotionLiveStatus(oneOff(), new Date('2026-09-15T00:00:00.000Z'))).toBe('LIVE');
+  });
+
+  it('is EXPIRED after validUntil', () => {
+    expect(promotionLiveStatus(oneOff(), new Date('2026-09-25T00:00:00.000Z'))).toBe('EXPIRED');
+  });
+
+  it('is RECURRING_LIVE on the matching weekday, RECURRING_WAITING otherwise', () => {
+    const recurring: PromotionScheduleState = {
+      isRecurring: true,
+      validFrom: null,
+      validUntil: null,
+      recurringDayOfWeek: 5, // Friday
+      startTime: null,
+      endTime: null,
+      isActive: true,
+      status: 'APPROVED',
+    };
+    const friday = new Date(2026, 8, 18, 12, 0);
+    const saturday = new Date(2026, 8, 19, 12, 0);
+    expect(promotionLiveStatus(recurring, friday)).toBe('RECURRING_LIVE');
+    expect(promotionLiveStatus(recurring, saturday)).toBe('RECURRING_WAITING');
   });
 });
 

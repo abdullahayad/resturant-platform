@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreatePromotionDto, ModeratePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
+import type { ApplyPromotionTemplateDto, CreatePromotionTemplateDto } from './dto/promotion-template.dto';
 import { pageOffset } from '../common/pagination';
-import { isPromotionLiveNow, type PromotionForPricing } from './promotion-pricing';
+import { isPromotionLiveNow, promotionLiveStatus, type PromotionForPricing } from './promotion-pricing';
 import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
 import { diffFields, summarizeChanges } from '../restaurant-activity-log/diff-fields';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -22,10 +23,12 @@ export class PromotionsService {
   async list(restaurantId: string, pageParam?: number) {
     const where = { restaurantId };
     const { page, skip, take } = pageOffset(pageParam);
-    const [items, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.db.promotion.findMany({ where, include: promotionInclude, orderBy: { createdAt: 'desc' }, skip, take }),
       this.prisma.db.promotion.count({ where }),
     ]);
+    const now = new Date();
+    const items = rows.map((p) => ({ ...p, liveStatus: promotionLiveStatus(p, now) }));
     return { items, total, page, pageSize: take };
   }
 
@@ -39,15 +42,26 @@ export class PromotionsService {
   // is deliberately scoped to what's actually knowable today: how many
   // promotions this restaurant has run and how they've fared in review.
   async summary(restaurantId: string) {
-    const [total, pending, approved, rejected, activeNow, percentage, fixedAmount] = await Promise.all([
+    const [total, pending, approved, rejected, candidatesForActiveNow, percentage, fixedAmount] = await Promise.all([
       this.prisma.db.promotion.count({ where: { restaurantId } }),
       this.prisma.db.promotion.count({ where: { restaurantId, status: 'PENDING' } }),
       this.prisma.db.promotion.count({ where: { restaurantId, status: 'APPROVED' } }),
       this.prisma.db.promotion.count({ where: { restaurantId, status: 'REJECTED' } }),
-      this.prisma.db.promotion.count({ where: { restaurantId, status: 'APPROVED', isActive: true } }),
+      // A plain count() can't check a future validFrom or a recurring
+      // day/time window - previously this counted every APPROVED+isActive
+      // row regardless of date, so a promotion scheduled for next month (or
+      // already expired) was miscounted as "active now". Fetch the small
+      // set of candidates and apply the same date check used everywhere
+      // else a promotion's real liveness matters.
+      this.prisma.db.promotion.findMany({
+        where: { restaurantId, status: 'APPROVED', isActive: true },
+        select: { isRecurring: true, validFrom: true, validUntil: true, recurringDayOfWeek: true, startTime: true, endTime: true },
+      }),
       this.prisma.db.promotion.count({ where: { restaurantId, discountType: 'PERCENTAGE' } }),
       this.prisma.db.promotion.count({ where: { restaurantId, discountType: 'FIXED_AMOUNT' } }),
     ]);
+    const now = new Date();
+    const activeNow = candidatesForActiveNow.filter((p) => isPromotionLiveNow(p, now)).length;
     return {
       total,
       byStatus: { PENDING: pending, APPROVED: approved, REJECTED: rejected },
@@ -222,6 +236,92 @@ export class PromotionsService {
       },
     });
     return promotions.filter((p) => isPromotionLiveNow(p, now)).map((p) => ({ ...p, discountValue: Number(p.discountValue) }));
+  }
+
+  // ── Templates ─────────────────────────────────────────────────────────
+
+  async listTemplates(restaurantId: string) {
+    return this.prisma.db.promotionTemplate.findMany({ where: { restaurantId }, orderBy: { createdAt: 'desc' } });
+  }
+
+  async createTemplate(restaurantId: string, dto: CreatePromotionTemplateDto) {
+    this.assertDiscountValue(dto.discountType, dto.discountValue);
+    if (dto.scope === 'SPECIFIC_DISHES') {
+      await this.assertDishesBelongToRestaurant(restaurantId, dto.dishIds ?? []);
+    }
+    return this.prisma.db.promotionTemplate.create({
+      data: {
+        restaurantId,
+        name: dto.name,
+        titleEn: dto.titleEn,
+        titleAr: dto.titleAr,
+        descriptionEn: dto.descriptionEn,
+        descriptionAr: dto.descriptionAr,
+        photoUrl: dto.photoUrl,
+        discountType: dto.discountType,
+        discountValue: dto.discountValue,
+        scope: dto.scope,
+        dishIds: dto.scope === 'SPECIFIC_DISHES' ? (dto.dishIds ?? []) : [],
+        isRecurring: dto.isRecurring,
+        recurringDayOfWeek: dto.isRecurring ? dto.recurringDayOfWeek : null,
+        startTime: dto.isRecurring ? dto.startTime : null,
+        endTime: dto.isRecurring ? dto.endTime : null,
+      },
+    });
+  }
+
+  async removeTemplate(restaurantId: string, id: string) {
+    const template = await this.prisma.db.promotionTemplate.findUnique({ where: { id } });
+    if (!template || template.restaurantId !== restaurantId) throw new NotFoundException('Template not found');
+    await this.prisma.db.promotionTemplate.delete({ where: { id } });
+    return { id };
+  }
+
+  // Assembles a normal CreatePromotionDto from the saved template and runs
+  // it through the exact same create() path a hand-filled form would -
+  // every validation/activity-log/moderation rule a promotion already has
+  // applies here too, nothing new to keep in sync.
+  async applyTemplate(restaurantId: string, id: string, dto: ApplyPromotionTemplateDto, user: PartnerJwtPayload) {
+    const template = await this.prisma.db.promotionTemplate.findUnique({ where: { id } });
+    if (!template || template.restaurantId !== restaurantId) throw new NotFoundException('Template not found');
+
+    if (!template.isRecurring && (!dto.validFrom || !dto.validUntil)) {
+      throw new BadRequestException('validFrom and validUntil are required to apply a one-time template');
+    }
+
+    let dishIds: string[] | undefined;
+    if (template.scope === 'SPECIFIC_DISHES') {
+      const owned = await this.prisma.db.dish.findMany({
+        where: { id: { in: template.dishIds }, restaurantId },
+        select: { id: true },
+      });
+      dishIds = owned.map((d) => d.id);
+      if (dishIds.length === 0) {
+        throw new BadRequestException('None of this template\'s dishes exist anymore - update the template before using it');
+      }
+    }
+
+    return this.create(
+      restaurantId,
+      {
+        titleEn: template.titleEn,
+        titleAr: template.titleAr,
+        descriptionEn: template.descriptionEn ?? undefined,
+        descriptionAr: template.descriptionAr ?? undefined,
+        photoUrl: template.photoUrl ?? undefined,
+        discountType: template.discountType,
+        discountValue: Number(template.discountValue),
+        scope: template.scope,
+        dishIds,
+        isRecurring: template.isRecurring,
+        validFrom: template.isRecurring ? undefined : dto.validFrom,
+        validUntil: template.isRecurring ? undefined : dto.validUntil,
+        recurringDayOfWeek: template.recurringDayOfWeek ?? undefined,
+        startTime: template.startTime ?? undefined,
+        endTime: template.endTime ?? undefined,
+      },
+      user,
+    );
   }
 
   // ── Admin moderation ─────────────────────────────────────────────────
