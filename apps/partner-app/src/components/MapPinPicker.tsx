@@ -107,7 +107,12 @@ export function MapPinPicker({ latitude, longitude, onChange, disabled = false }
 
   return (
     <View style={styles.container}>
-      <WebView ref={webViewRef} originWhitelist={['*']} source={{ html }} onMessage={handleMessage} style={styles.webview} />
+      {/* pointerEvents on a wrapping View, not just the overlay below - on
+          Android a non-responding overlay lets touches fall through to the
+          WebView sibling, so the map itself has to stop receiving them. */}
+      <View style={styles.webview} pointerEvents={disabled ? 'none' : 'auto'}>
+        <WebView ref={webViewRef} originWhitelist={['*']} source={{ html }} onMessage={handleMessage} style={styles.webview} />
+      </View>
       <Pressable style={styles.locateButton} onPress={useMyLocation} disabled={locating || disabled}>
         {locating ? <ActivityIndicator size="small" color={colors.primary} /> : <LocateFixed size={18} color={colors.primary} />}
       </Pressable>

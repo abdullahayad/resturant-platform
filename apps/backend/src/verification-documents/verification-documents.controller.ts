@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { VerificationDocumentsService } from './verification-documents.service';
 import { CreateVerificationDocumentDto } from './dto/verification-document.dto';
-import { PartnerAuthGuard } from '../auth/guards/partner-auth.guard';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -10,7 +9,9 @@ import type { PartnerJwtPayload } from '../auth/jwt-payload';
 export class VerificationDocumentsController {
   constructor(private readonly documents: VerificationDocumentsService) {}
 
-  @UseGuards(PartnerAuthGuard)
+  // Business licenses aren't menu content - same Manager/Owner bar as
+  // submitting or removing one, so MENU_EDITOR staff can't read them either.
+  @UseGuards(ManagerOrOwnerGuard)
   @Get()
   list(@Req() req: { user: PartnerJwtPayload }) {
     return this.documents.list(req.user.sub);

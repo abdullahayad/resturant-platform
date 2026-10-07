@@ -55,7 +55,8 @@
     "noDocumentsYet": "No documents submitted yet.",
     "addDocument": "Add Document Photo",
     "loadFailed": "Could not load your verification documents.",
-    "uploadFailed": "Could not upload document"
+    "uploadFailed": "Could not upload document",
+    "deleteFailed": "Could not remove document"
   },
   "staff": "Staff",
   "staffHint": "Invite staff with limited access — they can help manage the menu without touching your profile or account settings.",

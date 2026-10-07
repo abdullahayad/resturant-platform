@@ -180,10 +180,17 @@ export function RestaurantsPage() {
     setExpandedId(id)
     setDetail(null)
     setVerificationDocs([])
-    const [full, docs] = await Promise.all([api.restaurant(id), api.verificationDocuments(id)])
+    // Fetched independently so a failing documents endpoint can't keep the
+    // restaurant's own detail stuck on "Loading…".
+    api.verificationDocuments(id).then(
+      (docs) => {
+        if (detailRequestIdRef.current === requestId) setVerificationDocs(docs)
+      },
+      () => {},
+    )
+    const full = await api.restaurant(id)
     if (detailRequestIdRef.current !== requestId) return // a newer row was clicked before this one loaded
     setDetail(full)
-    setVerificationDocs(docs)
   }
 
   const setActive = async (id: string, active: boolean) => {
@@ -239,11 +246,16 @@ export function RestaurantsPage() {
   }
 
   const toggleVerified = async (id: string, isVerified: boolean) => {
+    // Captured before any await - if another row is expanded while these
+    // requests are in flight, the id moves on and this detail is dropped.
+    const requestId = detailRequestIdRef.current
     setBusyId(id)
     try {
       await api.setVerified(id, isVerified)
       load()
-      if (expandedId === id) setDetail(await api.restaurant(id))
+      if (expandedId !== id) return
+      const full = await api.restaurant(id)
+      if (detailRequestIdRef.current === requestId) setDetail(full)
     } finally {
       setBusyId(null)
     }

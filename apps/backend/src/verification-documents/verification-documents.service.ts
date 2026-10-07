@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -18,6 +18,16 @@ export class VerificationDocumentsService {
   }
 
   async create(restaurantId: string, url: string, user: PartnerJwtPayload) {
+    // The DTO only checks the URL is on our storage host - it can't tell
+    // whose upload it was. Refuse a file another restaurant already
+    // submitted, so one business's license can't be passed off as another's.
+    const existing = await this.prisma.db.verificationDocument.findFirst({
+      where: { url },
+      select: { restaurantId: true },
+    });
+    if (existing && existing.restaurantId !== restaurantId) {
+      throw new ConflictException('This document has already been submitted by another restaurant');
+    }
     const doc = await this.prisma.db.verificationDocument.create({ data: { restaurantId, url } });
     await this.activityLog.log({ restaurantId, section: 'settings', summary: 'Submitted a verification document', user });
     return doc;

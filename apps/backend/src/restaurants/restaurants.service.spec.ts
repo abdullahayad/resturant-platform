@@ -192,7 +192,19 @@ describe('RestaurantsService', () => {
       prisma.db.restaurant.update.mockResolvedValueOnce({});
 
       await expect(service.updateProfile('r1', { nameEn: 'New Name' }, fakeUser)).resolves.toBeDefined();
-      expect(prisma.db.restaurant.update).toHaveBeenCalled();
+      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'r1', publishStatus: { not: 'APPROVED' } } }),
+      );
+    });
+
+    it('rejects a locked-field change if the listing was approved after the lock check', async () => {
+      const notYetLive = { ...liveBefore, publishStatus: 'PENDING' };
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(notYetLive);
+      prisma.db.restaurant.update.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('No record found', { code: 'P2025', clientVersion: 'test' }),
+      );
+
+      await expect(service.updateProfile('r1', { nameEn: 'New Name' }, fakeUser)).rejects.toThrow(ForbiddenException);
     });
 
     it('lets the admin path (no user) change locked fields even while live', async () => {

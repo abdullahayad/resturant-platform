@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { VerificationDocumentsService } from './verification-documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
@@ -16,6 +16,7 @@ describe('VerificationDocumentsService', () => {
       db: {
         verificationDocument: {
           findMany: jest.fn().mockResolvedValue([]),
+          findFirst: jest.fn().mockResolvedValue(null),
           create: jest.fn(),
           findUnique: jest.fn(),
           delete: jest.fn(),
@@ -58,6 +59,13 @@ describe('VerificationDocumentsService', () => {
         expect.objectContaining({ restaurantId: 'r1', section: 'settings' }),
       );
       expect(result).toEqual({ id: 'doc1' });
+    });
+
+    it("refuses a file another restaurant already submitted", async () => {
+      prisma.db.verificationDocument.findFirst.mockResolvedValueOnce({ restaurantId: 'other' });
+
+      await expect(service.create('r1', 'https://storage/doc.jpg', fakeUser)).rejects.toThrow(ConflictException);
+      expect(prisma.db.verificationDocument.create).not.toHaveBeenCalled();
     });
   });
 

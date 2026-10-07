@@ -412,21 +412,23 @@ export class RestaurantsService {
     // somewhere else later. Value-aware rather than "field present in the
     // payload": the partner-app form resubmits the whole profile on every
     // save, so a field being present but unchanged must not 403.
-    if (user && before.publishStatus === 'APPROVED') {
-      const attemptedChange =
-        (dto.nameEn !== undefined && dto.nameEn !== before.nameEn) ||
-        (dto.nameAr !== undefined && dto.nameAr !== before.nameAr) ||
-        (dto.phone !== undefined && dto.phone !== before.phone) ||
-        (dto.provinceId !== undefined && dto.provinceId !== before.provinceId) ||
-        (dto.districtId !== undefined && dto.districtId !== before.districtId) ||
-        (dto.latitude !== undefined && dto.latitude !== (before.latitude == null ? null : Number(before.latitude))) ||
-        (dto.longitude !== undefined && dto.longitude !== (before.longitude == null ? null : Number(before.longitude)));
-      if (attemptedChange) {
-        throw new ForbiddenException(
-          'Your name, phone, and location are locked now that your listing is live. Contact an admin to change them.',
-        );
-      }
+    const lockedFieldsChanged =
+      (dto.nameEn !== undefined && dto.nameEn !== before.nameEn) ||
+      (dto.nameAr !== undefined && dto.nameAr !== before.nameAr) ||
+      (dto.phone !== undefined && dto.phone !== before.phone) ||
+      (dto.provinceId !== undefined && dto.provinceId !== before.provinceId) ||
+      (dto.districtId !== undefined && dto.districtId !== before.districtId) ||
+      (dto.latitude !== undefined && dto.latitude !== (before.latitude == null ? null : Number(before.latitude))) ||
+      (dto.longitude !== undefined && dto.longitude !== (before.longitude == null ? null : Number(before.longitude)));
+    const lockedMessage =
+      'Your name, phone, and location are locked now that your listing is live. Contact an admin to change them.';
+    if (user && before.publishStatus === 'APPROVED' && lockedFieldsChanged) {
+      throw new ForbiddenException(lockedMessage);
     }
+    // The check above reads a snapshot - an admin could approve the listing
+    // between that read and the write below, so the write itself re-asserts
+    // "not live yet" whenever a partner is changing a locked field.
+    const guardLock = !!user && lockedFieldsChanged;
 
     if (dto.phone !== undefined) {
       const existingPhone = await this.prisma.db.restaurant.findUnique({
@@ -438,19 +440,26 @@ export class RestaurantsService {
       }
     }
 
-    await this.prisma.db.restaurant.update({
-      where: { id },
-      data: {
-        nameEn: dto.nameEn,
-        nameAr: dto.nameAr,
-        phone: dto.phone,
-        provinceId: dto.provinceId,
-        districtId: dto.districtId,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        logoUrl: dto.logoUrl,
-      },
-    });
+    try {
+      await this.prisma.db.restaurant.update({
+        where: guardLock ? { id, publishStatus: { not: 'APPROVED' } } : { id },
+        data: {
+          nameEn: dto.nameEn,
+          nameAr: dto.nameAr,
+          phone: dto.phone,
+          provinceId: dto.provinceId,
+          districtId: dto.districtId,
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          logoUrl: dto.logoUrl,
+        },
+      });
+    } catch (err) {
+      if (guardLock && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+        throw new ForbiddenException(lockedMessage);
+      }
+      throw err;
+    }
 
     if (dto.businessTypeIds) {
       await this.prisma.db.restaurantBusinessType.deleteMany({ where: { restaurantId: id } });

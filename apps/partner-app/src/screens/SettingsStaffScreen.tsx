@@ -120,7 +120,11 @@ export function SettingsStaffScreen() {
     if (!isManagerOrOwner) return;
     api
       .myVerificationDocuments(token)
-      .then(setVerificationDocs)
+      // Merge rather than replace - an upload can finish before this
+      // initial load does, and a plain replace would drop it from the list.
+      .then((list) =>
+        setVerificationDocs((prev) => [...prev.filter((d) => !list.some((l) => l.id === d.id)), ...list]),
+      )
       .catch(() => setDocsError(t('verificationDocuments.loadFailed')))
       .finally(() => setDocsLoading(false));
   }, [token, isManagerOrOwner, t]);
@@ -164,8 +168,8 @@ export function SettingsStaffScreen() {
     try {
       await api.deleteVerificationDocument(token, id);
       setVerificationDocs((prev) => prev.filter((d) => d.id !== id));
-    } catch {
-      setDocsError(t('verificationDocuments.uploadFailed'));
+    } catch (err) {
+      setDocsError(err instanceof Error ? err.message : t('verificationDocuments.deleteFailed'));
     } finally {
       setBusyDocId(null);
     }
