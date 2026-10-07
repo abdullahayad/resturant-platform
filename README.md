@@ -90,6 +90,11 @@ provinces/districts) is admin-managed — partner submissions never bypass it.
   wake-up on the first request).
 - Database: Neon (managed Postgres).
 - File storage: Cloudflare R2 (S3-compatible; MinIO is the local-dev equivalent).
+  Two buckets: the public one (`STORAGE_BUCKET`) for photos, and a private one
+  (`STORAGE_PRIVATE_BUCKET`, default `<STORAGE_BUCKET>-private`) for verification
+  documents, served only via short-lived signed URLs. The backend creates the
+  private bucket on startup if its storage token allows; otherwise create it by
+  hand in R2 and leave public access off.
 - Partner app: Expo/EAS — `preview` build profile produces a sideloadable universal
   APK for testing, `production` produces an AAB for the Play Store (which Google then
   serves as smaller per-device APKs — don't judge final user-facing size from a

@@ -664,6 +664,36 @@ function qsFrom(params: Record<string, string | number | undefined | null>): str
   return qs ? `?${qs}` : '';
 }
 
+type UploadableFile = { uri: string; name: string; type: string };
+
+async function postMultipart<T>(token: string, path: string, file: UploadableFile): Promise<T> {
+  const form = new FormData();
+  // RN's old {uri,name,type} FormData shorthand throws "Unsupported FormDataPart
+  // implementation" under the new architecture (SDK 57 / RN 0.86) — fetching the
+  // URI into a real Blob works uniformly for web blob:/data: URIs and native
+  // file:/content: URIs alike.
+  const blob = await (await fetch(file.uri)).blob();
+  form.append('file', blob, file.name);
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${API_BASE_URL}${path}`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
+      UPLOAD_TIMEOUT_MS,
+    );
+  } catch (err) {
+    reportRequestFailure(err instanceof Error && err.name === 'AbortError' ? 'timeout' : 'network', 'POST', path, err);
+    throw err;
+  }
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.message || 'Upload failed');
+    if (res.status !== 401) reportRequestFailure('http_status', 'POST', path, err);
+    throw err;
+  }
+  return data;
+}
+
 export const api = {
   businessTypes: () => get<MasterDataItem[]>('/master-data/business-types'),
   foodCategories: () => get<MasterDataItem[]>('/master-data/food-categories'),
@@ -728,33 +758,7 @@ export const api = {
   acknowledgePublishDecline: (token: string) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me/publish-acknowledge', token),
 
-  async uploadFile(token: string, file: { uri: string; name: string; type: string }): Promise<{ url: string }> {
-    const form = new FormData();
-    // RN's old {uri,name,type} FormData shorthand throws "Unsupported FormDataPart
-    // implementation" under the new architecture (SDK 57 / RN 0.86) — fetching the
-    // URI into a real Blob works uniformly for web blob:/data: URIs and native
-    // file:/content: URIs alike.
-    const blob = await (await fetch(file.uri)).blob();
-    form.append('file', blob, file.name);
-    let res: Response;
-    try {
-      res = await fetchWithTimeout(
-        `${API_BASE_URL}/uploads`,
-        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
-        UPLOAD_TIMEOUT_MS,
-      );
-    } catch (err) {
-      reportRequestFailure(err instanceof Error && err.name === 'AbortError' ? 'timeout' : 'network', 'POST', '/uploads', err);
-      throw err;
-    }
-    const data = await res.json();
-    if (!res.ok) {
-      const err = new Error(data.message || 'Upload failed');
-      if (res.status !== 401) reportRequestFailure('http_status', 'POST', '/uploads', err);
-      throw err;
-    }
-    return data;
-  },
+  uploadFile: (token: string, file: UploadableFile) => postMultipart<{ url: string }>(token, '/uploads', file),
 
   activeStories: (token: string) => get<Story[]>('/restaurants/me/stories', token),
   createStory: (token: string, mediaUrl: string, mediaType: 'photo' | 'video', caption?: string) =>
@@ -803,8 +807,10 @@ export const api = {
     send<GalleryPhoto>('PATCH', `/restaurants/me/gallery/${id}/cover`, token, { cover }),
 
   myVerificationDocuments: (token: string) => get<VerificationDocument[]>('/restaurants/me/verification-documents', token),
-  addVerificationDocument: (token: string, url: string) =>
-    send<VerificationDocument>('POST', '/restaurants/me/verification-documents', token, { url }),
+  // Uploaded straight to the private bucket - not via uploadFile(), whose
+  // files land in the public one. The returned url is short-lived (signed).
+  addVerificationDocument: (token: string, file: UploadableFile) =>
+    postMultipart<VerificationDocument>(token, '/restaurants/me/verification-documents', file),
   deleteVerificationDocument: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/verification-documents/${id}`, token),
 

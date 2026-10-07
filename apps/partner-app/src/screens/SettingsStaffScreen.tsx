@@ -146,12 +146,11 @@ export function SettingsStaffScreen() {
       for (const asset of result.assets) {
         const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
         const wasResized = resizedUri !== asset.uri;
-        const { url } = await api.uploadFile(token, {
+        const created = await api.addVerificationDocument(token, {
           uri: resizedUri,
-          name: asset.fileName ?? 'document.jpg',
+          name: wasResized ? 'document.jpg' : (asset.fileName ?? 'document.jpg'),
           type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
         });
-        const created = await api.addVerificationDocument(token, url);
         setVerificationDocs((prev) => [created, ...prev]);
         setLocalDocPreviews((prev) => prev.slice(1));
       }

@@ -613,7 +613,11 @@ model Story {
 model VerificationDocument {
   id           String   @id @default(uuid())
   restaurantId String
-  url          String
+  // Object key in the private bucket - served only via short-lived signed
+  // URLs. `url` is the legacy public-bucket link from before documents
+  // moved there; new rows only ever set storageKey.
+  storageKey   String?
+  url          String?
   createdAt    DateTime @default(now())
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)

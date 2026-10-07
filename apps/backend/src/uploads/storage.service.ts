@@ -1,12 +1,16 @@
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
+import { isRealImage } from '../common/imageSignature';
 
 // Deliberately excludes svg/html/js and anything else a browser would
 // execute rather than just display — the bucket is public-read by design
@@ -33,9 +37,29 @@ function requireStorageCredential(name: string): string {
   return value;
 }
 
+// Private uploads are documents an admin reviews (business licenses), so
+// photos only - no video, and the bytes must actually be an image.
+const ALLOWED_PRIVATE_UPLOADS: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+
+const SIGNED_URL_TTL_SECONDS = 10 * 60;
+
+function extensionOf(originalname: string): string {
+  const rawExt = originalname.includes('.') ? originalname.split('.').pop() : '';
+  return (rawExt ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 @Injectable()
 export class StorageService implements OnModuleInit {
+  private readonly logger = new Logger(StorageService.name);
   private readonly bucket = process.env.STORAGE_BUCKET ?? 'restaurant-platform';
+  // Never given a public-read policy - objects here are only reachable
+  // through short-lived signed URLs (see signedUrl), unlike `bucket` above.
+  private readonly privateBucket = process.env.STORAGE_PRIVATE_BUCKET ?? `${this.bucket}-private`;
   private readonly endpoint = process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000';
   // Providers like Cloudflare R2 serve public reads from a different host
   // than the S3 API endpoint used to write objects (a dedicated public
@@ -78,11 +102,54 @@ export class StorageService implements OnModuleInit {
         }),
       );
     }
+
+    // Logged rather than thrown - a storage token without bucket-creation
+    // rights shouldn't take the whole API down; only private uploads fail,
+    // with a clear error, until the bucket is created by hand.
+    try {
+      await this.client.send(new HeadBucketCommand({ Bucket: this.privateBucket }));
+    } catch {
+      try {
+        await this.client.send(new CreateBucketCommand({ Bucket: this.privateBucket }));
+      } catch (err) {
+        this.logger.error(`Could not create private bucket "${this.privateBucket}": ${String(err)}`);
+      }
+    }
+  }
+
+  async uploadPrivate(file: { buffer: Buffer; originalname: string }, folder: string) {
+    const ext = extensionOf(file.originalname);
+    const contentType = ALLOWED_PRIVATE_UPLOADS[ext];
+    if (!contentType || !isRealImage(file.buffer)) {
+      throw new BadRequestException(
+        `Unsupported file type. Allowed: ${Object.keys(ALLOWED_PRIVATE_UPLOADS).join(', ')}`,
+      );
+    }
+
+    const key = `${folder}/${randomUUID()}.${ext}`;
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.privateBucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: contentType,
+      }),
+    );
+    return { key };
+  }
+
+  signedUrl(key: string) {
+    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.privateBucket, Key: key }), {
+      expiresIn: SIGNED_URL_TTL_SECONDS,
+    });
+  }
+
+  async deletePrivate(key: string) {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.privateBucket, Key: key }));
   }
 
   async upload(file: { buffer: Buffer; originalname: string }, folder: string) {
-    const rawExt = file.originalname.includes('.') ? file.originalname.split('.').pop() : '';
-    const ext = (rawExt ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const ext = extensionOf(file.originalname);
     const contentType = ALLOWED_UPLOADS[ext];
     if (!contentType) {
       throw new BadRequestException(

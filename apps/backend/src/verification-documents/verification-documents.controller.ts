@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { VerificationDocumentsService } from './verification-documents.service';
-import { CreateVerificationDocumentDto } from './dto/verification-document.dto';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -17,10 +28,14 @@ export class VerificationDocumentsController {
     return this.documents.list(req.user.sub);
   }
 
+  // Multipart upload straight to the private bucket, rather than the
+  // generic /uploads route (public bucket) followed by submitting its URL.
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
   @Post()
-  create(@Req() req: { user: PartnerJwtPayload }, @Body() dto: CreateVerificationDocumentDto) {
-    return this.documents.create(req.user.sub, dto.url, req.user);
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  create(@Req() req: { user: PartnerJwtPayload }, @UploadedFile() file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    return this.documents.create(req.user.sub, file, req.user);
   }
 
   @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
