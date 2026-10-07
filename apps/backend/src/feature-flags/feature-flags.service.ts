@@ -7,7 +7,11 @@ const provinceSummary = { select: { id: true, nameEn: true, nameAr: true } } as 
 const districtSummary = {
   select: { id: true, nameEn: true, nameAr: true, province: { select: { nameEn: true, nameAr: true } } },
 } as const;
-const overrideInclude = { restaurant: restaurantSummary, district: districtSummary, province: provinceSummary } as const;
+const overrideInclude = {
+  restaurant: restaurantSummary,
+  district: districtSummary,
+  province: provinceSummary,
+} as const;
 
 @Injectable()
 export class FeatureFlagsService {

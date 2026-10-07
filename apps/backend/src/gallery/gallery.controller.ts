@@ -15,7 +15,11 @@ export class GalleryController {
     return this.gallery.list(
       req.user.sub,
       query.album,
-      { mostOrdered: query.mostOrdered, menuCategoryId: query.menuCategoryId, ambienceSubCategory: query.ambienceSubCategory },
+      {
+        mostOrdered: query.mostOrdered,
+        menuCategoryId: query.menuCategoryId,
+        ambienceSubCategory: query.ambienceSubCategory,
+      },
       query.page,
     );
   }

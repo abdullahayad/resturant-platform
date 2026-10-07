@@ -206,11 +206,7 @@ export class RestaurantsController {
 
   @UseGuards(AdminAuthGuard)
   @Patch(':id/publish-moderate')
-  moderatePublish(
-    @Req() req: { user: AdminJwtPayload },
-    @Param('id') id: string,
-    @Body() dto: ModeratePublishDto,
-  ) {
+  moderatePublish(@Req() req: { user: AdminJwtPayload }, @Param('id') id: string, @Body() dto: ModeratePublishDto) {
     return this.restaurants.moderatePublish(req.user.sub, id, dto);
   }
 

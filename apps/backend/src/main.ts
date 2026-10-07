@@ -24,7 +24,15 @@ import { AppModule } from './app.module';
 // something outside our own apps depends on the exact path (UptimeRobot
 // pings "/", Swagger serves its own sub-paths under "/docs"). Everything
 // else moves under /v1.
-const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-json', 'support-session', 'review', 'restaurant'];
+const UNVERSIONED_ROUTES = [
+  'privacy-policy',
+  'terms-of-service',
+  'docs',
+  'docs-json',
+  'support-session',
+  'review',
+  'restaurant',
+];
 
 // Helmet's default CSP img-src is 'self' data: only - every uploaded photo
 // (reviews, gallery, logos) lives on a different host (STORAGE_PUBLIC_URL),
@@ -32,7 +40,8 @@ const UNVERSIONED_ROUTES = ['privacy-policy', 'terms-of-service', 'docs', 'docs-
 // every public HTML page (review page, public restaurant page). Computed
 // once at startup rather than per-request since the storage host never
 // changes at runtime.
-const storageOrigin = new URL(process.env.STORAGE_PUBLIC_URL ?? process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000').origin;
+const storageOrigin = new URL(process.env.STORAGE_PUBLIC_URL ?? process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000')
+  .origin;
 
 // Comma-separated list of allowed browser origins, e.g.
 // "http://localhost:5173,https://admin.example.com". Falls back to the
@@ -73,7 +82,8 @@ async function bootstrap() {
   app.use((req: Request, _res: Response, next: NextFunction) => {
     const path = req.url.split('?')[0];
     const isRoot = path === '/';
-    const isUnversioned = isRoot || UNVERSIONED_ROUTES.some((route) => path === `/${route}` || path.startsWith(`/${route}/`));
+    const isUnversioned =
+      isRoot || UNVERSIONED_ROUTES.some((route) => path === `/${route}` || path.startsWith(`/${route}/`));
     if (!isUnversioned && !path.startsWith('/v1/') && path !== '/v1') {
       req.url = `/v1${req.url}`;
     }

@@ -393,7 +393,11 @@ describe('RestaurantsService', () => {
       // timestamp, which would make this test flaky.
       const expectedExpiry = Date.now() + 15 * 60 * 1000;
       expect(Math.abs(data.data.passwordResetExpiresAt.getTime() - expectedExpiry)).toBeLessThan(5000);
-      expect(email.send).toHaveBeenCalledWith('owner@test.iq', expect.any(String), expect.stringContaining('reset code'));
+      expect(email.send).toHaveBeenCalledWith(
+        'owner@test.iq',
+        expect.any(String),
+        expect.stringContaining('reset code'),
+      );
     });
 
     it('falls back to the staff table and generates a code there when no owner matches', async () => {
@@ -408,7 +412,11 @@ describe('RestaurantsService', () => {
       const data = prisma.db.partnerStaffUser.update.mock.calls[0][0];
       expect(data.where).toEqual({ id: 's1' });
       expect(data.data.passwordResetCodeHash).toEqual(expect.any(String));
-      expect(email.send).toHaveBeenCalledWith('staff@test.iq', expect.any(String), expect.stringContaining('reset code'));
+      expect(email.send).toHaveBeenCalledWith(
+        'staff@test.iq',
+        expect.any(String),
+        expect.stringContaining('reset code'),
+      );
     });
 
     it('still returns success for an email matching neither table, without sending anything - anti-enumeration', async () => {
@@ -475,9 +483,9 @@ describe('RestaurantsService', () => {
       });
       prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.resetPassword({ email: 'owner@test.iq', code: '000000', newPassword: 'newPass123' })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword({ email: 'owner@test.iq', code: '000000', newPassword: 'newPass123' }),
+      ).rejects.toThrow(BadRequestException);
       expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
     });
 
@@ -490,19 +498,23 @@ describe('RestaurantsService', () => {
       });
       prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.resetPassword({ email: 'owner@test.iq', code: '123456', newPassword: 'newPass123' })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword({ email: 'owner@test.iq', code: '123456', newPassword: 'newPass123' }),
+      ).rejects.toThrow(BadRequestException);
       expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
     });
 
     it('rejects when no account has ever requested a reset code', async () => {
-      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1', passwordResetCodeHash: null, passwordResetExpiresAt: null });
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({
+        id: 'r1',
+        passwordResetCodeHash: null,
+        passwordResetExpiresAt: null,
+      });
       prisma.db.partnerStaffUser.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.resetPassword({ email: 'owner@test.iq', code: '123456', newPassword: 'newPass123' })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword({ email: 'owner@test.iq', code: '123456', newPassword: 'newPass123' }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -555,7 +567,7 @@ describe('RestaurantsService', () => {
       expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
     });
 
-    it('sets a restaurant\'s class', async () => {
+    it("sets a restaurant's class", async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
       prisma.db.restaurant.update.mockResolvedValueOnce({});
 
@@ -610,7 +622,7 @@ describe('RestaurantsService', () => {
   });
 
   describe('findOne', () => {
-    it('includes the average price of the restaurant\'s active dishes', async () => {
+    it("includes the average price of the restaurant's active dishes", async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
       prisma.db.dish.aggregate.mockResolvedValueOnce({ _avg: { price: { toString: () => '18500.5' } } });
 
@@ -641,7 +653,7 @@ describe('RestaurantsService', () => {
       expect(prisma.db.adminSupportSession.create).not.toHaveBeenCalled();
     });
 
-    it('mints a token carrying the restaurant\'s own tokenVersion and the admin who started it, and logs the session', async () => {
+    it("mints a token carrying the restaurant's own tokenVersion and the admin who started it, and logs the session", async () => {
       prisma.db.restaurant.findUnique.mockResolvedValueOnce({
         id: 'r1',
         nameEn: 'Al Baghdadi',

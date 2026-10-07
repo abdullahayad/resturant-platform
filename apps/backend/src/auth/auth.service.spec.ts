@@ -30,7 +30,10 @@ function currentTotpCode(base32Secret: string): string {
   const hmac = createHmac('sha1', base32Decode(base32Secret)).update(counterBuffer).digest();
   const offset = hmac[hmac.length - 1] & 0xf;
   const truncated =
-    ((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16) | ((hmac[offset + 2] & 0xff) << 8) | (hmac[offset + 3] & 0xff);
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
   return (truncated % 1_000_000).toString().padStart(6, '0');
 }
 
@@ -56,11 +59,7 @@ describe('AuthService', () => {
     jwt = { signAsync: jest.fn().mockResolvedValue('signed.jwt.token'), verifyAsync: jest.fn() };
 
     const module = await Test.createTestingModule({
-      providers: [
-        AuthService,
-        { provide: PrismaService, useValue: prisma },
-        { provide: JwtService, useValue: jwt },
-      ],
+      providers: [AuthService, { provide: PrismaService, useValue: prisma }, { provide: JwtService, useValue: jwt }],
     }).compile();
 
     service = module.get(AuthService);
@@ -126,9 +125,9 @@ describe('AuthService', () => {
       prisma.db.restaurant.findUnique.mockResolvedValue(null);
       prisma.db.partnerStaffUser.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.partnerLogin({ email: 'nobody@test.iq', password: 'whatever' }),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.partnerLogin({ email: 'nobody@test.iq', password: 'whatever' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('rejects a deactivated staff account even with the correct password', async () => {
@@ -142,9 +141,9 @@ describe('AuthService', () => {
         tokenVersion: 0,
       });
 
-      await expect(
-        service.partnerLogin({ email: 'staff@test.iq', password: 'staff-password' }),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.partnerLogin({ email: 'staff@test.iq', password: 'staff-password' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -177,9 +176,9 @@ describe('AuthService', () => {
         tokenVersion: 0,
       });
 
-      await expect(
-        service.adminLogin({ email: 'admin@platform.iq', password: 'wrong-password' }),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.adminLogin({ email: 'admin@platform.iq', password: 'wrong-password' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('rejects a deactivated admin account', async () => {
@@ -191,9 +190,9 @@ describe('AuthService', () => {
         tokenVersion: 0,
       });
 
-      await expect(
-        service.adminLogin({ email: 'admin@platform.iq', password: 'admin-password' }),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.adminLogin({ email: 'admin@platform.iq', password: 'admin-password' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('returns a pending 2FA challenge instead of a session for a 2FA-enabled admin', async () => {

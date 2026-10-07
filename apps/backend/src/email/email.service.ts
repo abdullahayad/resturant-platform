@@ -21,7 +21,7 @@ export class EmailService {
     // except this warning at startup (see security review).
     if (this.from === 'onboarding@resend.dev') {
       this.logger.warn(
-        'RESEND_FROM_EMAIL is not set - using Resend\'s sandbox sender, which can only deliver to the email on the Resend account itself. Password-reset and other transactional emails will silently fail to reach real users until this is set to a verified-domain address.',
+        "RESEND_FROM_EMAIL is not set - using Resend's sandbox sender, which can only deliver to the email on the Resend account itself. Password-reset and other transactional emails will silently fail to reach real users until this is set to a verified-domain address.",
       );
     }
   }

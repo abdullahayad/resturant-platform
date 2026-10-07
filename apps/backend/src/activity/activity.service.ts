@@ -44,7 +44,13 @@ export class ActivityService {
       includeReservations
         ? this.prisma.db.chefTableBooking.findMany({
             where: reservationWhere,
-            select: { id: true, guestName: true, partySize: true, createdAt: true, event: { select: { titleEn: true } } },
+            select: {
+              id: true,
+              guestName: true,
+              partySize: true,
+              createdAt: true,
+              event: { select: { titleEn: true } },
+            },
             orderBy: { createdAt: 'desc' },
             take: fetchCount,
           })
@@ -61,7 +67,13 @@ export class ActivityService {
     ]);
 
     const merged: ActivityItem[] = [
-      ...reviews.map((r) => ({ type: 'review' as const, id: r.id, createdAt: r.createdAt, reviewerName: r.reviewerName, rating: r.rating })),
+      ...reviews.map((r) => ({
+        type: 'review' as const,
+        id: r.id,
+        createdAt: r.createdAt,
+        reviewerName: r.reviewerName,
+        rating: r.rating,
+      })),
       ...reservations.map((r) => ({
         type: 'reservation' as const,
         id: r.id,

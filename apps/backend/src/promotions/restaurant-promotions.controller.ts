@@ -72,7 +72,11 @@ export class RestaurantPromotionsController {
 
   @UseGuards(ApprovedPartnerGuard)
   @Post('templates/:id/apply')
-  applyTemplate(@Req() req: { user: PartnerJwtPayload }, @Param('id') id: string, @Body() dto: ApplyPromotionTemplateDto) {
+  applyTemplate(
+    @Req() req: { user: PartnerJwtPayload },
+    @Param('id') id: string,
+    @Body() dto: ApplyPromotionTemplateDto,
+  ) {
     return this.promotions.applyTemplate(req.user.sub, id, dto, req.user);
   }
 }

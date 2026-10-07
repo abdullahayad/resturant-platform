@@ -1,6 +1,11 @@
 import { IsBoolean, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { CREATABLE_GALLERY_ALBUMS, GALLERY_ALBUMS, type CreatableGalleryAlbumValue, type GalleryAlbumValue } from '../../common/gallery';
+import {
+  CREATABLE_GALLERY_ALBUMS,
+  GALLERY_ALBUMS,
+  type CreatableGalleryAlbumValue,
+  type GalleryAlbumValue,
+} from '../../common/gallery';
 import { MODERATION_STATUSES, type ModerationStatusValue } from '../../common/moderation';
 import { PageQueryDto } from '../../common/pagination';
 import { IsOwnStoragePhotoUrl } from '../../common/ownStoragePhotoUrl';

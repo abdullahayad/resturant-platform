@@ -57,7 +57,11 @@ export interface PromotionForPricing {
 // Picks whichever currently-live promotion gives the customer the best
 // price for this specific dish, when more than one applies (e.g. a
 // whole-menu promo and a dish-specific one overlapping) - never below 0.
-export function computeDiscountedPrice(originalPrice: number, promotions: PromotionForPricing[], dishId: string): number | null {
+export function computeDiscountedPrice(
+  originalPrice: number,
+  promotions: PromotionForPricing[],
+  dishId: string,
+): number | null {
   const applicable = promotions.filter((p) => p.scope === 'WHOLE_MENU' || p.dishes.some((d) => d.dishId === dishId));
   if (applicable.length === 0) return null;
 

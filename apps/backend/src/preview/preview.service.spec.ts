@@ -87,7 +87,10 @@ describe('PreviewService', () => {
   it('attaches a discountedPrice to a dish covered by a currently-live promotion', async () => {
     prisma.db.restaurant.findUnique.mockResolvedValueOnce({
       ...baseRestaurant,
-      dishes: [{ id: 'd1', price: 10000 }, { id: 'd2', price: 5000 }],
+      dishes: [
+        { id: 'd1', price: 10000 },
+        { id: 'd2', price: 5000 },
+      ],
     });
     promotions.activePromotionsNow.mockResolvedValueOnce([
       { scope: 'SPECIFIC_DISHES', discountType: 'PERCENTAGE', discountValue: 20, dishes: [{ dishId: 'd1' }] },

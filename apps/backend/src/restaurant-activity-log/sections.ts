@@ -22,7 +22,11 @@ export type RestaurantActivitySection = (typeof RESTAURANT_ACTIVITY_SECTIONS)[nu
 // aren't restaurant-initiated (a blocked upload or an admin "Manage as this
 // restaurant" session), so they're never written to RestaurantActivityLog,
 // but the admin portal's section picker treats them the same way.
-export const ADMIN_ACTIVITY_SECTIONS = [...RESTAURANT_ACTIVITY_SECTIONS, 'blockedUpload', 'adminSupportSession'] as const;
+export const ADMIN_ACTIVITY_SECTIONS = [
+  ...RESTAURANT_ACTIVITY_SECTIONS,
+  'blockedUpload',
+  'adminSupportSession',
+] as const;
 export type AdminActivitySection = (typeof ADMIN_ACTIVITY_SECTIONS)[number];
 
 export const SECTION_LABELS: Record<AdminActivitySection, string> = {

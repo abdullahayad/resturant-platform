@@ -24,7 +24,13 @@ export class PromotionsService {
     const where = { restaurantId };
     const { page, skip, take } = pageOffset(pageParam);
     const [rows, total] = await Promise.all([
-      this.prisma.db.promotion.findMany({ where, include: promotionInclude, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.db.promotion.findMany({
+        where,
+        include: promotionInclude,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
       this.prisma.db.promotion.count({ where }),
     ]);
     const now = new Date();
@@ -55,7 +61,14 @@ export class PromotionsService {
       // else a promotion's real liveness matters.
       this.prisma.db.promotion.findMany({
         where: { restaurantId, status: 'APPROVED', isActive: true },
-        select: { isRecurring: true, validFrom: true, validUntil: true, recurringDayOfWeek: true, startTime: true, endTime: true },
+        select: {
+          isRecurring: true,
+          validFrom: true,
+          validUntil: true,
+          recurringDayOfWeek: true,
+          startTime: true,
+          endTime: true,
+        },
       }),
       this.prisma.db.promotion.count({ where: { restaurantId, discountType: 'PERCENTAGE' } }),
       this.prisma.db.promotion.count({ where: { restaurantId, discountType: 'FIXED_AMOUNT' } }),
@@ -103,7 +116,12 @@ export class PromotionsService {
       },
       include: promotionInclude,
     });
-    await this.activityLog.log({ restaurantId, section: 'promotions', summary: `Created promotion '${created.titleEn}'`, user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'promotions',
+      summary: `Created promotion '${created.titleEn}'`,
+      user,
+    });
     return created;
   }
 
@@ -180,7 +198,13 @@ export class PromotionsService {
       { titleEn: 'Title', discountType: 'Discount Type', discountValue: 'Discount Value', isActive: 'Active' },
     );
     if (changes.length) {
-      await this.activityLog.log({ restaurantId, section: 'promotions', summary: `'${updated.titleEn}' — ${summarizeChanges(changes)}`, changes, user });
+      await this.activityLog.log({
+        restaurantId,
+        section: 'promotions',
+        summary: `'${updated.titleEn}' — ${summarizeChanges(changes)}`,
+        changes,
+        user,
+      });
     }
 
     return updated;
@@ -189,7 +213,12 @@ export class PromotionsService {
   async remove(restaurantId: string, id: string, user: PartnerJwtPayload) {
     const existing = await this.ensureOwnership(restaurantId, id);
     await this.prisma.db.promotion.delete({ where: { id } });
-    await this.activityLog.log({ restaurantId, section: 'promotions', summary: `Removed promotion '${existing.titleEn}'`, user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'promotions',
+      summary: `Removed promotion '${existing.titleEn}'`,
+      user,
+    });
     return { id };
   }
 
@@ -235,7 +264,9 @@ export class PromotionsService {
         dishes: { select: { dishId: true } },
       },
     });
-    return promotions.filter((p) => isPromotionLiveNow(p, now)).map((p) => ({ ...p, discountValue: Number(p.discountValue) }));
+    return promotions
+      .filter((p) => isPromotionLiveNow(p, now))
+      .map((p) => ({ ...p, discountValue: Number(p.discountValue) }));
   }
 
   // ── Templates ─────────────────────────────────────────────────────────
@@ -297,7 +328,9 @@ export class PromotionsService {
       });
       dishIds = owned.map((d) => d.id);
       if (dishIds.length === 0) {
-        throw new BadRequestException('None of this template\'s dishes exist anymore - update the template before using it');
+        throw new BadRequestException(
+          "None of this template's dishes exist anymore - update the template before using it",
+        );
       }
     }
 

@@ -66,7 +66,8 @@ export class AnalyticsService {
       const age = now - r.createdAt.getTime();
       return age > 30 * DAY_MS && age <= 60 * DAY_MS;
     });
-    const avg = (rows: { rating: number }[]) => (rows.length ? rows.reduce((s, r) => s + r.rating, 0) / rows.length : null);
+    const avg = (rows: { rating: number }[]) =>
+      rows.length ? rows.reduce((s, r) => s + r.rating, 0) / rows.length : null;
     const last30Average = avg(last30);
     const prev30Average = avg(prev30);
     const trend = last30Average != null && prev30Average != null ? last30Average - prev30Average : null;

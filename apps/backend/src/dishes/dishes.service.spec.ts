@@ -40,7 +40,7 @@ describe('DishesService', () => {
   });
 
   describe('list', () => {
-    it('excludes hidden and inactive dishes from a restaurant\'s own list', () => {
+    it("excludes hidden and inactive dishes from a restaurant's own list", () => {
       service.list('r1');
 
       expect(prisma.db.dish.findMany).toHaveBeenCalledWith(

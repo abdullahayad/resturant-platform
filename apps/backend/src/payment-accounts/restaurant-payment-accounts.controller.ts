@@ -17,7 +17,11 @@ export class RestaurantPaymentAccountsController {
 
   @UseGuards(ApprovedPartnerGuard)
   @Put(':gateway')
-  connect(@Req() req: { user: PartnerJwtPayload }, @Param('gateway') gateway: string, @Body() dto: ConnectPaymentGatewayDto) {
+  connect(
+    @Req() req: { user: PartnerJwtPayload },
+    @Param('gateway') gateway: string,
+    @Body() dto: ConnectPaymentGatewayDto,
+  ) {
     return this.paymentAccounts.connect(req.user.sub, gateway, dto, req.user);
   }
 

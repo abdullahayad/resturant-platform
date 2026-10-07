@@ -64,7 +64,13 @@ export class StaffService {
       { fullName: 'Name', role: 'Role', isActive: 'Active' },
     );
     if (changes.length) {
-      await this.activityLog.log({ restaurantId, section: 'settings', summary: `Staff '${after.fullName}' — ${summarizeChanges(changes)}`, changes, user });
+      await this.activityLog.log({
+        restaurantId,
+        section: 'settings',
+        summary: `Staff '${after.fullName}' — ${summarizeChanges(changes)}`,
+        changes,
+        user,
+      });
     }
     return after;
   }
@@ -72,7 +78,12 @@ export class StaffService {
   async remove(restaurantId: string, id: string, user: PartnerJwtPayload) {
     const staff = await this.ensureBelongsToRestaurant(restaurantId, id);
     await this.prisma.db.partnerStaffUser.delete({ where: { id } });
-    await this.activityLog.log({ restaurantId, section: 'settings', summary: `Removed staff member '${staff.fullName}'`, user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'settings',
+      summary: `Removed staff member '${staff.fullName}'`,
+      user,
+    });
     return { id };
   }
 

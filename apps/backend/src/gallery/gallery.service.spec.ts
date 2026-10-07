@@ -55,7 +55,11 @@ describe('GalleryService', () => {
 
     it('rejects a dishId on a non-Food album', async () => {
       await expect(
-        service.create('r1', { album: 'AMBIENCE', ambienceSubCategory: 'INDOOR', url: 'http://x/a.jpg', dishId: 'd1' } as never, fakeUser),
+        service.create(
+          'r1',
+          { album: 'AMBIENCE', ambienceSubCategory: 'INDOOR', url: 'http://x/a.jpg', dishId: 'd1' } as never,
+          fakeUser,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -72,7 +76,11 @@ describe('GalleryService', () => {
       prisma.db.dish.findUnique.mockResolvedValueOnce({ restaurantId: 'r1' });
       prisma.db.galleryPhoto.create.mockResolvedValueOnce({ id: 'p1' });
 
-      const result = await service.create('r1', { album: 'FOOD', url: 'http://x/a.jpg', dishId: 'd1' } as never, fakeUser);
+      const result = await service.create(
+        'r1',
+        { album: 'FOOD', url: 'http://x/a.jpg', dishId: 'd1' } as never,
+        fakeUser,
+      );
 
       expect(result).toEqual({ id: 'p1' });
       expect(prisma.db.galleryPhoto.create).toHaveBeenCalledTimes(1);
@@ -80,7 +88,7 @@ describe('GalleryService', () => {
   });
 
   describe('list', () => {
-    it('excludes hidden photos from a restaurant\'s own list', async () => {
+    it("excludes hidden photos from a restaurant's own list", async () => {
       await service.list('r1', 'FOOD');
 
       expect(prisma.db.galleryPhoto.findMany).toHaveBeenCalledWith(

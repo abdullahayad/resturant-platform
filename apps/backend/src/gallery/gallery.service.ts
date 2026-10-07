@@ -84,7 +84,10 @@ export class GalleryService {
   }
 
   async remove(restaurantId: string, id: string, user: PartnerJwtPayload) {
-    const photo = await this.prisma.db.galleryPhoto.findUnique({ where: { id }, select: { restaurantId: true, album: true } });
+    const photo = await this.prisma.db.galleryPhoto.findUnique({
+      where: { id },
+      select: { restaurantId: true, album: true },
+    });
     if (!photo || photo.restaurantId !== restaurantId) throw new NotFoundException('Photo not found');
     await this.prisma.db.galleryPhoto.delete({ where: { id } });
     await this.activityLog.log({
@@ -146,7 +149,10 @@ export class GalleryService {
     const [items, total] = await Promise.all([
       this.prisma.db.galleryPhoto.findMany({
         where,
-        include: { ...photoInclude, restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } } },
+        include: {
+          ...photoInclude,
+          restaurant: { select: { id: true, nameEn: true, nameAr: true, codeNumber: true } },
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take,

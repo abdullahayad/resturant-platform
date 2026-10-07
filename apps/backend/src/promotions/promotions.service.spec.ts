@@ -146,8 +146,22 @@ describe('PromotionsService', () => {
       // Of the APPROVED+isActive candidates, only ones actually live right
       // now (by date) should count - a future-dated one must not.
       prisma.db.promotion.findMany.mockResolvedValueOnce([
-        { isRecurring: false, validFrom: new Date(Date.now() - 86_400_000), validUntil: new Date(Date.now() + 86_400_000), recurringDayOfWeek: null, startTime: null, endTime: null },
-        { isRecurring: false, validFrom: new Date(Date.now() + 86_400_000), validUntil: new Date(Date.now() + 172_800_000), recurringDayOfWeek: null, startTime: null, endTime: null }, // future-dated
+        {
+          isRecurring: false,
+          validFrom: new Date(Date.now() - 86_400_000),
+          validUntil: new Date(Date.now() + 86_400_000),
+          recurringDayOfWeek: null,
+          startTime: null,
+          endTime: null,
+        },
+        {
+          isRecurring: false,
+          validFrom: new Date(Date.now() + 86_400_000),
+          validUntil: new Date(Date.now() + 172_800_000),
+          recurringDayOfWeek: null,
+          startTime: null,
+          endTime: null,
+        }, // future-dated
       ]);
 
       const result = await service.summary('r1');
@@ -263,7 +277,11 @@ describe('PromotionsService', () => {
     });
 
     it('requires validFrom/validUntil to apply a non-recurring template', async () => {
-      prisma.db.promotionTemplate.findUnique.mockResolvedValueOnce({ ...baseTemplate, isRecurring: false, validFrom: null });
+      prisma.db.promotionTemplate.findUnique.mockResolvedValueOnce({
+        ...baseTemplate,
+        isRecurring: false,
+        validFrom: null,
+      });
 
       await expect(service.applyTemplate('r1', 't1', {}, fakeUser)).rejects.toThrow(BadRequestException);
     });
@@ -276,7 +294,12 @@ describe('PromotionsService', () => {
 
       expect(prisma.db.promotion.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ titleEn: 'Happy Hour', isRecurring: true, recurringDayOfWeek: 5, status: 'APPROVED' }),
+          data: expect.objectContaining({
+            titleEn: 'Happy Hour',
+            isRecurring: true,
+            recurringDayOfWeek: 5,
+            status: 'APPROVED',
+          }),
         }),
       );
     });

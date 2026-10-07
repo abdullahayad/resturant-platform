@@ -84,7 +84,9 @@ export class LoyaltyService {
       phone,
       qualifyingBookingCount: count,
       restaurantsVisited,
-      currentTier: currentTier ? { id: currentTier.id, labelEn: currentTier.labelEn, labelAr: currentTier.labelAr } : null,
+      currentTier: currentTier
+        ? { id: currentTier.id, labelEn: currentTier.labelEn, labelAr: currentTier.labelAr }
+        : null,
       rewards,
     };
   }

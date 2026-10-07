@@ -40,7 +40,9 @@ export class ChefsService {
     if (dto.signatureDishIds && dto.signatureDishIds.length > 0) {
       await this.assertDishesBelongToRestaurant(restaurantId, dto.signatureDishIds);
     }
-    const before = await this.prisma.db.chefProfile.findUnique({ where: { restaurantId_role: { restaurantId, role } } });
+    const before = await this.prisma.db.chefProfile.findUnique({
+      where: { restaurantId_role: { restaurantId, role } },
+    });
 
     // undefined leaves the existing set untouched (on update) or starts
     // empty (on create); an explicit [] clears it - deleteMany + create is
@@ -75,7 +77,12 @@ export class ChefsService {
 
     const roleLabel = ROLE_LABELS[role];
     if (!before) {
-      await this.activityLog.log({ restaurantId, section: 'chefManagement', summary: `Added ${roleLabel} profile — '${after.name}'`, user });
+      await this.activityLog.log({
+        restaurantId,
+        section: 'chefManagement',
+        summary: `Added ${roleLabel} profile — '${after.name}'`,
+        user,
+      });
     } else {
       const changes = diffFields(
         { name: before.name, speciality: before.speciality, yearsExperience: before.yearsExperience },
@@ -83,7 +90,13 @@ export class ChefsService {
         { name: 'Name', speciality: 'Speciality', yearsExperience: 'Years Experience' },
       );
       if (changes.length) {
-        await this.activityLog.log({ restaurantId, section: 'chefManagement', summary: `${roleLabel} — ${summarizeChanges(changes)}`, changes, user });
+        await this.activityLog.log({
+          restaurantId,
+          section: 'chefManagement',
+          summary: `${roleLabel} — ${summarizeChanges(changes)}`,
+          changes,
+          user,
+        });
       }
     }
 
@@ -104,7 +117,12 @@ export class ChefsService {
     });
     if (!profile) throw new NotFoundException('Chef profile not found');
     await this.prisma.db.chefProfile.delete({ where: { id: profile.id } });
-    await this.activityLog.log({ restaurantId, section: 'chefManagement', summary: `Removed ${ROLE_LABELS[role]} profile`, user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'chefManagement',
+      summary: `Removed ${ROLE_LABELS[role]} profile`,
+      user,
+    });
     return { id: profile.id };
   }
 
@@ -123,7 +141,13 @@ export class ChefsService {
       { crewCount: 'Crew Count', crewPhotoUrl: 'Crew Photo' },
     );
     if (changes.length) {
-      await this.activityLog.log({ restaurantId, section: 'chefManagement', summary: summarizeChanges(changes), changes, user });
+      await this.activityLog.log({
+        restaurantId,
+        section: 'chefManagement',
+        summary: summarizeChanges(changes),
+        changes,
+        user,
+      });
     }
     return { crewCount: dto.crewCount ?? null, crewPhotoUrl: dto.crewPhotoUrl ?? null };
   }

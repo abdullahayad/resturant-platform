@@ -30,7 +30,9 @@ export class NotificationsService {
         recipients: { create: targetRestaurantIds.map((restaurantId) => ({ restaurantId })) },
       },
     });
-    this.push.sendToRestaurants(targetRestaurantIds, dto.titleEn, dto.bodyEn, { screen: 'announcements' }).catch(() => {});
+    this.push
+      .sendToRestaurants(targetRestaurantIds, dto.titleEn, dto.bodyEn, { screen: 'announcements' })
+      .catch(() => {});
     return notification;
   }
 

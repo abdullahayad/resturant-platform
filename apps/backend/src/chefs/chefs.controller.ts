@@ -27,11 +27,7 @@ export class ChefsController {
 
   @UseGuards(ApprovedPartnerGuard)
   @Put(':role')
-  upsert(
-    @Req() req: { user: PartnerJwtPayload },
-    @Param('role') role: string,
-    @Body() dto: UpsertChefProfileDto,
-  ) {
+  upsert(@Req() req: { user: PartnerJwtPayload }, @Param('role') role: string, @Body() dto: UpsertChefProfileDto) {
     return this.chefs.upsertProfile(req.user.sub, resolveRole(role), dto, req.user);
   }
 

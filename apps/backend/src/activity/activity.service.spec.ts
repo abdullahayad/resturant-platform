@@ -27,7 +27,13 @@ describe('ActivityService', () => {
       { id: 'r1', reviewerName: 'Ahmed', rating: 5, createdAt: new Date('2026-09-15T10:00:00Z') },
     ]);
     prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([
-      { id: 'b1', guestName: 'Sara', partySize: 4, createdAt: new Date('2026-09-15T12:00:00Z'), event: { titleEn: 'Chef Table' } },
+      {
+        id: 'b1',
+        guestName: 'Sara',
+        partySize: 4,
+        createdAt: new Date('2026-09-15T12:00:00Z'),
+        event: { titleEn: 'Chef Table' },
+      },
     ]);
     prisma.db.notificationRecipient.findMany.mockResolvedValueOnce([
       { id: 'n1', notification: { titleEn: 'Update', titleAr: 'تحديث', createdAt: new Date('2026-09-15T08:00:00Z') } },

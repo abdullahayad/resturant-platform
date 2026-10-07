@@ -78,7 +78,12 @@ export class FeaturedService {
       throw new BadRequestException('Only a pending request can be withdrawn');
     }
     await this.prisma.db.featuredPlacement.delete({ where: { id } });
-    await this.activityLog.log({ restaurantId, section: 'advertising', summary: 'Cancelled featured placement request', user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'advertising',
+      summary: 'Cancelled featured placement request',
+      user,
+    });
     return { id };
   }
 

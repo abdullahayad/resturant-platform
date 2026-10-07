@@ -44,9 +44,7 @@ export class AdminUsersService {
     }
 
     const losingSuperAdminStatus =
-      target.role === 'SUPER_ADMIN' &&
-      target.isActive &&
-      (dto.isActive === false || dto.role === 'MODERATOR');
+      target.role === 'SUPER_ADMIN' && target.isActive && (dto.isActive === false || dto.role === 'MODERATOR');
     if (losingSuperAdminStatus) {
       const otherActiveSuperAdmins = await this.prisma.db.adminUser.count({
         where: { role: 'SUPER_ADMIN', isActive: true, id: { not: id } },

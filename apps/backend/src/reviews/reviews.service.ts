@@ -102,7 +102,11 @@ export class ReviewsService {
         })
         .catch(() => {});
     }
-    return this.prisma.db.review.findUnique({ where: { id: review.id }, include: withReplyAndPhotos, omit: omitPhoneHash });
+    return this.prisma.db.review.findUnique({
+      where: { id: review.id },
+      include: withReplyAndPhotos,
+      omit: omitPhoneHash,
+    });
   }
 
   async listForRestaurant(restaurantId: string, pageParam?: number, rating?: number) {
@@ -151,9 +155,7 @@ export class ReviewsService {
 
     const total = reviews.length;
     const overallAverage = total ? reviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
-    const positiveSentimentPct = total
-      ? Math.round((reviews.filter((r) => r.rating >= 4).length / total) * 100)
-      : 0;
+    const positiveSentimentPct = total ? Math.round((reviews.filter((r) => r.rating >= 4).length / total) * 100) : 0;
 
     const distribution = [5, 4, 3, 2, 1].map((star) => {
       const count = reviews.filter((r) => r.rating === star).length;
@@ -214,10 +216,17 @@ export class ReviewsService {
       restaurantId,
       section: 'reviews',
       summary: existingReply ? 'Updated reply to a review' : 'Replied to a review',
-      changes: existingReply && existingReply.text !== text ? [{ field: 'Reply', from: existingReply.text, to: text }] : undefined,
+      changes:
+        existingReply && existingReply.text !== text
+          ? [{ field: 'Reply', from: existingReply.text, to: text }]
+          : undefined,
       user,
     });
-    return this.prisma.db.review.findUnique({ where: { id: reviewId }, include: withReplyAndPhotos, omit: omitPhoneHash });
+    return this.prisma.db.review.findUnique({
+      where: { id: reviewId },
+      include: withReplyAndPhotos,
+      omit: omitPhoneHash,
+    });
   }
 
   // Drafts a reply with AI for the owner to edit and send themselves - never
@@ -251,7 +260,9 @@ export class ReviewsService {
       RETURNING "aiSuggestionCount"
     `;
     if (rows.length === 0) {
-      throw new BadRequestException(`Daily limit of ${DAILY_SUGGESTION_CAP} AI suggestions reached - try again tomorrow`);
+      throw new BadRequestException(
+        `Daily limit of ${DAILY_SUGGESTION_CAP} AI suggestions reached - try again tomorrow`,
+      );
     }
 
     if (!this.anthropicKey) {
@@ -264,7 +275,7 @@ export class ReviewsService {
       `Star rating: ${review.rating}/5.`,
       review.text ? `Review text: "${review.text}"` : 'The customer left no written text, only a star rating.',
       'Write ONE reply, under 60 words, warm and professional.',
-      'If the rating is low, be empathetic and apologetic without making specific promises (no refunds, discounts, or guarantees - that is the owner\'s decision, not yours to offer).',
+      "If the rating is low, be empathetic and apologetic without making specific promises (no refunds, discounts, or guarantees - that is the owner's decision, not yours to offer).",
       'Reply in the same language as the review text (Arabic or English); if there is no text, reply in English.',
       'Output only the reply text itself, nothing else - no quotes, no labels.',
     ].join('\n');

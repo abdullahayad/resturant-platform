@@ -10,7 +10,13 @@ describe('ChefsService', () => {
   let prisma: { db: Record<string, Record<string, jest.Mock>> };
   let activityLog: { log: jest.Mock };
 
-  const baseDto = { name: 'Ahmed', photoUrl: undefined, speciality: undefined, yearsExperience: undefined, awards: undefined };
+  const baseDto = {
+    name: 'Ahmed',
+    photoUrl: undefined,
+    speciality: undefined,
+    yearsExperience: undefined,
+    awards: undefined,
+  };
   const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   beforeEach(async () => {
@@ -86,7 +92,9 @@ describe('ChefsService', () => {
 
       expect(prisma.db.dish.count).not.toHaveBeenCalled();
       expect(prisma.db.chefProfile.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ update: expect.objectContaining({ signatureDishes: { deleteMany: {}, create: [] } }) }),
+        expect.objectContaining({
+          update: expect.objectContaining({ signatureDishes: { deleteMany: {}, create: [] } }),
+        }),
       );
     });
 
@@ -95,7 +103,9 @@ describe('ChefsService', () => {
 
       await service.upsertProfile('r1', 'HEAD_CHEF', baseDto, fakeUser);
 
-      expect(activityLog.log).toHaveBeenCalledWith(expect.objectContaining({ restaurantId: 'r1', section: 'chefManagement' }));
+      expect(activityLog.log).toHaveBeenCalledWith(
+        expect.objectContaining({ restaurantId: 'r1', section: 'chefManagement' }),
+      );
     });
   });
 });

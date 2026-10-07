@@ -1,4 +1,16 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { ReviewsService } from './reviews.service';
@@ -30,7 +42,10 @@ export class ReviewsController {
       fileFilter: (_req, file, callback) => {
         const ext = file.originalname.split('.').pop()?.toLowerCase();
         if (!ext || !ALLOWED_PHOTO_EXTENSIONS.includes(ext)) {
-          callback(new BadRequestException(`Unsupported file type. Allowed: ${ALLOWED_PHOTO_EXTENSIONS.join(', ')}`), false);
+          callback(
+            new BadRequestException(`Unsupported file type. Allowed: ${ALLOWED_PHOTO_EXTENSIONS.join(', ')}`),
+            false,
+          );
           return;
         }
         callback(null, true);

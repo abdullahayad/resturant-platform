@@ -84,7 +84,9 @@ export class ModerationService {
         tensor.dispose();
       }
     } catch (err) {
-      this.logger.warn(`Photo moderation check failed, allowing the upload through: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Photo moderation check failed, allowing the upload through: ${err instanceof Error ? err.message : String(err)}`,
+      );
       return false;
     }
   }

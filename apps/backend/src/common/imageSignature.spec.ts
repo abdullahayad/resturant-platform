@@ -18,7 +18,7 @@ describe('isRealImage', () => {
     expect(isRealImage(buf)).toBe(true);
   });
 
-  it('rejects a file renamed to look like an image but isn\'t one', () => {
+  it("rejects a file renamed to look like an image but isn't one", () => {
     // e.g. a text file or executable with a .jpg extension slapped on it
     expect(isRealImage(Buffer.from('MZ\x90\x00this is not an image', 'ascii'))).toBe(false);
   });

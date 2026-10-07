@@ -22,10 +22,9 @@ describe('SecurityAlertThrottlerGuard', () => {
 
   it('sends a Sentry warning with the route and limit details before throttling', async () => {
     await expect(
-      (guard as unknown as { throwThrottlingException: (ctx: ExecutionContext, detail: unknown) => Promise<void> }).throwThrottlingException(
-        fakeContext(),
-        { limit: 10, ttl: 60_000, key: 'k', tracker: 't', totalHits: 11 },
-      ),
+      (
+        guard as unknown as { throwThrottlingException: (ctx: ExecutionContext, detail: unknown) => Promise<void> }
+      ).throwThrottlingException(fakeContext(), { limit: 10, ttl: 60_000, key: 'k', tracker: 't', totalHits: 11 }),
     ).rejects.toThrow(ThrottlerException);
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
@@ -40,10 +39,15 @@ describe('SecurityAlertThrottlerGuard', () => {
 
   it('still throws ThrottlerException even if the request has no originalUrl (falls back to url)', async () => {
     await expect(
-      (guard as unknown as { throwThrottlingException: (ctx: ExecutionContext, detail: unknown) => Promise<void> }).throwThrottlingException(
-        fakeContext({ originalUrl: undefined as unknown as string }),
-        { limit: 5, ttl: 60_000, key: 'k', tracker: 't', totalHits: 6 },
-      ),
+      (
+        guard as unknown as { throwThrottlingException: (ctx: ExecutionContext, detail: unknown) => Promise<void> }
+      ).throwThrottlingException(fakeContext({ originalUrl: undefined as unknown as string }), {
+        limit: 5,
+        ttl: 60_000,
+        key: 'k',
+        tracker: 't',
+        totalHits: 6,
+      }),
     ).rejects.toThrow(ThrottlerException);
   });
 });

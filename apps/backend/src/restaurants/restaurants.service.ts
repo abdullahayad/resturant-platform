@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'node:crypto';
@@ -203,12 +209,8 @@ export class RestaurantsService {
       publishStatus: filters.publishStatus,
       provinceId: filters.provinceId,
       districtId: filters.districtId,
-      businessTypes: filters.businessTypeId
-        ? { some: { businessTypeId: filters.businessTypeId } }
-        : undefined,
-      foodCategories: filters.foodCategoryId
-        ? { some: { foodCategoryId: filters.foodCategoryId } }
-        : undefined,
+      businessTypes: filters.businessTypeId ? { some: { businessTypeId: filters.businessTypeId } } : undefined,
+      foodCategories: filters.foodCategoryId ? { some: { foodCategoryId: filters.foodCategoryId } } : undefined,
       OR: search
         ? [
             { nameEn: { contains: search, mode: 'insensitive' } },
@@ -221,7 +223,13 @@ export class RestaurantsService {
 
     const { page, skip, take } = pageOffset(filters.page);
     const [items, total] = await Promise.all([
-      this.prisma.db.restaurant.findMany({ where, orderBy: { createdAt: 'desc' }, select: restaurantListSelect, skip, take }),
+      this.prisma.db.restaurant.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        select: restaurantListSelect,
+        skip,
+        take,
+      }),
       this.prisma.db.restaurant.count({ where }),
     ]);
     return { items, total, page, pageSize: take };
@@ -534,7 +542,13 @@ export class RestaurantsService {
         },
       );
       if (changes.length && user) {
-        await this.activityLog.log({ restaurantId: id, section: 'profile', summary: summarizeChanges(changes), changes, user });
+        await this.activityLog.log({
+          restaurantId: id,
+          section: 'profile',
+          summary: summarizeChanges(changes),
+          changes,
+          user,
+        });
       }
     }
 
@@ -577,7 +591,12 @@ export class RestaurantsService {
     return { success: true, accessToken };
   }
 
-  private async changeStaffPassword(restaurantId: string, staffId: string, dto: ChangePasswordDto, user: PartnerJwtPayload) {
+  private async changeStaffPassword(
+    restaurantId: string,
+    staffId: string,
+    dto: ChangePasswordDto,
+    user: PartnerJwtPayload,
+  ) {
     const staff = await this.prisma.db.partnerStaffUser.findUnique({ where: { id: staffId } });
     if (!staff) throw new NotFoundException('Staff account not found');
 
@@ -728,7 +747,13 @@ export class RestaurantsService {
       { notifyNewReview: 'Notify on new review', notifyNewBooking: 'Notify on new booking' },
     );
     if (changes.length) {
-      await this.activityLog.log({ restaurantId: id, section: 'settings', summary: summarizeChanges(changes), changes, user });
+      await this.activityLog.log({
+        restaurantId: id,
+        section: 'settings',
+        summary: summarizeChanges(changes),
+        changes,
+        user,
+      });
     }
 
     return updated;
@@ -797,7 +822,12 @@ export class RestaurantsService {
     // The restaurant row cascades away immediately, taking this log entry
     // with it - logged anyway for consistency with every other delete action,
     // even though it can never actually be seen afterward.
-    await this.activityLog.log({ restaurantId: user.sub, section: 'settings', summary: 'Deleted the restaurant account', user });
+    await this.activityLog.log({
+      restaurantId: user.sub,
+      section: 'settings',
+      summary: 'Deleted the restaurant account',
+      user,
+    });
     await this.prisma.db.restaurant.delete({ where: { id: user.sub } });
     return { deleted: 'restaurant' as const };
   }
@@ -832,7 +862,13 @@ export class RestaurantsService {
     }).filter((c): c is { field: string; from: string | null; to: string | null } => c !== null);
 
     if (changes.length) {
-      await this.activityLog.log({ restaurantId: id, section: 'profile', summary: `Updated business hours — ${summarizeChanges(changes)}`, changes, user });
+      await this.activityLog.log({
+        restaurantId: id,
+        section: 'profile',
+        summary: `Updated business hours — ${summarizeChanges(changes)}`,
+        changes,
+        user,
+      });
     }
 
     return this.findOne(id);
@@ -862,7 +898,12 @@ export class RestaurantsService {
         publishDeclineAcknowledgedAt: null,
       },
     });
-    await this.activityLog.log({ restaurantId: id, section: 'settings', summary: 'Submitted for publish review', user });
+    await this.activityLog.log({
+      restaurantId: id,
+      section: 'settings',
+      summary: 'Submitted for publish review',
+      user,
+    });
     return this.findOne(id);
   }
 
@@ -951,7 +992,12 @@ export class RestaurantsService {
       where: { id },
       data: { publishDeclineAcknowledgedAt: new Date() },
     });
-    await this.activityLog.log({ restaurantId: id, section: 'settings', summary: 'Acknowledged publish decline', user });
+    await this.activityLog.log({
+      restaurantId: id,
+      section: 'settings',
+      summary: 'Acknowledged publish decline',
+      user,
+    });
     return this.findOne(id);
   }
 

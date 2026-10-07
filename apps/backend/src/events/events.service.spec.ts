@@ -30,7 +30,7 @@ describe('EventsService', () => {
   const bookableMultiDayRecurringEvent = {
     ...bookableRecurringEvent,
     recurringDaysOfWeek: [0, 2], // Sunday and Tuesday
-    titleEn: 'Chef\'s Table',
+    titleEn: "Chef's Table",
   };
 
   const bookableOneOffEvent = {
@@ -86,7 +86,7 @@ describe('EventsService', () => {
   });
 
   describe('availability / assertValidOccurrence', () => {
-    it('accepts a date matching a recurring event\'s day of week', async () => {
+    it("accepts a date matching a recurring event's day of week", async () => {
       prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableRecurringEvent);
       prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([{ partySize: 3 }]);
 
@@ -103,7 +103,7 @@ describe('EventsService', () => {
       await expect(service.availability(restaurantId, eventId, '2026-09-12')).rejects.toThrow(BadRequestException);
     });
 
-    it('accepts a date matching any of a multi-day recurring event\'s days', async () => {
+    it("accepts a date matching any of a multi-day recurring event's days", async () => {
       prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableMultiDayRecurringEvent);
       prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([]);
       // 2026-09-13 is a Sunday.
@@ -123,14 +123,14 @@ describe('EventsService', () => {
       });
     });
 
-    it('rejects a date that falls on neither of a multi-day recurring event\'s days', async () => {
+    it("rejects a date that falls on neither of a multi-day recurring event's days", async () => {
       prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableMultiDayRecurringEvent);
 
       // 2026-09-14 is a Monday - not Sunday or Tuesday.
       await expect(service.availability(restaurantId, eventId, '2026-09-14')).rejects.toThrow(BadRequestException);
     });
 
-    it('accepts a date matching a one-off event\'s exact date', async () => {
+    it("accepts a date matching a one-off event's exact date", async () => {
       prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableOneOffEvent);
       prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([]);
 
@@ -139,7 +139,7 @@ describe('EventsService', () => {
       expect(result).toEqual({ capacity: 5, reserved: 0, remaining: 5 });
     });
 
-    it('rejects a date that does not match a one-off event\'s date', async () => {
+    it("rejects a date that does not match a one-off event's date", async () => {
       prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableOneOffEvent);
 
       await expect(service.availability(restaurantId, eventId, '2026-09-11')).rejects.toThrow(BadRequestException);
@@ -168,7 +168,7 @@ describe('EventsService', () => {
   });
 
   describe('createReservation', () => {
-    it('rejects a booking that would exceed the event\'s remaining capacity', async () => {
+    it("rejects a booking that would exceed the event's remaining capacity", async () => {
       prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableOneOffEvent);
       prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([{ partySize: 4 }]); // 4 of 5 already taken
 
@@ -202,7 +202,12 @@ describe('EventsService', () => {
     });
 
     it('returns the existing booking instead of creating a duplicate when the same idempotency key resubmits', async () => {
-      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({ id: 'booking1', restaurantId, eventId, idempotencyKey: 'key-3' });
+      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({
+        id: 'booking1',
+        restaurantId,
+        eventId,
+        idempotencyKey: 'key-3',
+      });
 
       const result = await service.createReservation(restaurantId, eventId, {
         idempotencyKey: 'key-3',
@@ -265,7 +270,7 @@ describe('EventsService', () => {
   });
 
   describe('list', () => {
-    it('excludes hidden events from the restaurant\'s own list', async () => {
+    it("excludes hidden events from the restaurant's own list", async () => {
       prisma.db.restaurantEvent.findMany.mockResolvedValueOnce([]);
 
       await service.list(restaurantId);

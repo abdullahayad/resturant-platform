@@ -1,6 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { MAX_PRICE, type BulkUpdatePricesDto, type CreateDishDto, type ModerateDishDto, type PriceAdjustmentType, type UpdateDishDto } from './dto/dish.dto';
+import {
+  MAX_PRICE,
+  type BulkUpdatePricesDto,
+  type CreateDishDto,
+  type ModerateDishDto,
+  type PriceAdjustmentType,
+  type UpdateDishDto,
+} from './dto/dish.dto';
 import type { ModerationStatusValue } from '../common/moderation';
 import { pageOffset } from '../common/pagination';
 import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
@@ -69,12 +76,28 @@ export class DishesService {
     });
     if (before) {
       const changes = diffFields(
-        { nameEn: before.nameEn, nameAr: before.nameAr, price: before.price.toString(), isMostOrdered: before.isMostOrdered },
-        { nameEn: after.nameEn, nameAr: after.nameAr, price: after.price.toString(), isMostOrdered: after.isMostOrdered },
+        {
+          nameEn: before.nameEn,
+          nameAr: before.nameAr,
+          price: before.price.toString(),
+          isMostOrdered: before.isMostOrdered,
+        },
+        {
+          nameEn: after.nameEn,
+          nameAr: after.nameAr,
+          price: after.price.toString(),
+          isMostOrdered: after.isMostOrdered,
+        },
         { nameEn: 'Name (EN)', nameAr: 'Name (AR)', price: 'Price', isMostOrdered: 'Most Ordered' },
       );
       if (changes.length) {
-        await this.activityLog.log({ restaurantId, section: 'menu', summary: `'${after.nameEn}' — ${summarizeChanges(changes)}`, changes, user });
+        await this.activityLog.log({
+          restaurantId,
+          section: 'menu',
+          summary: `'${after.nameEn}' — ${summarizeChanges(changes)}`,
+          changes,
+          user,
+        });
       }
     }
     return after;
@@ -84,7 +107,12 @@ export class DishesService {
     await this.ensureOwned(restaurantId, dishId);
     const dish = await this.prisma.db.dish.findUnique({ where: { id: dishId }, select: { nameEn: true } });
     await this.prisma.db.dish.update({ where: { id: dishId }, data: { isActive: false } });
-    await this.activityLog.log({ restaurantId, section: 'menu', summary: `Removed dish '${dish?.nameEn ?? dishId}'`, user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'menu',
+      summary: `Removed dish '${dish?.nameEn ?? dishId}'`,
+      user,
+    });
     return { id: dishId };
   }
 
@@ -130,7 +158,11 @@ export class DishesService {
     );
 
     if (updated.length) {
-      const changes = updated.map((d) => ({ field: d.nameEn, from: beforePrices.get(d.id) ?? null, to: d.price.toString() }));
+      const changes = updated.map((d) => ({
+        field: d.nameEn,
+        from: beforePrices.get(d.id) ?? null,
+        to: d.price.toString(),
+      }));
       await this.activityLog.log({
         restaurantId,
         section: 'menu',

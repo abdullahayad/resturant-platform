@@ -23,7 +23,7 @@ export function IsOwnStoragePhotoUrl(validationOptions?: ValidationOptions) {
           }
         },
         defaultMessage() {
-          return 'photoUrls must point to this platform\'s own storage';
+          return "photoUrls must point to this platform's own storage";
         },
       },
     });

@@ -53,10 +53,10 @@ export type AdminActivityItem =
 
 const restaurantSummarySelect = { id: true, nameEn: true, nameAr: true, codeNumber: true } as const;
 
-function resolveActor(row: {
-  staff: { fullName: string } | null;
-  impersonatedByAdmin: { fullName: string } | null;
-}): { kind: 'owner' | 'staff' | 'admin'; name: string | null } {
+function resolveActor(row: { staff: { fullName: string } | null; impersonatedByAdmin: { fullName: string } | null }): {
+  kind: 'owner' | 'staff' | 'admin';
+  name: string | null;
+} {
   if (row.staff) return { kind: 'staff', name: row.staff.fullName };
   if (row.impersonatedByAdmin) return { kind: 'admin', name: row.impersonatedByAdmin.fullName };
   return { kind: 'owner', name: null };
@@ -130,7 +130,12 @@ export class AdminActivityService {
     const { skip, take } = pageOffset(page);
     const [rows, total] = await Promise.all([
       this.prisma.db.adminSupportSession.findMany({
-        select: { id: true, createdAt: true, admin: { select: { fullName: true } }, restaurant: { select: restaurantSummarySelect } },
+        select: {
+          id: true,
+          createdAt: true,
+          admin: { select: { fullName: true } },
+          restaurant: { select: restaurantSummarySelect },
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take,
@@ -154,50 +159,62 @@ export class AdminActivityService {
   private async allSectionsPage(page: number) {
     const fetchCount = Math.min(page * PAGE_SIZE, MAX_FETCH_PER_SOURCE);
 
-    const [activity, blockedUploads, supportSessions, activityTotal, blockedUploadTotal, supportSessionTotal] = await Promise.all([
-      this.prisma.db.restaurantActivityLog.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: fetchCount,
-        include: {
-          restaurant: { select: restaurantSummarySelect },
-          staff: { select: { fullName: true } },
-          impersonatedByAdmin: { select: { fullName: true } },
-        },
-      }),
-      this.prisma.db.blockedUpload.findMany({
-        select: { id: true, originalName: true, createdAt: true, restaurant: { select: restaurantSummarySelect } },
-        orderBy: { createdAt: 'desc' },
-        take: fetchCount,
-      }),
-      this.prisma.db.adminSupportSession.findMany({
-        select: { id: true, createdAt: true, admin: { select: { fullName: true } }, restaurant: { select: restaurantSummarySelect } },
-        orderBy: { createdAt: 'desc' },
-        take: fetchCount,
-      }),
-      this.prisma.db.restaurantActivityLog.count(),
-      this.prisma.db.blockedUpload.count(),
-      this.prisma.db.adminSupportSession.count(),
-    ]);
+    const [activity, blockedUploads, supportSessions, activityTotal, blockedUploadTotal, supportSessionTotal] =
+      await Promise.all([
+        this.prisma.db.restaurantActivityLog.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: fetchCount,
+          include: {
+            restaurant: { select: restaurantSummarySelect },
+            staff: { select: { fullName: true } },
+            impersonatedByAdmin: { select: { fullName: true } },
+          },
+        }),
+        this.prisma.db.blockedUpload.findMany({
+          select: { id: true, originalName: true, createdAt: true, restaurant: { select: restaurantSummarySelect } },
+          orderBy: { createdAt: 'desc' },
+          take: fetchCount,
+        }),
+        this.prisma.db.adminSupportSession.findMany({
+          select: {
+            id: true,
+            createdAt: true,
+            admin: { select: { fullName: true } },
+            restaurant: { select: restaurantSummarySelect },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: fetchCount,
+        }),
+        this.prisma.db.restaurantActivityLog.count(),
+        this.prisma.db.blockedUpload.count(),
+        this.prisma.db.adminSupportSession.count(),
+      ]);
 
     const merged: AdminActivityItem[] = [
-      ...activity.map(
-        (r): AdminActivityItem => ({
-          type: 'restaurantActivity',
-          id: r.id,
-          createdAt: r.createdAt,
-          section: r.section as RestaurantActivitySection,
-          summary: r.summary,
-          changes: (r.changes as ActivityChange[] | null) ?? null,
-          restaurant: r.restaurant,
-          actor: resolveActor(r),
-        }),
-      ),
-      ...blockedUploads.map(
-        (b): AdminActivityItem => ({ type: 'blockedUpload', id: b.id, createdAt: b.createdAt, originalName: b.originalName, restaurant: b.restaurant }),
-      ),
-      ...supportSessions.map(
-        (s): AdminActivityItem => ({ type: 'adminSupportSession', id: s.id, createdAt: s.createdAt, adminName: s.admin.fullName, restaurant: s.restaurant }),
-      ),
+      ...activity.map((r): AdminActivityItem => ({
+        type: 'restaurantActivity',
+        id: r.id,
+        createdAt: r.createdAt,
+        section: r.section as RestaurantActivitySection,
+        summary: r.summary,
+        changes: (r.changes as ActivityChange[] | null) ?? null,
+        restaurant: r.restaurant,
+        actor: resolveActor(r),
+      })),
+      ...blockedUploads.map((b): AdminActivityItem => ({
+        type: 'blockedUpload',
+        id: b.id,
+        createdAt: b.createdAt,
+        originalName: b.originalName,
+        restaurant: b.restaurant,
+      })),
+      ...supportSessions.map((s): AdminActivityItem => ({
+        type: 'adminSupportSession',
+        id: s.id,
+        createdAt: s.createdAt,
+        adminName: s.admin.fullName,
+        restaurant: s.restaurant,
+      })),
     ];
     merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 

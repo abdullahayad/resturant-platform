@@ -70,9 +70,9 @@ describe('PaymentAccountsService', () => {
 
   describe('connect', () => {
     it('refuses an unknown gateway id', async () => {
-      await expect(service.connect('r1', 'not-a-real-gateway', { merchantId: 'm1', secret: 's1' }, fakeUser)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.connect('r1', 'not-a-real-gateway', { merchantId: 'm1', secret: 's1' }, fakeUser),
+      ).rejects.toThrow(BadRequestException);
       expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
     });
 

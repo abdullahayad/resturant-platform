@@ -92,16 +92,23 @@ describe('AdminActivityService', () => {
   });
 
   describe('section: "blockedUpload"', () => {
-    it('queries BlockedUpload directly, including one with no restaurant (an admin\'s own blocked upload)', async () => {
+    it("queries BlockedUpload directly, including one with no restaurant (an admin's own blocked upload)", async () => {
       prisma.db.blockedUpload.findMany.mockResolvedValueOnce([
-        { id: 'b1', originalName: 'bad.jpg', createdAt: new Date('2026-09-15T14:00:00Z'), restaurant: restaurant('r1') },
+        {
+          id: 'b1',
+          originalName: 'bad.jpg',
+          createdAt: new Date('2026-09-15T14:00:00Z'),
+          restaurant: restaurant('r1'),
+        },
         { id: 'b2', originalName: 'other.png', createdAt: new Date('2026-09-15T09:00:00Z'), restaurant: null },
       ]);
       prisma.db.blockedUpload.count.mockResolvedValueOnce(2);
 
       const result = await service.recentActivity(1, 'blockedUpload');
 
-      expect(result.items[0]).toEqual(expect.objectContaining({ type: 'blockedUpload', originalName: 'bad.jpg', restaurant: restaurant('r1') }));
+      expect(result.items[0]).toEqual(
+        expect.objectContaining({ type: 'blockedUpload', originalName: 'bad.jpg', restaurant: restaurant('r1') }),
+      );
       expect(result.items[1]).toEqual(expect.objectContaining({ type: 'blockedUpload', restaurant: null }));
       expect(prisma.db.restaurantActivityLog.findMany).not.toHaveBeenCalled();
     });
@@ -110,13 +117,20 @@ describe('AdminActivityService', () => {
   describe('section: "adminSupportSession"', () => {
     it('queries AdminSupportSession directly, tagged with the admin who started it', async () => {
       prisma.db.adminSupportSession.findMany.mockResolvedValueOnce([
-        { id: 's1', createdAt: new Date('2026-09-15T11:00:00Z'), admin: { fullName: 'Ali Admin' }, restaurant: restaurant('r1') },
+        {
+          id: 's1',
+          createdAt: new Date('2026-09-15T11:00:00Z'),
+          admin: { fullName: 'Ali Admin' },
+          restaurant: restaurant('r1'),
+        },
       ]);
       prisma.db.adminSupportSession.count.mockResolvedValueOnce(1);
 
       const result = await service.recentActivity(1, 'adminSupportSession');
 
-      expect(result.items[0]).toEqual(expect.objectContaining({ type: 'adminSupportSession', adminName: 'Ali Admin', restaurant: restaurant('r1') }));
+      expect(result.items[0]).toEqual(
+        expect.objectContaining({ type: 'adminSupportSession', adminName: 'Ali Admin', restaurant: restaurant('r1') }),
+      );
     });
   });
 
@@ -135,10 +149,20 @@ describe('AdminActivityService', () => {
         },
       ]);
       prisma.db.blockedUpload.findMany.mockResolvedValueOnce([
-        { id: 'b1', originalName: 'bad.jpg', createdAt: new Date('2026-09-15T14:00:00Z'), restaurant: restaurant('r2') },
+        {
+          id: 'b1',
+          originalName: 'bad.jpg',
+          createdAt: new Date('2026-09-15T14:00:00Z'),
+          restaurant: restaurant('r2'),
+        },
       ]);
       prisma.db.adminSupportSession.findMany.mockResolvedValueOnce([
-        { id: 's1', createdAt: new Date('2026-09-15T08:00:00Z'), admin: { fullName: 'Ali Admin' }, restaurant: restaurant('r3') },
+        {
+          id: 's1',
+          createdAt: new Date('2026-09-15T08:00:00Z'),
+          admin: { fullName: 'Ali Admin' },
+          restaurant: restaurant('r3'),
+        },
       ]);
 
       const result = await service.recentActivity(1);

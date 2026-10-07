@@ -84,7 +84,11 @@ export class EventsService {
   // or the SOONEST upcoming date matching any of a recurring event's days
   // (today counts if today is one of them, so a same-day capacity badge
   // still reflects today's bookings rather than jumping ahead to next week).
-  private nextOccurrenceDate(event: { isRecurring: boolean; eventDate: Date | null; recurringDaysOfWeek: number[] }): string | null {
+  private nextOccurrenceDate(event: {
+    isRecurring: boolean;
+    eventDate: Date | null;
+    recurringDaysOfWeek: number[];
+  }): string | null {
     if (!event.isRecurring) {
       return event.eventDate ? event.eventDate.toISOString() : null;
     }
@@ -110,7 +114,8 @@ export class EventsService {
       select: eventSelect,
     });
 
-    const earliestDay = (e: { recurringDaysOfWeek: number[] }) => (e.recurringDaysOfWeek.length ? Math.min(...e.recurringDaysOfWeek) : 0);
+    const earliestDay = (e: { recurringDaysOfWeek: number[] }) =>
+      e.recurringDaysOfWeek.length ? Math.min(...e.recurringDaysOfWeek) : 0;
     const recurring = events.filter((e) => e.isRecurring).sort((a, b) => earliestDay(a) - earliestDay(b));
     const oneOff = events
       .filter((e) => !e.isRecurring)
@@ -137,7 +142,12 @@ export class EventsService {
       },
       select: eventSelect,
     });
-    await this.activityLog.log({ restaurantId, section: 'chefTable', summary: `Created event '${event.titleEn}'`, user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'chefTable',
+      summary: `Created event '${event.titleEn}'`,
+      user,
+    });
     return event;
   }
 
@@ -172,12 +182,28 @@ export class EventsService {
     });
 
     const changes = diffFields(
-      { titleEn: before.titleEn, price: before.price?.toString() ?? null, capacity: before.capacity, isActive: before.isActive },
-      { titleEn: after.titleEn, price: after.price?.toString() ?? null, capacity: after.capacity, isActive: after.isActive },
+      {
+        titleEn: before.titleEn,
+        price: before.price?.toString() ?? null,
+        capacity: before.capacity,
+        isActive: before.isActive,
+      },
+      {
+        titleEn: after.titleEn,
+        price: after.price?.toString() ?? null,
+        capacity: after.capacity,
+        isActive: after.isActive,
+      },
       { titleEn: 'Title', price: 'Price', capacity: 'Capacity', isActive: 'Active' },
     );
     if (changes.length) {
-      await this.activityLog.log({ restaurantId, section: 'chefTable', summary: `'${after.titleEn}' — ${summarizeChanges(changes)}`, changes, user });
+      await this.activityLog.log({
+        restaurantId,
+        section: 'chefTable',
+        summary: `'${after.titleEn}' — ${summarizeChanges(changes)}`,
+        changes,
+        user,
+      });
     }
 
     return after;
@@ -186,7 +212,12 @@ export class EventsService {
   async remove(restaurantId: string, id: string, user: PartnerJwtPayload) {
     const event = await this.ensureOwnership(restaurantId, id);
     await this.prisma.db.restaurantEvent.delete({ where: { id } });
-    await this.activityLog.log({ restaurantId, section: 'chefTable', summary: `Removed event '${event.titleEn}'`, user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'chefTable',
+      summary: `Removed event '${event.titleEn}'`,
+      user,
+    });
     return { id };
   }
 
@@ -226,12 +257,7 @@ export class EventsService {
       where: { id: eventId },
       include: { restaurant: { select: { status: true, notifyNewBooking: true } } },
     });
-    if (
-      !event ||
-      event.restaurantId !== restaurantId ||
-      !event.isActive ||
-      event.restaurant.status !== 'APPROVED'
-    ) {
+    if (!event || event.restaurantId !== restaurantId || !event.isActive || event.restaurant.status !== 'APPROVED') {
       throw new NotFoundException('Event not found');
     }
     return event;
@@ -240,20 +266,23 @@ export class EventsService {
   // A reservationDate is only meaningful if it's an actual occurrence of the
   // event — otherwise a client could pick an arbitrary date to dodge the
   // capacity check on the real one.
-  private assertValidOccurrence(event: { isRecurring: boolean; eventDate: Date | null; recurringDaysOfWeek: number[] }, dateStr: string) {
+  private assertValidOccurrence(
+    event: { isRecurring: boolean; eventDate: Date | null; recurringDaysOfWeek: number[] },
+    dateStr: string,
+  ) {
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) {
       throw new BadRequestException('reservationDate is not a valid date');
     }
     if (event.isRecurring) {
       if (!event.recurringDaysOfWeek.includes(date.getDay())) {
-        throw new BadRequestException('reservationDate does not fall on any of this event\'s recurring days');
+        throw new BadRequestException("reservationDate does not fall on any of this event's recurring days");
       }
     } else {
       const eventDay = event.eventDate ? this.dayBounds(event.eventDate.toISOString()).start.getTime() : null;
       const requestedDay = this.dayBounds(dateStr).start.getTime();
       if (eventDay == null || requestedDay !== eventDay) {
-        throw new BadRequestException('reservationDate does not match this event\'s date');
+        throw new BadRequestException("reservationDate does not match this event's date");
       }
     }
   }
@@ -372,7 +401,12 @@ export class EventsService {
     return { count };
   }
 
-  async updateReservationStatus(restaurantId: string, id: string, dto: UpdateReservationStatusDto, user: PartnerJwtPayload) {
+  async updateReservationStatus(
+    restaurantId: string,
+    id: string,
+    dto: UpdateReservationStatusDto,
+    user: PartnerJwtPayload,
+  ) {
     const booking = await this.prisma.db.chefTableBooking.findUnique({ where: { id } });
     if (!booking || booking.restaurantId !== restaurantId) throw new NotFoundException('Reservation not found');
     const updated = await this.prisma.db.chefTableBooking.update({
@@ -395,7 +429,12 @@ export class EventsService {
 
   // ── Admin moderation ─────────────────────────────────────────────────
 
-  async adminList(status?: ModerationStatusValue, pageParam?: number, search?: string, sort?: 'createdAt' | 'reservationCount') {
+  async adminList(
+    status?: ModerationStatusValue,
+    pageParam?: number,
+    search?: string,
+    sort?: 'createdAt' | 'reservationCount',
+  ) {
     const s = search?.trim();
     const where: Prisma.RestaurantEventWhereInput = {
       moderationStatus: status,
@@ -414,7 +453,9 @@ export class EventsService {
     // filter the _count select below does, so "busiest first" is close to
     // but not exactly "most active reservations first" once paginated.
     const orderBy: Prisma.RestaurantEventOrderByWithRelationInput[] =
-      sort === 'reservationCount' ? [{ reservations: { _count: 'desc' } }, { createdAt: 'desc' }] : [{ createdAt: 'desc' }];
+      sort === 'reservationCount'
+        ? [{ reservations: { _count: 'desc' } }, { createdAt: 'desc' }]
+        : [{ createdAt: 'desc' }];
 
     const [items, total] = await Promise.all([
       this.prisma.db.restaurantEvent.findMany({
@@ -448,6 +489,10 @@ export class EventsService {
   async moderate(id: string, dto: ModerateEventDto) {
     const event = await this.prisma.db.restaurantEvent.findUnique({ where: { id }, select: { id: true } });
     if (!event) throw new NotFoundException('Event not found');
-    return this.prisma.db.restaurantEvent.update({ where: { id }, data: { moderationStatus: dto.status }, select: eventSelect });
+    return this.prisma.db.restaurantEvent.update({
+      where: { id },
+      data: { moderationStatus: dto.status },
+      select: eventSelect,
+    });
   }
 }

@@ -38,14 +38,13 @@ const s3 = new S3Client({
 // Small solid-color placeholder JPEGs so seeded gallery photos render as
 // something other than a broken-image icon. Real partners upload real photos.
 const placeholderColors: Record<string, string> = {
-  amber: '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
+  amber:
+    '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
 };
 
 async function uploadPlaceholder(key: string): Promise<string> {
   const buffer = Buffer.from(placeholderColors.amber, 'base64');
-  await s3.send(
-    new PutObjectCommand({ Bucket: storageBucket, Key: key, Body: buffer, ContentType: 'image/jpeg' }),
-  );
+  await s3.send(new PutObjectCommand({ Bucket: storageBucket, Key: key, Body: buffer, ContentType: 'image/jpeg' }));
   return process.env.STORAGE_PUBLIC_URL ? `${storagePublicUrl}/${key}` : `${storagePublicUrl}/${storageBucket}/${key}`;
 }
 
@@ -318,30 +317,195 @@ async function main() {
     console.log('Seeded partner login: demo@restaurant.iq / DemoPass123');
   }
 
-  const demoRestaurant = isProd ? null : await db.restaurant.findUnique({ where: { ownerEmail: 'demo@restaurant.iq' } });
+  const demoRestaurant = isProd
+    ? null
+    : await db.restaurant.findUnique({ where: { ownerEmail: 'demo@restaurant.iq' } });
   if (demoRestaurant && (await db.review.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
     const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
     // food/staff/ambience trend up over the last 30 days, service trends down —
     // mirrors the "Category Scores & 30-Day Trends" reference design.
     const demoReviews = [
-      { reviewerName: 'Ahmed K.', rating: 4, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 55, text: 'Solid meal, service was excellent.' },
-      { reviewerName: 'Zainab R.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 50, text: 'Loved the grill platter.' },
-      { reviewerName: 'Hassan M.', rating: 4, foodRating: 4, serviceRating: 4, staffRating: 5, ambienceRating: 5, days: 48, text: 'Staff went out of their way to help us.' },
-      { reviewerName: 'Noor A.', rating: 3, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 44, text: 'Good but a bit pricey.' },
-      { reviewerName: 'Karim S.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 5, ambienceRating: 5, days: 40, text: 'Everything about this place is great.' },
-      { reviewerName: 'Rania F.', rating: 4, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 35, text: 'Consistent quality every visit.' },
-      { reviewerName: 'Bilal H.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 5, ambienceRating: 5, days: 33, text: 'Perfect evening out with the family.' },
-      { reviewerName: 'Dina K.', rating: 4, foodRating: 4, serviceRating: 4, staffRating: 4, ambienceRating: 4, days: 32, text: 'Reliable neighborhood spot.' },
-      { reviewerName: 'Fadi N.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 5, ambienceRating: 4, days: 25, text: 'Best kebab in town, generous portions.' },
-      { reviewerName: 'Huda J.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 5, ambienceRating: 5, days: 20, text: 'Flawless from start to finish.' },
-      { reviewerName: 'Iman T.', rating: 4, foodRating: 4, serviceRating: 4, staffRating: 5, ambienceRating: 4, days: 18, text: 'Great hospitality, will be back.' },
-      { reviewerName: 'Jassim O.', rating: 4, foodRating: 5, serviceRating: 4, staffRating: 4, ambienceRating: 5, days: 15, text: 'Lovely ambience, great for dates.' },
-      { reviewerName: 'Sara M.', rating: 5, foodRating: 4, serviceRating: 5, staffRating: 5, ambienceRating: 4, days: 12, text: 'Great food, service was excellent this time.' },
-      { reviewerName: 'Lina B.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 5, ambienceRating: 5, days: 10, text: 'Family favorite, we come every week.' },
-      { reviewerName: 'Yusuf A.', rating: 4, foodRating: 4, serviceRating: 5, staffRating: 4, ambienceRating: 4, days: 8, text: 'Decent, would order again.' },
-      { reviewerName: 'Marwan Q.', rating: 5, foodRating: 5, serviceRating: 5, staffRating: 5, ambienceRating: 5, days: 5, text: 'Ten out of ten, no notes.' },
-      { reviewerName: 'Omar T.', rating: 3, foodRating: 4, serviceRating: 4, staffRating: 5, ambienceRating: 4, days: 3, moderationStatus: 'FLAGGED' as const, text: 'Order was wrong once but staff fixed it fast.' },
-      { reviewerName: 'Layla H.', rating: 5, foodRating: 5, serviceRating: 4, staffRating: 4, ambienceRating: 5, days: 1, text: 'Family favorite, we come every week.' },
+      {
+        reviewerName: 'Ahmed K.',
+        rating: 4,
+        foodRating: 4,
+        serviceRating: 5,
+        staffRating: 4,
+        ambienceRating: 4,
+        days: 55,
+        text: 'Solid meal, service was excellent.',
+      },
+      {
+        reviewerName: 'Zainab R.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 5,
+        staffRating: 4,
+        ambienceRating: 4,
+        days: 50,
+        text: 'Loved the grill platter.',
+      },
+      {
+        reviewerName: 'Hassan M.',
+        rating: 4,
+        foodRating: 4,
+        serviceRating: 4,
+        staffRating: 5,
+        ambienceRating: 5,
+        days: 48,
+        text: 'Staff went out of their way to help us.',
+      },
+      {
+        reviewerName: 'Noor A.',
+        rating: 3,
+        foodRating: 4,
+        serviceRating: 5,
+        staffRating: 4,
+        ambienceRating: 4,
+        days: 44,
+        text: 'Good but a bit pricey.',
+      },
+      {
+        reviewerName: 'Karim S.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 4,
+        staffRating: 5,
+        ambienceRating: 5,
+        days: 40,
+        text: 'Everything about this place is great.',
+      },
+      {
+        reviewerName: 'Rania F.',
+        rating: 4,
+        foodRating: 4,
+        serviceRating: 5,
+        staffRating: 4,
+        ambienceRating: 4,
+        days: 35,
+        text: 'Consistent quality every visit.',
+      },
+      {
+        reviewerName: 'Bilal H.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 5,
+        staffRating: 5,
+        ambienceRating: 5,
+        days: 33,
+        text: 'Perfect evening out with the family.',
+      },
+      {
+        reviewerName: 'Dina K.',
+        rating: 4,
+        foodRating: 4,
+        serviceRating: 4,
+        staffRating: 4,
+        ambienceRating: 4,
+        days: 32,
+        text: 'Reliable neighborhood spot.',
+      },
+      {
+        reviewerName: 'Fadi N.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 4,
+        staffRating: 5,
+        ambienceRating: 4,
+        days: 25,
+        text: 'Best kebab in town, generous portions.',
+      },
+      {
+        reviewerName: 'Huda J.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 5,
+        staffRating: 5,
+        ambienceRating: 5,
+        days: 20,
+        text: 'Flawless from start to finish.',
+      },
+      {
+        reviewerName: 'Iman T.',
+        rating: 4,
+        foodRating: 4,
+        serviceRating: 4,
+        staffRating: 5,
+        ambienceRating: 4,
+        days: 18,
+        text: 'Great hospitality, will be back.',
+      },
+      {
+        reviewerName: 'Jassim O.',
+        rating: 4,
+        foodRating: 5,
+        serviceRating: 4,
+        staffRating: 4,
+        ambienceRating: 5,
+        days: 15,
+        text: 'Lovely ambience, great for dates.',
+      },
+      {
+        reviewerName: 'Sara M.',
+        rating: 5,
+        foodRating: 4,
+        serviceRating: 5,
+        staffRating: 5,
+        ambienceRating: 4,
+        days: 12,
+        text: 'Great food, service was excellent this time.',
+      },
+      {
+        reviewerName: 'Lina B.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 4,
+        staffRating: 5,
+        ambienceRating: 5,
+        days: 10,
+        text: 'Family favorite, we come every week.',
+      },
+      {
+        reviewerName: 'Yusuf A.',
+        rating: 4,
+        foodRating: 4,
+        serviceRating: 5,
+        staffRating: 4,
+        ambienceRating: 4,
+        days: 8,
+        text: 'Decent, would order again.',
+      },
+      {
+        reviewerName: 'Marwan Q.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 5,
+        staffRating: 5,
+        ambienceRating: 5,
+        days: 5,
+        text: 'Ten out of ten, no notes.',
+      },
+      {
+        reviewerName: 'Omar T.',
+        rating: 3,
+        foodRating: 4,
+        serviceRating: 4,
+        staffRating: 5,
+        ambienceRating: 4,
+        days: 3,
+        moderationStatus: 'FLAGGED' as const,
+        text: 'Order was wrong once but staff fixed it fast.',
+      },
+      {
+        reviewerName: 'Layla H.',
+        rating: 5,
+        foodRating: 5,
+        serviceRating: 4,
+        staffRating: 4,
+        ambienceRating: 5,
+        days: 1,
+        text: 'Family favorite, we come every week.',
+      },
     ];
 
     await db.review.createMany({
@@ -362,9 +526,7 @@ async function main() {
   }
 
   if (demoRestaurant && (await db.dish.count({ where: { restaurantId: demoRestaurant.id } })) === 0) {
-    const categoryByName = Object.fromEntries(
-      (await db.menuCategory.findMany()).map((c) => [c.nameEn, c.id]),
-    );
+    const categoryByName = Object.fromEntries((await db.menuCategory.findMany()).map((c) => [c.nameEn, c.id]));
 
     const demoDishes = [
       { nameEn: 'Hummus Plate', nameAr: 'صحن حمص', price: 4000, category: 'Appetizer' },
@@ -401,8 +563,18 @@ async function main() {
       { album: 'FOOD' as const, dishId: dishId('Mixed BBQ Platter'), key: 'gallery/food-2.jpg' },
       { album: 'FOOD' as const, dishId: dishId('Hummus Plate'), key: 'gallery/food-3.jpg' },
       { album: 'MENU' as const, caption: 'Paper menu, page 1', key: 'gallery/menu-1.jpg' },
-      { album: 'AMBIENCE' as const, ambienceSubCategory: 'OUTDOOR' as const, caption: 'Garden seating', key: 'gallery/ambience-1.jpg' },
-      { album: 'AMBIENCE' as const, ambienceSubCategory: 'INDOOR' as const, caption: 'Main dining hall', key: 'gallery/ambience-2.jpg' },
+      {
+        album: 'AMBIENCE' as const,
+        ambienceSubCategory: 'OUTDOOR' as const,
+        caption: 'Garden seating',
+        key: 'gallery/ambience-1.jpg',
+      },
+      {
+        album: 'AMBIENCE' as const,
+        ambienceSubCategory: 'INDOOR' as const,
+        caption: 'Main dining hall',
+        key: 'gallery/ambience-2.jpg',
+      },
     ];
 
     for (const g of galleryPhotos) {

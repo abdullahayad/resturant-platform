@@ -198,9 +198,7 @@ const TERMS_OF_SERVICE: Section[] = [
 ];
 
 function renderPage(title: string, sections: Section[]): string {
-  const sectionsHtml = sections
-    .map((s) => `<section><h2>${s.heading}</h2><p>${s.body}</p></section>`)
-    .join('\n');
+  const sectionsHtml = sections.map((s) => `<section><h2>${s.heading}</h2><p>${s.body}</p></section>`).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">

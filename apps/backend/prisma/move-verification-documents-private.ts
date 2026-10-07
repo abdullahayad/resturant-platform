@@ -62,7 +62,9 @@ async function main() {
     where: { storageKey: null, url: { not: null } },
     select: { id: true, restaurantId: true, url: true },
   });
-  console.log(`${rows.length} legacy document(s) in the public bucket${apply ? '' : ' (dry run - pass --apply to move them)'}`);
+  console.log(
+    `${rows.length} legacy document(s) in the public bucket${apply ? '' : ' (dry run - pass --apply to move them)'}`,
+  );
   if (rows.length === 0) return;
   if (apply) await ensurePrivateBucket();
 

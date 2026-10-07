@@ -58,7 +58,7 @@ describe('ModerationService', () => {
       });
     });
 
-    it('accepts a null restaurant id for an admin\'s own blocked upload', async () => {
+    it("accepts a null restaurant id for an admin's own blocked upload", async () => {
       await service.recordBlocked(null, 'bad-photo.jpg');
 
       expect(prisma.db.blockedUpload.create).toHaveBeenCalledWith({

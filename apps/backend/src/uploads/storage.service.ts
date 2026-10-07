@@ -152,9 +152,7 @@ export class StorageService implements OnModuleInit {
     const ext = extensionOf(file.originalname);
     const contentType = ALLOWED_UPLOADS[ext];
     if (!contentType) {
-      throw new BadRequestException(
-        `Unsupported file type. Allowed: ${Object.keys(ALLOWED_UPLOADS).join(', ')}`,
-      );
+      throw new BadRequestException(`Unsupported file type. Allowed: ${Object.keys(ALLOWED_UPLOADS).join(', ')}`);
     }
 
     const key = `${folder}/${randomUUID()}.${ext}`;
@@ -169,9 +167,7 @@ export class StorageService implements OnModuleInit {
     // A dedicated public URL (R2's pub-*.r2.dev, a custom domain, etc.) is
     // already scoped to this one bucket — no bucket segment in the path.
     // The path-style S3 endpoint fallback (MinIO) needs it included.
-    const url = process.env.STORAGE_PUBLIC_URL
-      ? `${this.publicUrl}/${key}`
-      : `${this.publicUrl}/${this.bucket}/${key}`;
+    const url = process.env.STORAGE_PUBLIC_URL ? `${this.publicUrl}/${key}` : `${this.publicUrl}/${this.bucket}/${key}`;
     return { url, key };
   }
 }

@@ -35,7 +35,12 @@ export class VerificationDocumentsService {
   async create(restaurantId: string, file: { buffer: Buffer; originalname: string }, user: PartnerJwtPayload) {
     const { key } = await this.storage.uploadPrivate(file, `verification-documents/${restaurantId}`);
     const doc = await this.prisma.db.verificationDocument.create({ data: { restaurantId, storageKey: key } });
-    await this.activityLog.log({ restaurantId, section: 'settings', summary: 'Submitted a verification document', user });
+    await this.activityLog.log({
+      restaurantId,
+      section: 'settings',
+      summary: 'Submitted a verification document',
+      user,
+    });
     return this.present(doc);
   }
 
