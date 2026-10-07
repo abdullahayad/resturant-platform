@@ -11,6 +11,7 @@ import {
   type RestaurantDetail,
   type RestaurantListItem,
   type RestaurantStatus,
+  type VerificationDocument,
 } from '@/lib/api'
 import { downloadCsv } from '@/lib/csv'
 import { Switch } from '@/components/Switch'
@@ -60,6 +61,7 @@ export function RestaurantsPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<RestaurantDetail | null>(null)
+  const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
   const [supportSessionFor, setSupportSessionFor] = useState<{ id: string; nameEn: string } | null>(null)
   const [reviewQrFor, setReviewQrFor] = useState<{ id: string; nameEn: string } | null>(null)
@@ -171,14 +173,17 @@ export function RestaurantsPage() {
       detailRequestIdRef.current++ // abandon any in-flight fetch for the row being collapsed
       setExpandedId(null)
       setDetail(null)
+      setVerificationDocs([])
       return
     }
     const requestId = ++detailRequestIdRef.current
     setExpandedId(id)
     setDetail(null)
-    const full = await api.restaurant(id)
+    setVerificationDocs([])
+    const [full, docs] = await Promise.all([api.restaurant(id), api.verificationDocuments(id)])
     if (detailRequestIdRef.current !== requestId) return // a newer row was clicked before this one loaded
     setDetail(full)
+    setVerificationDocs(docs)
   }
 
   const setActive = async (id: string, active: boolean) => {
@@ -226,6 +231,17 @@ export function RestaurantsPage() {
     setBusyId(id)
     try {
       await api.setStatsVisibility(id, statsVisible)
+      load()
+      if (expandedId === id) setDetail(await api.restaurant(id))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const toggleVerified = async (id: string, isVerified: boolean) => {
+    setBusyId(id)
+    try {
+      await api.setVerified(id, isVerified)
       load()
       if (expandedId === id) setDetail(await api.restaurant(id))
     } finally {
@@ -486,6 +502,36 @@ export function RestaurantsPage() {
                               onChange={() => toggleStatsVisible(r.id, !detail.statsVisible)}
                               label={detail.statsVisible ? 'Visible to partner' : 'Hidden from partner'}
                             />
+                          </div>
+                          <div>
+                            <div className="mb-1 text-xs text-muted-foreground">Verified Badge (Public Page)</div>
+                            <Switch
+                              checked={detail.isVerified}
+                              disabled={busyId === r.id}
+                              onChange={() => toggleVerified(r.id, !detail.isVerified)}
+                              label={detail.isVerified ? 'Verified' : 'Not verified'}
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <div className="mb-1 text-xs text-muted-foreground">Verification Documents</div>
+                            {verificationDocs.length === 0 ? (
+                              <div className="text-muted-foreground">No documents submitted.</div>
+                            ) : (
+                              <div className="flex flex-wrap gap-3">
+                                {verificationDocs.map((doc) => (
+                                  <a
+                                    key={doc.id}
+                                    href={doc.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="block overflow-hidden rounded-lg border border-border"
+                                  >
+                                    <img src={doc.url} alt="Verification document" className="h-24 w-24 object-cover" />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
                             <div className="mb-1 text-xs text-muted-foreground">Support</div>

@@ -27,6 +27,7 @@ import { ChefsModule } from './chefs/chefs.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { FeaturedModule } from './featured/featured.module';
+import { VerificationDocumentsModule } from './verification-documents/verification-documents.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';
@@ -61,6 +62,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     NotificationsModule,
     PromotionsModule,
     FeaturedModule,
+    VerificationDocumentsModule,
     LoyaltyModule,
     FeatureFlagsModule,
     AnalyticsModule,

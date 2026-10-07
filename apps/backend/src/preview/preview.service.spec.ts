@@ -122,8 +122,8 @@ describe('PreviewService', () => {
       await expect(service.getPublic('r1')).rejects.toThrow(NotFoundException);
     });
 
-    it('returns real review content, a featured flag, and strips status/publishStatus from the response', async () => {
-      prisma.db.restaurant.findUnique.mockResolvedValueOnce(livePublicRestaurant);
+    it('returns real review content, a featured flag, isVerified, and strips status/publishStatus from the response', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ ...livePublicRestaurant, isVerified: true });
       reviews.listForRestaurant.mockResolvedValueOnce({
         items: [{ id: 'rev1', rating: 5, reviewerName: 'Ahmad', text: 'Great!' }],
         total: 1,
@@ -138,6 +138,7 @@ describe('PreviewService', () => {
       expect(featured.isFeatured).toHaveBeenCalledWith('r1');
       expect(result.reviews).toEqual([{ id: 'rev1', rating: 5, reviewerName: 'Ahmad', text: 'Great!' }]);
       expect(result.isFeatured).toBe(true);
+      expect(result.isVerified).toBe(true);
       expect(result).not.toHaveProperty('status');
       expect(result).not.toHaveProperty('publishStatus');
     });

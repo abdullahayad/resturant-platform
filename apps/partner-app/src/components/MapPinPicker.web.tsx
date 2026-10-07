@@ -37,10 +37,11 @@ interface MapPinPickerProps {
   latitude: number | null;
   longitude: number | null;
   onChange: (lat: number, lng: number) => void;
+  disabled?: boolean;
 }
 
 /** Web pin picker: OpenStreetMap tiles rendered via Leaflet directly in the DOM — no API key needed. */
-export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProps) {
+export function MapPinPicker({ latitude, longitude, onChange, disabled = false }: MapPinPickerProps) {
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
   const { t } = useTranslation('profile');
@@ -50,6 +51,8 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
   const markerRef = useRef<any>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
 
@@ -72,10 +75,12 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
       markerRef.current = marker;
 
       marker.on('dragend', () => {
+        if (disabledRef.current) return;
         const p = marker.getLatLng();
         onChangeRef.current(p.lat, p.lng);
       });
       map.on('click', (e: any) => {
+        if (disabledRef.current) return;
         marker.setLatLng(e.latlng);
         onChangeRef.current(e.latlng.lat, e.latlng.lng);
       });
@@ -91,6 +96,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
   }, []);
 
   const useMyLocation = useCallback(async () => {
+    if (disabled) return;
     setLocateError(null);
     setLocating(true);
     try {
@@ -111,12 +117,12 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
     } finally {
       setLocating(false);
     }
-  }, [t]);
+  }, [t, disabled]);
 
   return (
     <View style={styles.container}>
       <View ref={containerRef} style={StyleSheet.absoluteFill} />
-      <Pressable style={styles.locateButton} onPress={useMyLocation} disabled={locating}>
+      <Pressable style={styles.locateButton} onPress={useMyLocation} disabled={locating || disabled}>
         {locating ? <ActivityIndicator size="small" color={colors.primary} /> : <LocateFixed size={18} color={colors.primary} />}
       </Pressable>
       {locateError && (
@@ -124,6 +130,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
           <Text style={styles.errorText}>{locateError}</Text>
         </View>
       )}
+      {disabled && <View style={styles.disabledOverlay} />}
     </View>
   );
 }
@@ -137,6 +144,7 @@ const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create(
     borderColor: colors.border,
     backgroundColor: colors.secondary,
   },
+  disabledOverlay: { ...StyleSheet.absoluteFill, backgroundColor: colors.card, opacity: 0.5 },
   locateButton: {
     position: 'absolute',
     right: isRTL ? undefined : 10,

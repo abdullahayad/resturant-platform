@@ -14,6 +14,7 @@ interface MapPinPickerProps {
   latitude: number | null;
   longitude: number | null;
   onChange: (lat: number, lng: number) => void;
+  disabled?: boolean;
 }
 
 function buildHtml(lat: number, lng: number, mapBackground: string) {
@@ -52,7 +53,7 @@ function buildHtml(lat: number, lng: number, mapBackground: string) {
 }
 
 /** Native (iOS/Android) pin picker: OpenStreetMap tiles rendered inside a WebView — no API key needed. */
-export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProps) {
+export function MapPinPicker({ latitude, longitude, onChange, disabled = false }: MapPinPickerProps) {
   const { colors } = useTheme();
   const { isRTL } = useLanguage();
   const { t } = useTranslation('profile');
@@ -72,6 +73,7 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
 
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
+      if (disabled) return;
       try {
         const { lat, lng } = JSON.parse(event.nativeEvent.data);
         onChange(lat, lng);
@@ -79,10 +81,11 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
         // ignore malformed bridge messages
       }
     },
-    [onChange],
+    [onChange, disabled],
   );
 
   const useMyLocation = useCallback(async () => {
+    if (disabled) return;
     setLocateError(null);
     setLocating(true);
     try {
@@ -100,12 +103,12 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
     } finally {
       setLocating(false);
     }
-  }, [onChange, t]);
+  }, [onChange, t, disabled]);
 
   return (
     <View style={styles.container}>
       <WebView ref={webViewRef} originWhitelist={['*']} source={{ html }} onMessage={handleMessage} style={styles.webview} />
-      <Pressable style={styles.locateButton} onPress={useMyLocation} disabled={locating}>
+      <Pressable style={styles.locateButton} onPress={useMyLocation} disabled={locating || disabled}>
         {locating ? <ActivityIndicator size="small" color={colors.primary} /> : <LocateFixed size={18} color={colors.primary} />}
       </Pressable>
       {locateError && (
@@ -113,6 +116,12 @@ export function MapPinPicker({ latitude, longitude, onChange }: MapPinPickerProp
           <Text style={styles.errorText}>{locateError}</Text>
         </View>
       )}
+      {/* No pointerEvents="none" here on purpose - this overlay has to
+          actually intercept touches, not just look dim, since the WebView
+          underneath has its own tap/drag handlers that the React side can't
+          otherwise block (handleMessage ignoring the result still lets the
+          map's own marker visually move first). */}
+      {disabled && <View style={styles.disabledOverlay} />}
     </View>
   );
 }
@@ -126,6 +135,7 @@ const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create(
     borderColor: colors.border,
   },
   webview: { flex: 1, backgroundColor: colors.secondary },
+  disabledOverlay: { ...StyleSheet.absoluteFill, backgroundColor: colors.card, opacity: 0.5 },
   locateButton: {
     position: 'absolute',
     right: isRTL ? undefined : 10,

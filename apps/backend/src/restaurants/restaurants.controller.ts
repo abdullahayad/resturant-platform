@@ -11,6 +11,7 @@ import { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
 import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { UpdateOpeningHoursDto } from './dto/opening-hours.dto';
 import { UpdateStatsVisibilityDto } from './dto/update-stats-visibility.dto';
+import { SetVerifiedDto } from './dto/set-verified.dto';
 import { SetChainDto } from './dto/set-chain.dto';
 import { SetClassDto } from './dto/set-class.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
@@ -183,6 +184,12 @@ export class RestaurantsController {
   @Patch(':id/stats-visibility')
   setStatsVisibility(@Param('id') id: string, @Body() dto: UpdateStatsVisibilityDto) {
     return this.restaurants.setStatsVisibility(id, dto.statsVisible);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Patch(':id/verify')
+  setVerified(@Param('id') id: string, @Body() dto: SetVerifiedDto) {
+    return this.restaurants.setVerified(id, dto.isVerified);
   }
 
   @UseGuards(AdminAuthGuard)

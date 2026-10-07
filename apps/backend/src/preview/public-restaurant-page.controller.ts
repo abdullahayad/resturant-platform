@@ -72,17 +72,18 @@ function renderPage(restaurantId: string, nonce: string): string {
   .logo { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; margin: 0 auto 10px; display: block; }
   h1 { font-size: 22px; margin: 0 0 4px; }
   .sub { font-size: 13.5px; color: #6b6255; margin: 0; }
-  .featuredBadge {
+  .featuredBadge, .verifiedBadge {
     display: inline-block;
     margin-top: 10px;
-    background: #c97f2e;
-    color: #fff8f0;
+    margin-inline-end: 6px;
     font-size: 11.5px;
     font-weight: 700;
     border-radius: 999px;
     padding: 3px 12px;
     letter-spacing: 0.03em;
   }
+  .featuredBadge { background: #c97f2e; color: #fff8f0; }
+  .verifiedBadge { background: #2e7d4f; color: #f0fff6; }
   .ratingRow { margin-top: 10px; font-size: 14px; font-weight: 700; }
   section { margin-top: 28px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
@@ -133,6 +134,7 @@ function renderPage(restaurantId: string, nonce: string): string {
       <h1 id="restaurantName"></h1>
       <p class="sub" id="locationLine"></p>
       <div class="ratingRow" id="ratingRow" hidden></div>
+      <div id="verifiedBadge" class="verifiedBadge" hidden></div>
       <div id="featuredBadge" class="featuredBadge" hidden></div>
     </header>
 
@@ -180,6 +182,7 @@ function renderPage(restaurantId: string, nonce: string): string {
       notFoundTitle: 'غير متاح',
       notFoundText: 'هذا المطعم غير متاح حاليًا.',
       featured: 'مميز',
+      verified: 'موثّق ✓',
       menuTitle: 'القائمة',
       galleryTitle: 'الصور',
       chefsTitle: 'الطهاة',
@@ -196,6 +199,7 @@ function renderPage(restaurantId: string, nonce: string): string {
       notFoundTitle: 'Not available',
       notFoundText: 'This restaurant is not currently available.',
       featured: 'Featured',
+      verified: 'Verified ✓',
       menuTitle: 'Menu',
       galleryTitle: 'Photos',
       chefsTitle: 'Chefs',
@@ -225,6 +229,7 @@ function renderPage(restaurantId: string, nonce: string): string {
     locationLine: document.getElementById('locationLine'),
     ratingRow: document.getElementById('ratingRow'),
     featuredBadge: document.getElementById('featuredBadge'),
+    verifiedBadge: document.getElementById('verifiedBadge'),
     menuSection: document.getElementById('menuSection'),
     menuTitle: document.getElementById('menuTitle'),
     menuList: document.getElementById('menuList'),
@@ -365,6 +370,8 @@ function renderPage(restaurantId: string, nonce: string): string {
     }
     el.featuredBadge.hidden = !data.isFeatured;
     el.featuredBadge.textContent = s.featured;
+    el.verifiedBadge.hidden = !data.isVerified;
+    el.verifiedBadge.textContent = s.verified;
 
     el.menuTitle.textContent = s.menuTitle;
     el.galleryTitle.textContent = s.galleryTitle;

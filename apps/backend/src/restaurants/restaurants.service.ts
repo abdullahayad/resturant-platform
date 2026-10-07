@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'node:crypto';
@@ -29,6 +29,7 @@ const restaurantListSelect = {
   logoUrl: true,
   status: true,
   statsVisible: true,
+  isVerified: true,
   ownerEmail: true,
   createdAt: true,
   reviewedAt: true,
@@ -319,6 +320,18 @@ export class RestaurantsService {
     });
   }
 
+  // Deliberately separate from submitting VerificationDocument photos - an
+  // admin has to explicitly decide this, it's never flipped automatically
+  // just because a document was uploaded or a publish review was approved.
+  async setVerified(id: string, isVerified: boolean) {
+    await this.ensureExists(id);
+    return this.prisma.db.restaurant.update({
+      where: { id },
+      data: { isVerified },
+      select: restaurantListSelect,
+    });
+  }
+
   // Admin-only, deliberately not exposed on updateProfile - see
   // RestaurantChain's comment in schema.prisma.
   async setChain(id: string, chainId: string | null) {
@@ -378,6 +391,11 @@ export class RestaurantsService {
         nameAr: true,
         phone: true,
         logoUrl: true,
+        provinceId: true,
+        districtId: true,
+        latitude: true,
+        longitude: true,
+        publishStatus: true,
         province: { select: { nameEn: true } },
         district: { select: { nameEn: true } },
         businessTypes: { select: { businessType: { select: { nameEn: true } } } },
@@ -386,6 +404,29 @@ export class RestaurantsService {
       },
     });
     if (!before) throw new NotFoundException('Restaurant not found');
+
+    // Identity/location fields are only self-editable before the restaurant
+    // goes live - once publishStatus is APPROVED, only the admin route
+    // (which calls this same method without a `user`) can change them, so a
+    // customer who already found this restaurant can't be quietly pointed
+    // somewhere else later. Value-aware rather than "field present in the
+    // payload": the partner-app form resubmits the whole profile on every
+    // save, so a field being present but unchanged must not 403.
+    if (user && before.publishStatus === 'APPROVED') {
+      const attemptedChange =
+        (dto.nameEn !== undefined && dto.nameEn !== before.nameEn) ||
+        (dto.nameAr !== undefined && dto.nameAr !== before.nameAr) ||
+        (dto.phone !== undefined && dto.phone !== before.phone) ||
+        (dto.provinceId !== undefined && dto.provinceId !== before.provinceId) ||
+        (dto.districtId !== undefined && dto.districtId !== before.districtId) ||
+        (dto.latitude !== undefined && dto.latitude !== (before.latitude == null ? null : Number(before.latitude))) ||
+        (dto.longitude !== undefined && dto.longitude !== (before.longitude == null ? null : Number(before.longitude)));
+      if (attemptedChange) {
+        throw new ForbiddenException(
+          'Your name, phone, and location are locked now that your listing is live. Contact an admin to change them.',
+        );
+      }
+    }
 
     if (dto.phone !== undefined) {
       const existingPhone = await this.prisma.db.restaurant.findUnique({

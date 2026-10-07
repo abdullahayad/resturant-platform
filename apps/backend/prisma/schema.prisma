@@ -373,6 +373,12 @@ model Restaurant {
   // switches it on later.
   statsVisible Boolean @default(false)
 
+  // Admin-controlled, deliberately never automatic - a restaurant can submit
+  // VerificationDocument photos (business license etc.) any time, but
+  // submitting one doesn't flip this on its own; an admin reviews them and
+  // makes a separate call. Shown as a "Verified" badge on the public page.
+  isVerified Boolean @default(false)
+
   // Daily cap on AI review-reply suggestions (see ReviewsService.suggestReply)
   // - resets whenever aiSuggestionCountDate is no longer today, checked and
   // incremented atomically in one UPDATE so two simultaneous requests can't
@@ -449,6 +455,7 @@ model Restaurant {
   blockedUploads    BlockedUpload[]
   adminSupportSessions AdminSupportSession[]
   activityLogs      RestaurantActivityLog[]
+  verificationDocuments VerificationDocument[]
 
   @@index([status])
   @@index([publishStatus])
@@ -596,6 +603,23 @@ model Story {
   @@index([restaurantId])
   @@index([expiresAt])
   @@map("stories")
+}
+
+// A photo of a business license or similar, submitted by the restaurant at
+// any time (not tied to a single moment or to publishStatus) as evidence for
+// the admin-granted "Verified" badge (Restaurant.isVerified) - no per-document
+// moderation status, since the admin's verdict is one deliberate flag on the
+// restaurant as a whole, not a per-photo approve/reject.
+model VerificationDocument {
+  id           String   @id @default(uuid())
+  restaurantId String
+  url          String
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@map("verification_documents")
 }
 
 // ────────────────────────────────────────────────────────────────────────────

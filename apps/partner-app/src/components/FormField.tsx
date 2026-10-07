@@ -7,7 +7,7 @@ interface FormFieldProps extends TextInputProps {
   label: string;
 }
 
-export function FormField({ label, style, onFocus, onBlur, ...inputProps }: FormFieldProps) {
+export function FormField({ label, style, onFocus, onBlur, editable = true, ...inputProps }: FormFieldProps) {
   const [focused, setFocused] = useState(false);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -16,8 +16,9 @@ export function FormField({ label, style, onFocus, onBlur, ...inputProps }: Form
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        editable={editable}
         placeholderTextColor={colors.mutedForeground}
-        style={[styles.input, focused && styles.inputFocused, style]}
+        style={[styles.input, focused && styles.inputFocused, !editable && styles.inputDisabled, style]}
         accessibilityLabel={label}
         onFocus={(e) => {
           setFocused(true);
@@ -55,5 +56,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+  },
+  inputDisabled: {
+    opacity: 0.5,
   },
 });

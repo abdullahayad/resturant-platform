@@ -37,6 +37,7 @@ export interface RestaurantListItem {
   logoUrl: string | null
   status: RestaurantStatus
   statsVisible: boolean
+  isVerified: boolean
   ownerEmail: string
   createdAt: string
   reviewedAt: string | null
@@ -186,6 +187,12 @@ export interface RestaurantDetail extends RestaurantListItem {
     openTime: string | null
     closeTime: string | null
   }[]
+}
+
+export interface VerificationDocument {
+  id: string
+  url: string
+  createdAt: string
 }
 
 export interface PublishReviewDetail extends RestaurantDetail {
@@ -636,6 +643,10 @@ export const api = {
   suspend: (id: string) => send<RestaurantListItem>('PATCH', `/restaurants/${id}/suspend`),
   setStatsVisibility: (id: string, statsVisible: boolean) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/stats-visibility`, { statsVisible }),
+  setVerified: (id: string, isVerified: boolean) =>
+    send<RestaurantListItem>('PATCH', `/restaurants/${id}/verify`, { isVerified }),
+  verificationDocuments: (id: string) =>
+    get<VerificationDocument[]>(`/admin/restaurants/${id}/verification-documents`),
   setRestaurantChain: (id: string, chainId: string | null) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/chain`, { chainId }),
   setRestaurantClass: (id: string, restaurantClass: RestaurantClass | null) =>

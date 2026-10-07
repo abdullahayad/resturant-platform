@@ -48,6 +48,15 @@
     "loadFailed": "Could not load your payment accounts.",
     "validation": "Enter both a merchant ID and a secret key."
   },
+  "verificationDocuments": {
+    "title": "Verification Documents",
+    "hint": "Submit a photo of your business license or food inspection approval. An admin will review it and mark your restaurant as Verified.",
+    "verified": "Verified",
+    "noDocumentsYet": "No documents submitted yet.",
+    "addDocument": "Add Document Photo",
+    "loadFailed": "Could not load your verification documents.",
+    "uploadFailed": "Could not upload document"
+  },
   "staff": "Staff",
   "staffHint": "Invite staff with limited access — they can help manage the menu without touching your profile or account settings.",
   "active": "Active",

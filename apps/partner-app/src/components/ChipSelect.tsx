@@ -14,9 +14,10 @@ interface ChipSelectProps {
   selectedIds: string[];
   onToggle: (id: string) => void;
   multi?: boolean;
+  disabled?: boolean;
 }
 
-export function ChipSelect({ options, selectedIds, onToggle, multi = true }: ChipSelectProps) {
+export function ChipSelect({ options, selectedIds, onToggle, multi = true, disabled = false }: ChipSelectProps) {
   const { colors } = useTheme();
   const { t } = useTranslation('common');
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -28,7 +29,8 @@ export function ChipSelect({ options, selectedIds, onToggle, multi = true }: Chi
           <Pressable
             key={option.id}
             onPress={() => onToggle(option.id)}
-            style={[styles.chip, selected && styles.chipSelected]}
+            disabled={disabled}
+            style={[styles.chip, selected && styles.chipSelected, disabled && styles.chipDisabled]}
           >
             <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
               {option.label}
@@ -59,6 +61,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 6,
   },
+  chipDisabled: { opacity: 0.5 },
   chipText: { color: colors.mutedForeground, fontSize: 13 },
   chipTextSelected: { color: colors.primaryForeground, fontWeight: '600' },
   empty: { color: colors.mutedForeground, fontSize: 13 },

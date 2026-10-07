@@ -26,6 +26,7 @@ const previewSelect = {
   longitude: true,
   crewCount: true,
   crewPhotoUrl: true,
+  isVerified: true,
   province: { select: { nameEn: true, nameAr: true } },
   district: { select: { nameEn: true, nameAr: true } },
   chain: { select: { nameEn: true, nameAr: true } },

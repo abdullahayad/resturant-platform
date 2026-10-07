@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Users } from 'lucide-react-native';
+import { BadgeCheck, Users } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
@@ -10,6 +12,7 @@ import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
+import { resizeForUpload } from '../lib/resizeImage';
 import {
   api,
   type PaymentAccountsState,
@@ -18,6 +21,7 @@ import {
   type RestaurantDetail,
   type StaffMember,
   type StaffRole,
+  type VerificationDocument,
 } from '../lib/api';
 import { cardShadow } from '../theme/tokens';
 
@@ -103,6 +107,69 @@ export function SettingsStaffScreen() {
   }, [token, isManagerOrOwner, t]);
 
   useEffect(loadPaymentAccounts, [loadPaymentAccounts]);
+
+  // ── Verification Documents ───────────────────────────────────────────
+  const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
+  const [docsLoading, setDocsLoading] = useState(isManagerOrOwner);
+  const [docsError, setDocsError] = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [localDocPreviews, setLocalDocPreviews] = useState<string[]>([]);
+  const [busyDocId, setBusyDocId] = useState<string | null>(null);
+
+  const loadVerificationDocs = useCallback(() => {
+    if (!isManagerOrOwner) return;
+    api
+      .myVerificationDocuments(token)
+      .then(setVerificationDocs)
+      .catch(() => setDocsError(t('verificationDocuments.loadFailed')))
+      .finally(() => setDocsLoading(false));
+  }, [token, isManagerOrOwner, t]);
+
+  useEffect(loadVerificationDocs, [loadVerificationDocs]);
+
+  const addVerificationDocument = async () => {
+    setDocsError(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8, allowsMultipleSelection: true });
+    if (result.canceled || result.assets.length === 0) return;
+
+    setLocalDocPreviews(result.assets.map((a) => a.uri));
+    setUploadingDoc(true);
+    try {
+      // Sequential, not parallel - same reasoning as the gallery/story
+      // uploads: a failure partway through stays unambiguous.
+      for (const asset of result.assets) {
+        const resizedUri = await resizeForUpload(asset.uri, asset.width, asset.height);
+        const wasResized = resizedUri !== asset.uri;
+        const { url } = await api.uploadFile(token, {
+          uri: resizedUri,
+          name: asset.fileName ?? 'document.jpg',
+          type: wasResized ? 'image/jpeg' : (asset.mimeType ?? 'image/jpeg'),
+        });
+        const created = await api.addVerificationDocument(token, url);
+        setVerificationDocs((prev) => [created, ...prev]);
+        setLocalDocPreviews((prev) => prev.slice(1));
+      }
+    } catch (err) {
+      setDocsError(err instanceof Error ? err.message : t('verificationDocuments.uploadFailed'));
+    } finally {
+      setUploadingDoc(false);
+      setLocalDocPreviews([]);
+    }
+  };
+
+  const removeVerificationDocument = async (id: string) => {
+    setBusyDocId(id);
+    try {
+      await api.deleteVerificationDocument(token, id);
+      setVerificationDocs((prev) => prev.filter((d) => d.id !== id));
+    } catch {
+      setDocsError(t('verificationDocuments.uploadFailed'));
+    } finally {
+      setBusyDocId(null);
+    }
+  };
 
   // ── Staff ──────────────────────────────────────────────────────────
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
@@ -280,6 +347,54 @@ export function SettingsStaffScreen() {
               />
             ))
           )}
+        </View>
+      )}
+
+      {isManagerOrOwner && (
+        <View style={styles.section}>
+          <View style={styles.verificationHeaderRow}>
+            <Text style={styles.sectionTitle}>{t('verificationDocuments.title')}</Text>
+            {profile?.isVerified && (
+              <View style={[styles.badge, styles.badgeActive, styles.verifiedBadge]}>
+                <BadgeCheck size={14} color={colors.success} />
+                <Text style={styles.badgeActiveText}>{t('verificationDocuments.verified')}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.sectionHint}>{t('verificationDocuments.hint')}</Text>
+          {docsError && <Text style={styles.error}>{docsError}</Text>}
+          {docsLoading ? (
+            <LoadingState />
+          ) : (
+            <View style={styles.docRow}>
+              {localDocPreviews.map((uri, i) => (
+                <View key={`${uri}-${i}`} style={styles.docCard}>
+                  <Image source={{ uri }} style={styles.docImage} />
+                  <View style={styles.docUploadingOverlay}>
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                </View>
+              ))}
+              {verificationDocs.map((doc) => (
+                <View key={doc.id} style={styles.docCard}>
+                  <Image source={{ uri: doc.url }} style={styles.docImage} />
+                  <Pressable onPress={() => removeVerificationDocument(doc.id)} disabled={busyDocId === doc.id}>
+                    <Text style={styles.removeLink}>{t('remove')}</Text>
+                  </Pressable>
+                </View>
+              ))}
+              {verificationDocs.length === 0 && localDocPreviews.length === 0 && (
+                <Text style={styles.prefHint}>{t('verificationDocuments.noDocumentsYet')}</Text>
+              )}
+            </View>
+          )}
+          <Pressable style={[styles.button, styles.secondaryButton, styles.flex1]} onPress={addVerificationDocument} disabled={uploadingDoc}>
+            {uploadingDoc ? (
+              <ActivityIndicator color={colors.foreground} />
+            ) : (
+              <Text style={styles.secondaryButtonText}>{t('verificationDocuments.addDocument')}</Text>
+            )}
+          </Pressable>
         </View>
       )}
 
@@ -542,6 +657,33 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   prefLabelBlock: { flex: 1 },
   prefLabel: { color: colors.foreground, fontSize: 14, fontWeight: '600' },
   prefHint: { color: colors.mutedForeground, fontSize: 12, marginTop: 2 },
+
+  verificationHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  docRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  docCard: {
+    position: 'relative',
+    width: 120,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+    overflow: 'hidden',
+    padding: 8,
+    gap: 4,
+  },
+  docImage: { width: '100%', height: 100, borderRadius: 8, backgroundColor: colors.card },
+  docUploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeLink: { fontSize: 12, color: colors.destructive },
 
   staffRow: {
     flexDirection: 'row',

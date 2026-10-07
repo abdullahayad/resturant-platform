@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -128,6 +128,84 @@ describe('RestaurantsService', () => {
       }
       expect(caught).toBeInstanceOf(ConflictException);
       expect((caught as ConflictException).message).toBe('An account with this email or phone number already exists');
+    });
+  });
+
+  describe('updateProfile', () => {
+    const liveBefore = {
+      nameEn: 'Old Name',
+      nameAr: 'اسم قديم',
+      phone: '07700000000',
+      logoUrl: null,
+      provinceId: 'p1',
+      districtId: 'd1',
+      latitude: 33.3,
+      longitude: 44.4,
+      publishStatus: 'APPROVED',
+      province: { nameEn: 'Baghdad' },
+      district: { nameEn: 'Karkh' },
+      businessTypes: [],
+      foodCategories: [],
+      facilities: [],
+    };
+
+    it('rejects a name change once the restaurant is live', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(liveBefore);
+
+      await expect(service.updateProfile('r1', { nameEn: 'New Name' }, fakeUser)).rejects.toThrow(ForbiddenException);
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a phone change once the restaurant is live', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(liveBefore);
+
+      await expect(service.updateProfile('r1', { phone: '07711111111' }, fakeUser)).rejects.toThrow(ForbiddenException);
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a location change once the restaurant is live', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(liveBefore);
+
+      await expect(service.updateProfile('r1', { districtId: 'd2' }, fakeUser)).rejects.toThrow(ForbiddenException);
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('allows resubmitting the same locked values while live - no actual change attempted', async () => {
+      prisma.db.restaurant.findUnique
+        .mockResolvedValueOnce(liveBefore) // before
+        .mockResolvedValueOnce(liveBefore) // after (diff logic)
+        .mockResolvedValueOnce({ id: 'r1' }); // findOne() at the end
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await expect(
+        service.updateProfile('r1', { nameEn: 'Old Name', logoUrl: 'https://x/new-logo.png' }, fakeUser),
+      ).resolves.toBeDefined();
+      expect(prisma.db.restaurant.update).toHaveBeenCalled();
+    });
+
+    it('allows changing locked fields before the restaurant has gone live', async () => {
+      const notYetLive = { ...liveBefore, publishStatus: 'NOT_SUBMITTED' };
+      prisma.db.restaurant.findUnique
+        .mockResolvedValueOnce(notYetLive)
+        .mockResolvedValueOnce(notYetLive)
+        .mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await expect(service.updateProfile('r1', { nameEn: 'New Name' }, fakeUser)).resolves.toBeDefined();
+      expect(prisma.db.restaurant.update).toHaveBeenCalled();
+    });
+
+    it('lets the admin path (no user) change locked fields even while live', async () => {
+      prisma.db.restaurant.findUnique
+        .mockResolvedValueOnce(liveBefore)
+        .mockResolvedValueOnce(liveBefore)
+        .mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      // No third argument - this is how restaurants.controller.ts's
+      // admin-only adminUpdate route calls it.
+      await expect(service.updateProfile('r1', { nameEn: 'New Name' })).resolves.toBeDefined();
+      expect(prisma.db.restaurant.update).toHaveBeenCalled();
     });
   });
 
@@ -484,6 +562,37 @@ describe('RestaurantsService', () => {
 
       expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'r1' }, data: { class: null } }),
+      );
+    });
+  });
+
+  describe('setVerified', () => {
+    it('throws NotFoundException for a restaurant that does not exist', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.setVerified('missing', true)).rejects.toThrow(NotFoundException);
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
+
+    it('marks a restaurant verified - a deliberate standalone action, not tied to any document submission', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await service.setVerified('r1', true);
+
+      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'r1' }, data: { isVerified: true } }),
+      );
+    });
+
+    it('can unmark a restaurant as verified', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'r1' });
+      prisma.db.restaurant.update.mockResolvedValueOnce({});
+
+      await service.setVerified('r1', false);
+
+      expect(prisma.db.restaurant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'r1' }, data: { isVerified: false } }),
       );
     });
   });

@@ -144,6 +144,7 @@ export interface RestaurantDetail extends AuthenticatedRestaurant {
   phone: string;
   logoUrl: string | null;
   statsVisible: boolean;
+  isVerified: boolean;
   latitude: number | null;
   longitude: number | null;
   notifyNewReview: boolean;
@@ -183,6 +184,12 @@ export interface Story {
   caption: string | null;
   createdAt: string;
   expiresAt: string;
+}
+
+export interface VerificationDocument {
+  id: string;
+  url: string;
+  createdAt: string;
 }
 
 export interface Dish {
@@ -794,6 +801,12 @@ export const api = {
     send<{ id: string }>('DELETE', `/restaurants/me/gallery/${id}`, token),
   setGalleryCover: (token: string, id: string, cover: boolean) =>
     send<GalleryPhoto>('PATCH', `/restaurants/me/gallery/${id}/cover`, token, { cover }),
+
+  myVerificationDocuments: (token: string) => get<VerificationDocument[]>('/restaurants/me/verification-documents', token),
+  addVerificationDocument: (token: string, url: string) =>
+    send<VerificationDocument>('POST', '/restaurants/me/verification-documents', token, { url }),
+  deleteVerificationDocument: (token: string, id: string) =>
+    send<{ id: string }>('DELETE', `/restaurants/me/verification-documents/${id}`, token),
 
   chefs: (token: string) => get<ChefManagementState>('/restaurants/me/chefs', token),
   upsertChef: (token: string, role: ChefRoleSlug, payload: ChefProfilePayload) =>

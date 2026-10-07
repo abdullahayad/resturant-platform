@@ -22,6 +22,7 @@
   "zone": "Zone",
   "district": "District",
   "pinHint": "Tap or drag the pin to set your exact location",
+  "lockedHint": "Locked now that you're live — contact an admin to make changes.",
   "latitude": "Latitude",
   "longitude": "Longitude",
   "openInGoogleMaps": "Open in Google Maps",

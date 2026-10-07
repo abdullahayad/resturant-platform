@@ -115,6 +115,7 @@ export function ProfileInfoScreen() {
     : [];
 
   const hasValidPin = latitude.trim() !== '' && longitude.trim() !== '' && !Number.isNaN(Number(latitude)) && !Number.isNaN(Number(longitude));
+  const isLocked = detail?.publishStatus === 'APPROVED';
 
   const openInGoogleMaps = () => {
     if (!hasValidPin) return;
@@ -227,9 +228,10 @@ export function ProfileInfoScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('sections.general')}</Text>
-        <FormField label={t('nameEnLabel')} value={nameEn} onChangeText={setNameEn} />
-        <FormField label={t('nameArLabel')} value={nameAr} onChangeText={setNameAr} />
-        <FormField label={t('phoneLabel')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        {isLocked && <Text style={styles.hint}>{t('lockedHint')}</Text>}
+        <FormField label={t('nameEnLabel')} value={nameEn} onChangeText={setNameEn} editable={!isLocked} />
+        <FormField label={t('nameArLabel')} value={nameAr} onChangeText={setNameAr} editable={!isLocked} />
+        <FormField label={t('phoneLabel')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" editable={!isLocked} />
 
         <Text style={styles.fieldLabel}>{t('businessTypes')}</Text>
         <ChipSelect
@@ -248,6 +250,7 @@ export function ProfileInfoScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('sections.location')}</Text>
+        {isLocked && <Text style={styles.hint}>{t('lockedHint')}</Text>}
         <Text style={styles.fieldLabel}>{t('city')}</Text>
         <ChipSelect
           options={provinces.map((p) => ({ id: p.id, label: localizedName(p, language) }))}
@@ -257,6 +260,7 @@ export function ProfileInfoScreen() {
             setZoneId(null);
             setDistrictId(null);
           }}
+          disabled={isLocked}
         />
         {selectedProvince && selectedProvince.zones.length > 0 && (
           <>
@@ -268,6 +272,7 @@ export function ProfileInfoScreen() {
                 setZoneId(id === zoneId ? null : id);
                 setDistrictId(null);
               }}
+              disabled={isLocked}
             />
           </>
         )}
@@ -278,6 +283,7 @@ export function ProfileInfoScreen() {
               options={districtOptions.map((d) => ({ id: d.id, label: localizedName(d, language) }))}
               selectedIds={districtId ? [districtId] : []}
               onToggle={(id) => setDistrictId(id === districtId ? null : id)}
+              disabled={isLocked}
             />
           </>
         )}
@@ -289,6 +295,7 @@ export function ProfileInfoScreen() {
             setLatitude(lat.toFixed(6));
             setLongitude(lng.toFixed(6));
           }}
+          disabled={isLocked}
         />
         <View style={styles.row}>
           <View style={styles.flex1}>
