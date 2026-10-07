@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react-native';
 // restaurant) instead of an empty local database. Swap the web branch back
 // to 'http://localhost:3000' when doing fast local-iteration dev work
 // against a local backend instead.
-export const API_BASE_URL = 'https://restuarant-portal-liqeta-app.onrender.com/v1';
+export const API_BASE_URL = 'https://api.ligeta.app/v1';
 
 // Every screen's "Could not reach the server" message comes from a request that
 // failed somewhere below — but until now none of those failures were ever
