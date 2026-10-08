@@ -42,6 +42,12 @@
         }
       ],
       [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow the app to add your Chef Table events to your phone's calendar when you choose to."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
