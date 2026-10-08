@@ -4,7 +4,7 @@ import { Controller, Get, Header } from '@nestjs/common';
 // rather than shared across packages — this is the publicly hosted version
 // app stores require a real URL for; the in-app version is what actually
 // governs partner-app usage. Keep both in sync when the content changes.
-const LAST_UPDATED = 'September 2, 2026';
+const LAST_UPDATED = 'October 8, 2026';
 
 interface Section {
   heading: string;
@@ -17,8 +17,13 @@ const PRIVACY_POLICY: Section[] = [
     body:
       'Account information: your name, email address, phone number, and password (stored as a secure hash, ' +
       'never in plain text). Business information: restaurant name, location, business category, opening ' +
-      'hours, menu, photos, and any events or promotions you create. Usage information: actions taken in the ' +
-      'partner dashboard, such as sign-ins and content you publish.',
+      'hours, menu, photos, and any events or promotions you create. Verification documents: photos of your ' +
+      'business license or inspection approval, if you choose to submit them. These are stored privately and ' +
+      'are only visible to platform administrators. Device location: only when you tap the "use my location" ' +
+      'button to place your restaurant on the map. Location is never collected in the background. Device and ' +
+      'usage information: actions taken in the partner dashboard (such as sign-ins and content you publish), ' +
+      'a push notification token if you allow notifications, and crash and error reports, which include your ' +
+      'device model, operating system, and app version.',
   },
   {
     heading: '2. How We Use Your Information',
@@ -33,8 +38,8 @@ const PRIVACY_POLICY: Section[] = [
       'Your business profile (name, photos, menu, hours, events, promotions, and public reviews) is visible ' +
       'to platform administrators and, once published, is intended to be shown to customers browsing the ' +
       'platform. We do not sell your information to third parties. We may share information with service ' +
-      'providers who help us operate the platform (such as hosting and storage providers), or where required ' +
-      'by law.',
+      'providers who help us operate the platform (such as hosting, file storage, push notification, crash ' +
+      'reporting, and product analytics providers), only for that purpose, or where required by law.',
   },
   {
     heading: '4. Data Security',
@@ -63,8 +68,10 @@ const PRIVACY_POLICY: Section[] = [
   {
     heading: '7. Cookies & Similar Technologies',
     body:
-      'The admin and partner dashboards use session tokens to keep you signed in. We do not use ' +
-      'advertising or third-party tracking cookies.',
+      'The admin and partner dashboards use session tokens to keep you signed in. The partner app uses a ' +
+      'crash reporting service to find and fix errors, and a product analytics service to understand which ' +
+      'features are used. We do not use advertising, advertising identifiers, or third-party advertising ' +
+      'trackers.',
   },
   {
     heading: '8. Children’s Privacy',
@@ -78,7 +85,9 @@ const PRIVACY_POLICY: Section[] = [
   },
   {
     heading: '10. Contact',
-    body: 'Questions about this policy can be directed to the platform administrator through your dashboard.',
+    body:
+      'Questions about this policy, or requests to access, correct, or delete your information, can be sent to ' +
+      'ligeta.support@gmail.com, or to the platform administrator through your dashboard.',
   },
 ];
 
