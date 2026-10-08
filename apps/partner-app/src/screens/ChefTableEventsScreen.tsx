@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as Calendar from 'expo-calendar';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { CalendarClock } from 'lucide-react-native';
@@ -67,6 +68,8 @@ export function ChefTableEventsScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [localPhotoPreview, setLocalPhotoPreview] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [calendarBusyId, setCalendarBusyId] = useState<string | null>(null);
+  const [calendarMessage, setCalendarMessage] = useState<{ id: string; text: string } | null>(null);
 
   const loadAll = useCallback(() => {
     Promise.all([api.eventTypes(), api.myEvents(token)])
@@ -203,6 +206,41 @@ export function ChefTableEventsScreen() {
     }
   };
 
+  // One-off events only - a recurring weekly event has no single date to
+  // represent as one calendar entry, so that link never shows for those.
+  const addToCalendar = async (event: RestaurantEventItem) => {
+    if (!event.eventDate) return;
+    setCalendarMessage(null);
+    setCalendarBusyId(event.id);
+    try {
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== 'granted') {
+        setCalendarMessage({ id: event.id, text: t('calendarPermissionDenied') });
+        return;
+      }
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const target = calendars.find((c) => c.allowsModifications) ?? calendars[0];
+      if (!target) {
+        setCalendarMessage({ id: event.id, text: t('calendarAddFailed') });
+        return;
+      }
+      const start = new Date(event.eventDate);
+      const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+      await Calendar.createEventAsync(target.id, {
+        title: event.titleEn,
+        startDate: start,
+        endDate: end,
+        notes: event.descriptionEn ?? undefined,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      setCalendarMessage({ id: event.id, text: t('addedToCalendar') });
+    } catch {
+      setCalendarMessage({ id: event.id, text: t('calendarAddFailed') });
+    } finally {
+      setCalendarBusyId(null);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('title')}</Text>
@@ -260,7 +298,13 @@ export function ChefTableEventsScreen() {
               <Pressable onPress={() => removeEvent(event.id)} disabled={busyId === event.id}>
                 <Text style={[styles.link, styles.destructiveLink]}>{t('delete')}</Text>
               </Pressable>
+              {!event.isRecurring && event.eventDate && (
+                <Pressable onPress={() => addToCalendar(event)} disabled={calendarBusyId === event.id}>
+                  <Text style={styles.link}>{t('addToCalendar')}</Text>
+                </Pressable>
+              )}
             </View>
+            {calendarMessage?.id === event.id && <Text style={styles.hint}>{calendarMessage.text}</Text>}
           </View>
         ))}
         {loading ? (
