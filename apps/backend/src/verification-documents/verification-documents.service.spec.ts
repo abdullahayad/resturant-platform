@@ -92,6 +92,34 @@ describe('VerificationDocumentsService', () => {
     });
   });
 
+  describe('viewUrl', () => {
+    it('signs a fresh URL for a document of this restaurant', async () => {
+      prisma.db.verificationDocument.findUnique.mockResolvedValueOnce({
+        id: 'doc1',
+        restaurantId: 'r1',
+        storageKey: 'verification-documents/r1/abc.jpg',
+        url: null,
+        createdAt,
+      });
+
+      await expect(service.viewUrl('r1', 'doc1')).resolves.toBe('https://signed/abc.jpg');
+      expect(storage.signedUrl).toHaveBeenCalledWith('verification-documents/r1/abc.jpg');
+    });
+
+    it("refuses another restaurant's document", async () => {
+      prisma.db.verificationDocument.findUnique.mockResolvedValueOnce({
+        id: 'doc1',
+        restaurantId: 'other',
+        storageKey: 'verification-documents/other/abc.jpg',
+        url: null,
+        createdAt,
+      });
+
+      await expect(service.viewUrl('r1', 'doc1')).rejects.toThrow(NotFoundException);
+      expect(storage.signedUrl).not.toHaveBeenCalled();
+    });
+  });
+
   describe('remove', () => {
     it('refuses to remove a document belonging to a different restaurant', async () => {
       prisma.db.verificationDocument.findUnique.mockResolvedValueOnce({ id: 'doc1', restaurantId: 'other' });

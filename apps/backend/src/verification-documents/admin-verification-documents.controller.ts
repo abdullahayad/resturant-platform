@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Redirect, UseGuards } from '@nestjs/common';
 import { VerificationDocumentsService } from './verification-documents.service';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 
@@ -14,5 +14,14 @@ export class AdminVerificationDocumentsController {
   @Get()
   list(@Param('id') id: string) {
     return this.documents.list(id);
+  }
+
+  // Plain link target for the admin portal: signs a fresh URL on each click
+  // and redirects to it, so the link keeps working however long the row has
+  // been open. The admin's auth cookie rides along on the navigation.
+  @Get(':docId/view')
+  @Redirect()
+  async view(@Param('id') id: string, @Param('docId') docId: string) {
+    return { url: await this.documents.viewUrl(id, docId), statusCode: 302 };
   }
 }

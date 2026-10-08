@@ -11,6 +11,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
 import { isRealImage } from '../common/imageSignature';
+import { ALLOWED_PRIVATE_UPLOADS, extensionOf, publicUrlForKey, storageSettings } from './storage-config';
 
 // Deliberately excludes svg/html/js and anything else a browser would
 // execute rather than just display — the bucket is public-read by design
@@ -37,40 +38,21 @@ function requireStorageCredential(name: string): string {
   return value;
 }
 
-// Private uploads are documents an admin reviews (business licenses), so
-// photos only - no video, and the bytes must actually be an image.
-const ALLOWED_PRIVATE_UPLOADS: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-};
-
 const SIGNED_URL_TTL_SECONDS = 10 * 60;
-
-function extensionOf(originalname: string): string {
-  const rawExt = originalname.includes('.') ? originalname.split('.').pop() : '';
-  return (rawExt ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
 
 @Injectable()
 export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
-  private readonly bucket = process.env.STORAGE_BUCKET ?? 'restaurant-platform';
-  // Never given a public-read policy - objects here are only reachable
-  // through short-lived signed URLs (see signedUrl), unlike `bucket` above.
-  private readonly privateBucket = process.env.STORAGE_PRIVATE_BUCKET ?? `${this.bucket}-private`;
-  private readonly endpoint = process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000';
-  // Providers like Cloudflare R2 serve public reads from a different host
-  // than the S3 API endpoint used to write objects (a dedicated public
-  // bucket URL, not the account's S3 API domain) — MinIO doesn't have that
-  // split, so this just falls back to `endpoint` when unset.
-  private readonly publicUrl = process.env.STORAGE_PUBLIC_URL ?? this.endpoint;
+  private readonly settings = storageSettings();
+  private readonly bucket = this.settings.bucket;
+  // See storageSettings() - objects here are only reachable through
+  // signedUrl(), unlike the public-read `bucket` above.
+  private readonly privateBucket = this.settings.privateBucket;
 
   private readonly client = new S3Client({
-    endpoint: this.endpoint,
-    region: process.env.STORAGE_REGION ?? 'us-east-1',
-    forcePathStyle: (process.env.STORAGE_FORCE_PATH_STYLE ?? 'true') === 'true',
+    endpoint: this.settings.endpoint,
+    region: this.settings.region,
+    forcePathStyle: this.settings.forcePathStyle,
     credentials: {
       accessKeyId: requireStorageCredential('STORAGE_ACCESS_KEY'),
       secretAccessKey: requireStorageCredential('STORAGE_SECRET_KEY'),
@@ -164,10 +146,6 @@ export class StorageService implements OnModuleInit {
         ContentType: contentType,
       }),
     );
-    // A dedicated public URL (R2's pub-*.r2.dev, a custom domain, etc.) is
-    // already scoped to this one bucket — no bucket segment in the path.
-    // The path-style S3 endpoint fallback (MinIO) needs it included.
-    const url = process.env.STORAGE_PUBLIC_URL ? `${this.publicUrl}/${key}` : `${this.publicUrl}/${this.bucket}/${key}`;
-    return { url, key };
+    return { url: publicUrlForKey(key), key };
   }
 }

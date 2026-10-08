@@ -59,6 +59,16 @@ export class VerificationDocumentsService {
     return { id };
   }
 
+  // A freshly signed link per call - for the admin portal's "open document"
+  // link, which can be clicked long after the list's own signed URLs expired.
+  async viewUrl(restaurantId: string, id: string) {
+    const doc = await this.prisma.db.verificationDocument.findUnique({ where: { id } });
+    if (!doc || doc.restaurantId !== restaurantId) throw new NotFoundException('Document not found');
+    const { url } = await this.present(doc);
+    if (!url) throw new NotFoundException('Document not found');
+    return url;
+  }
+
   private async present(doc: StoredDocument) {
     const url = doc.storageKey ? await this.storage.signedUrl(doc.storageKey) : doc.url;
     return { id: doc.id, url, createdAt: doc.createdAt };

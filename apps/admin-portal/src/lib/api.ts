@@ -647,6 +647,10 @@ export const api = {
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/verify`, { isVerified }),
   verificationDocuments: (id: string) =>
     get<VerificationDocument[]>(`/admin/restaurants/${id}/verification-documents`),
+  // A link, not a fetch - the backend signs a fresh URL on each click and
+  // redirects, since the list's own signed URLs expire after 10 minutes.
+  verificationDocumentViewUrl: (id: string, docId: string) =>
+    `${API_BASE_URL}/admin/restaurants/${id}/verification-documents/${docId}/view`,
   setRestaurantChain: (id: string, chainId: string | null) =>
     send<RestaurantListItem>('PATCH', `/restaurants/${id}/chain`, { chainId }),
   setRestaurantClass: (id: string, restaurantClass: RestaurantClass | null) =>

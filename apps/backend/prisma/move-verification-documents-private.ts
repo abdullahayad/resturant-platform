@@ -9,6 +9,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
+import { publicKeyFromUrl, storageSettings } from '../src/uploads/storage-config';
 
 // One-off: verification documents submitted before they moved to the
 // private bucket still live in the public one, reachable by anyone with
@@ -23,29 +24,22 @@ const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-// Same resolution as storage.service.ts.
-const bucket = process.env.STORAGE_BUCKET ?? 'restaurant-platform';
-const privateBucket = process.env.STORAGE_PRIVATE_BUCKET ?? `${bucket}-private`;
-const endpoint = process.env.STORAGE_ENDPOINT ?? 'http://localhost:9000';
-const publicUrl = process.env.STORAGE_PUBLIC_URL ?? endpoint;
+// Same settings StorageService uses (see src/uploads/storage-config.ts).
+const { bucket, privateBucket, endpoint, region, forcePathStyle } = storageSettings();
 const s3 = new S3Client({
   endpoint,
-  region: process.env.STORAGE_REGION ?? 'us-east-1',
-  forcePathStyle: (process.env.STORAGE_FORCE_PATH_STYLE ?? 'true') === 'true',
+  region,
+  forcePathStyle,
   credentials: {
     accessKeyId: process.env.STORAGE_ACCESS_KEY ?? '',
     secretAccessKey: process.env.STORAGE_SECRET_KEY ?? '',
   },
 });
 
-// Inverse of how storage.service.ts builds a public URL: no bucket segment
-// behind a dedicated STORAGE_PUBLIC_URL, bucket segment on the path-style
-// endpoint fallback.
-function publicKeyFromUrl(url: string): string | null {
-  const prefix = process.env.STORAGE_PUBLIC_URL ? `${publicUrl}/` : `${publicUrl}/${bucket}/`;
-  if (!url.startsWith(prefix)) return null;
-  const key = decodeURIComponent(url.slice(prefix.length).split('?')[0]);
-  return key.startsWith('uploads/') ? key : null;
+// Only files the generic /uploads route put in the public bucket.
+function legacyUploadKey(url: string): string | null {
+  const key = publicKeyFromUrl(url);
+  return key?.startsWith('uploads/') ? key : null;
 }
 
 async function ensurePrivateBucket() {
@@ -71,7 +65,7 @@ async function main() {
   let moved = 0;
   let skipped = 0;
   for (const row of rows) {
-    const sourceKey = publicKeyFromUrl(row.url!);
+    const sourceKey = legacyUploadKey(row.url!);
     if (!sourceKey) {
       console.warn(`  skip ${row.id}: URL isn't an upload in "${bucket}" (${row.url})`);
       skipped++;

@@ -533,7 +533,7 @@ export function RestaurantsPage() {
                                 {verificationDocs.map((doc) => (
                                   <a
                                     key={doc.id}
-                                    href={doc.url}
+                                    href={api.verificationDocumentViewUrl(r.id, doc.id)}
                                     target="_blank"
                                     rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
