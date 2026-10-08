@@ -8,8 +8,11 @@ import App from './App';
 // .env file from at runtime). Sentry.init() silently no-ops if dsn is
 // undefined, so this is safe to ship even before EXPO_PUBLIC_SENTRY_DSN is
 // set — mirrors apps/backend/src/instrument.ts's SENTRY_DSN handling.
+// Tagged so crashes from a dev build (Metro, Expo Go) don't read as real
+// users' crashes in Sentry.
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: __DEV__ ? 'development' : 'production',
   tracesSampleRate: 1.0,
 });
 
