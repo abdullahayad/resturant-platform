@@ -428,8 +428,14 @@ export class RestaurantsService {
       (dto.districtId !== undefined && dto.districtId !== before.districtId) ||
       (dto.latitude !== undefined && dto.latitude !== (before.latitude == null ? null : Number(before.latitude))) ||
       (dto.longitude !== undefined && dto.longitude !== (before.longitude == null ? null : Number(before.longitude)));
-    const lockedMessage =
-      'Your name, phone, and location are locked now that your listing is live. Contact an admin to change them.';
+    // A support session's token is indistinguishable from a real owner
+    // login everywhere else on purpose (see createAdminSupportSession's
+    // comment) - but telling an admin to "contact an admin" here is just
+    // confusing, so this one spot checks impersonatedBy to point them at
+    // the actual unlocked route instead.
+    const lockedMessage = user?.impersonatedBy
+      ? "This listing is live, so name/phone/location are locked from a support session too. Use the restaurant's edit screen in the admin portal instead - that route can still change them."
+      : 'Your name, phone, and location are locked now that your listing is live. Contact an admin to change them.';
     if (user && before.publishStatus === 'APPROVED' && lockedFieldsChanged) {
       throw new ForbiddenException(lockedMessage);
     }

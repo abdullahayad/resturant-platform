@@ -9,7 +9,7 @@ import { Prisma } from '../../generated/prisma/client';
 
 describe('EventsService', () => {
   let service: EventsService;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed-shape mock (nested model mocks plus a bare $transaction mock)
+
   let prisma: any;
 
   const restaurantId = 'r1';

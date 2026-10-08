@@ -18,7 +18,7 @@ export class PartnerAuthGuard extends JwtAuthGuard {
       throw new UnauthorizedException('Partner account required');
     }
 
-    const partner = user as PartnerJwtPayload;
+    const partner = user;
     if (partner.staffId) {
       // Staff login: re-check live status/role/restaurant so a deactivated
       // or reassigned staff account stops working immediately instead of

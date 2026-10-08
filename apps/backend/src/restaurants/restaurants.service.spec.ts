@@ -219,6 +219,16 @@ describe('RestaurantsService', () => {
       await expect(service.updateProfile('r1', { nameEn: 'New Name' })).resolves.toBeDefined();
       expect(prisma.db.restaurant.update).toHaveBeenCalled();
     });
+
+    it('still blocks a locked-field change from an admin support session, with a message pointing at the admin route instead', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(liveBefore);
+      const impersonatingUser = { ...fakeUser, impersonatedBy: 'admin1' };
+
+      await expect(service.updateProfile('r1', { nameEn: 'New Name' }, impersonatingUser)).rejects.toThrow(
+        /admin portal/,
+      );
+      expect(prisma.db.restaurant.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('submitForPublish', () => {

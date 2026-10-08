@@ -7,7 +7,7 @@ import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 describe('GalleryService', () => {
   let service: GalleryService;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed-shape mock (nested model mocks plus a bare $transaction mock)
+
   let prisma: any;
   let activityLog: { log: jest.Mock };
   const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;

@@ -32,9 +32,8 @@ export class UploadsController {
       },
     }),
   )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- req is
-  // still needed once moderation is re-enabled (see below); keeping the
-  // signature ready rather than churning it twice.
+  // req is still needed once moderation is re-enabled (see below); keeping
+  // the signature ready rather than churning it twice.
   async upload(@Req() req: { user: AppJwtPayload }, @UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
 

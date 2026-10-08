@@ -24,7 +24,7 @@ export class AdminAuthGuard extends JwtAuthGuard {
     // Re-check against the DB so a deactivated or role-downgraded admin's
     // existing token stops working (or loses elevated access) immediately,
     // instead of staying valid for the rest of its lifetime.
-    const admin = user as AdminJwtPayload;
+    const admin = user;
     const record = await this.prisma.db.adminUser.findUnique({
       where: { id: admin.sub },
       select: { isActive: true, role: true, tokenVersion: true },
