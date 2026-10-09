@@ -85,6 +85,25 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
     nameEn.trim() && nameAr.trim() && isValidPhone && isValidEmail && password.length >= 8 &&
     businessTypeIds.length > 0 && foodCategoryIds.length > 0 && agreedToTerms;
 
+  // The submit button below is simply disabled while canSubmit is false, so
+  // nothing fires on tap to explain why - without this, an invalid email or
+  // too-short phone just makes the button silently do nothing, indistinguishable
+  // from the button being broken. Only shown once something's actually been
+  // typed, not on the pristine empty form.
+  const hasStartedFilling = nameEn || nameAr || phone || email || password;
+  const missingReasons = hasStartedFilling
+    ? [
+        !nameEn.trim() && t('register.validation.nameEn'),
+        !nameAr.trim() && t('register.validation.nameAr'),
+        phone && !isValidPhone && t('register.validation.phone'),
+        email && !isValidEmail && t('register.validation.email'),
+        password && password.length < 8 && t('register.validation.password'),
+        businessTypeIds.length === 0 && t('register.validation.businessTypes'),
+        foodCategoryIds.length === 0 && t('register.validation.foodCategories'),
+        !agreedToTerms && t('register.validation.terms'),
+      ].filter((reason): reason is string => Boolean(reason))
+    : [];
+
   const handleSubmit = async () => {
     setSubmitError(null);
     setSubmitting(true);
@@ -224,6 +243,13 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       <LegalDocumentModal visible={showPrivacy} title={t('register.privacyPolicy')} sections={PRIVACY_POLICY} onClose={() => setShowPrivacy(false)} />
 
       {submitError && <Text style={styles.error}>{submitError}</Text>}
+      {missingReasons.length > 0 && (
+        <View style={styles.hintBox}>
+          {missingReasons.map((reason) => (
+            <Text key={reason} style={styles.hintText}>• {reason}</Text>
+          ))}
+        </View>
+      )}
 
       <Pressable
         style={[styles.button, styles.primaryButton, !canSubmit && styles.buttonDisabled]}
@@ -275,6 +301,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },
+  hintBox: { gap: 3 },
+  hintText: { color: colors.mutedForeground, fontSize: 12 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   card: {
     maxWidth: 420,
