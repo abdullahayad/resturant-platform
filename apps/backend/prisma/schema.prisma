@@ -201,8 +201,8 @@ model Province {
   id        String   @id @default(uuid())
   nameEn    String
   nameAr    String
-  // Four-letter code used as the first segment of every restaurant code in
-  // this province (e.g. "BAGH" for Baghdad -> BAGHKARK001). Admin-editable.
+  // Two-letter code, first segment of every restaurant code in this province
+  // (e.g. "BG" for Baghdad -> BGKM001). Admin-editable.
   code      String   @unique
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
@@ -222,15 +222,18 @@ model Province {
 // more restaurants than most other provinces combined). A province with no
 // zones works exactly as before: its districts sit directly under it. A
 // province with zones (Baghdad: Rusafa, Karkh) groups its real districts
-// under each zone instead - restaurant registration and the restaurant code
-// system are both untouched by this, since a restaurant still just picks a
-// District either way, and codes are still just province code + district
-// code (zones carry no code of their own).
+// under each zone instead. A zoned province's restaurant code gets a third
+// segment from the zone's own one-letter code, sitting between the province
+// and district letters (e.g. "BG" + "K" + "M" -> BGKM001) - see
+// RestaurantsService.generateCodeNumber.
 model Zone {
   id         String   @id @default(uuid())
   provinceId String
   nameEn     String
   nameAr     String
+  // One letter, unique within its own province (Rusafa "R", Karkh "K") -
+  // only meaningful for provinces that actually use zones.
+  code       String
   isActive   Boolean  @default(true)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
@@ -239,6 +242,7 @@ model Zone {
   province  Province   @relation(fields: [provinceId], references: [id], onDelete: Cascade)
   districts District[]
 
+  @@unique([provinceId, code])
   @@index([provinceId])
   @@map("zones")
 }
@@ -253,9 +257,13 @@ model District {
   zoneId     String?
   nameEn     String
   nameAr     String
-  // Four-letter code, unique within its own province (not globally - the
-  // province code already disambiguates). Second segment of the restaurant
-  // code (e.g. "KARK" for Karkh -> BAGHKARK001).
+  // One letter - the restaurant code's last segment (e.g. "M" for Mansour
+  // -> BGKM001). Only unique within its own zone if it has one, otherwise
+  // within its own province - enforced in MasterDataService, not a DB
+  // constraint, since a plain composite unique index can't express "unique
+  // per zone, or per province when zoneId is null" (Postgres treats every
+  // NULL as distinct, so a zoneId-inclusive unique index would silently
+  // allow duplicate codes across every zoneless province's districts).
   code       String
   // Running counter for this district's restaurant codes - incremented
   // atomically (raw SQL UPDATE ... RETURNING) at registration time so two
@@ -271,7 +279,6 @@ model District {
   restaurants Restaurant[]
   featureFlagOverrides FeatureFlagOverride[]
 
-  @@unique([provinceId, code])
   @@index([provinceId])
   @@index([zoneId])
   @@map("districts")
@@ -318,7 +325,7 @@ model AdminUser {
 
 model Restaurant {
   id         String           @id @default(uuid())
-  codeNumber String           @unique // e.g. "BAGHKARK001" - province code + district code + a number that resets per district, see RestaurantsService.generateCodeNumber
+  codeNumber String           @unique // e.g. "BGKM001" - province code + zone code (if any) + district code + a number that resets per district, see RestaurantsService.generateCodeNumber
   nameEn     String
   nameAr     String
   phone      String           @unique

@@ -127,73 +127,82 @@ const eventTypes: [string, string, string][] = [
   ["Chef's Table", 'طاولة الشيف', '👨‍🍳'],
 ];
 
-// Each province/district also carries a 4-letter code — the first/second
-// segment of every restaurant code in it (e.g. "BAGH" + "KARK" ->
-// BAGHKARK001). Only applies to a fresh database (seedList below is a
-// no-op once any province exists) - an already-seeded database keeps
-// whatever codes it has, including the original 2-letter ones the
-// restaurant_code_scheme migration assigned back when that was the rule.
-// `zones` is only set for provinces big enough to need a grouping layer
-// between the province and its real districts (today: just Baghdad, via
-// its two historic sides of the Tigris - see the Zone model's own comment
-// in schema.prisma for why this exists at all). A province with no zones
-// has its districts sit directly underneath it, same as always.
+// Each province carries a 2-letter code and each district a 1-letter code —
+// segments of every restaurant code (e.g. "BG" + "K" + "M" -> BGKM001).
+// Only applies to a fresh database (seedList below is a no-op once any
+// province exists) - an already-seeded database keeps whatever codes it
+// has. `zones` is only set for provinces big enough to need a grouping
+// layer between the province and its real districts (today: just Baghdad,
+// via its two historic sides of the Tigris - see the Zone model's own
+// comment in schema.prisma for why this exists at all); each zone carries
+// its own 1-letter code too, the restaurant code's middle segment. A
+// province with no zones has its districts sit directly underneath it.
 const provinces: Record<
   string,
-  { code: string; districts: [string, string, string][]; zones?: Record<string, [string, string, string][]> }
+  {
+    code: string
+    districts: [string, string, string][]
+    zones?: Record<string, { code: string; districts: [string, string, string][] }>
+  }
 > = {
   'Baghdad|بغداد': {
-    code: 'BAGH',
+    code: 'BG',
     districts: [],
     zones: {
-      'Rusafa|الرصافة': [
-        ['Karrada', 'الكرادة', 'KARR'],
-        ['Adhamiya', 'الأعظمية', 'ADHA'],
-        ['Sadr City', 'مدينة الصدر', 'SADR'],
-        ['Zayouna', 'زيونة', 'ZAYO'],
-        ['Baghdad Jadeed', 'بغداد الجديدة', 'BJAD'],
-        ['Ur', 'أور', 'URDI'],
-        ['Shaab', 'الشعب', 'SHAB'],
-        ['Bab al-Sharqi', 'باب الشرقي', 'BABS'],
-        ['Qahira', 'القاهرة', 'QAHI'],
-      ],
-      'Karkh|الكرخ': [
-        ['Mansour', 'المنصور', 'MANS'],
-        ['Yarmouk', 'اليرموك', 'YARM'],
-        ['Amiriya', 'العامرية', 'AMIR'],
-        ['Jihad', 'الجهاد', 'JIHA'],
-        ['Kadhimiya', 'الكاظمية', 'KADH'],
-        ['Ghazaliya', 'الغزالية', 'GHAZ'],
-        ['Hurriya', 'الحرية', 'HURR'],
-        ['Dora', 'الدورة', 'DORA'],
-        ['Washash', 'الوشاش', 'WASH'],
-      ],
+      'Rusafa|الرصافة': {
+        code: 'R',
+        districts: [
+          ['Karrada', 'الكرادة', 'K'],
+          ['Adhamiya', 'الأعظمية', 'A'],
+          ['Sadr City', 'مدينة الصدر', 'S'],
+          ['Zayouna', 'زيونة', 'Z'],
+          ['Baghdad Jadeed', 'بغداد الجديدة', 'J'],
+          ['Ur', 'أور', 'U'],
+          ['Shaab', 'الشعب', 'H'],
+          ['Bab al-Sharqi', 'باب الشرقي', 'B'],
+          ['Qahira', 'القاهرة', 'Q'],
+        ],
+      },
+      'Karkh|الكرخ': {
+        code: 'K',
+        districts: [
+          ['Mansour', 'المنصور', 'M'],
+          ['Yarmouk', 'اليرموك', 'Y'],
+          ['Amiriya', 'العامرية', 'A'],
+          ['Jihad', 'الجهاد', 'J'],
+          ['Kadhimiya', 'الكاظمية', 'K'],
+          ['Ghazaliya', 'الغزالية', 'G'],
+          ['Hurriya', 'الحرية', 'H'],
+          ['Dora', 'الدورة', 'D'],
+          ['Washash', 'الوشاش', 'W'],
+        ],
+      },
     },
   },
   'Basra|البصرة': {
-    code: 'BASR',
+    code: 'BS',
     districts: [
-      ['Basra Center', 'مركز البصرة', 'BSCT'],
-      ['Zubair', 'الزبير', 'ZUBR'],
+      ['Basra Center', 'مركز البصرة', 'C'],
+      ['Zubair', 'الزبير', 'Z'],
     ],
   },
   'Erbil|أربيل': {
-    code: 'ERBL',
+    code: 'EB',
     districts: [
-      ['Erbil Center', 'مركز أربيل', 'ERCT'],
-      ['Ankawa', 'عنكاوا', 'ANKW'],
+      ['Erbil Center', 'مركز أربيل', 'C'],
+      ['Ankawa', 'عنكاوا', 'A'],
     ],
   },
   'Najaf|النجف': {
-    code: 'NAJF',
+    code: 'NJ',
     districts: [
-      ['Najaf Center', 'مركز النجف', 'NJCT'],
-      ['Kufa', 'الكوفة', 'KUFA'],
+      ['Najaf Center', 'مركز النجف', 'C'],
+      ['Kufa', 'الكوفة', 'K'],
     ],
   },
   'Sulaymaniyah|السليمانية': {
-    code: 'SULY',
-    districts: [['Sulaymaniyah Center', 'مركز السليمانية', 'SLCT']],
+    code: 'SU',
+    districts: [['Sulaymaniyah Center', 'مركز السليمانية', 'C']],
   },
 };
 
@@ -248,13 +257,14 @@ async function main() {
       // separate parallel relation back up to the grandparent province.
       if (zones) {
         let zoneSortOrder = 0;
-        for (const [zoneKey, zoneDistricts] of Object.entries(zones)) {
+        for (const [zoneKey, { code: zoneCode, districts: zoneDistricts }] of Object.entries(zones)) {
           const [zNameEn, zNameAr] = zoneKey.split('|');
           await db.zone.create({
             data: {
               provinceId: province.id,
               nameEn: zNameEn,
               nameAr: zNameAr,
+              code: zoneCode,
               sortOrder: zoneSortOrder++,
               districts: {
                 create: zoneDistricts.map(([dNameEn, dNameAr, dCode], index) => ({

@@ -104,10 +104,10 @@ export class RestaurantsService {
     private readonly activityLog: RestaurantActivityLogService,
   ) {}
 
-  // City code + district code + a 3-digit number that resets per district
-  // (e.g. "BAGHKARK001" for the 1st restaurant in Karkh, Baghdad). Falls back
-  // to "XXXX" for a missing segment — province/district are both optional at
-  // registration.
+  // Province code + zone code (if the district has one) + district code +
+  // a 3-digit number that resets per district (e.g. "BGKM001" for the 1st
+  // restaurant in Mansour, Karkh, Baghdad). Falls back to "XXXX" for a
+  // missing segment — province/district are both optional at registration.
   private async generateCodeNumber(provinceId?: string, districtId?: string): Promise<string> {
     let provinceCode = 'XXXX';
     if (provinceId) {
@@ -116,7 +116,10 @@ export class RestaurantsService {
     }
 
     if (!districtId) return this.generateFallbackCode(provinceCode);
-    const district = await this.prisma.db.district.findUnique({ where: { id: districtId }, select: { code: true } });
+    const district = await this.prisma.db.district.findUnique({
+      where: { id: districtId },
+      select: { code: true, zone: { select: { code: true } } },
+    });
     if (!district) return this.generateFallbackCode(provinceCode);
 
     // Atomic increment-and-return in one statement — the row-level lock
@@ -126,7 +129,8 @@ export class RestaurantsService {
     const rows = await this.prisma.db.$queryRaw<{ nextCodeSeq: number }[]>`
       UPDATE districts SET "nextCodeSeq" = "nextCodeSeq" + 1 WHERE id = ${districtId} RETURNING "nextCodeSeq"
     `;
-    return `${provinceCode}${district.code}${String(rows[0].nextCodeSeq).padStart(3, '0')}`;
+    const zoneCode = district.zone?.code ?? '';
+    return `${provinceCode}${zoneCode}${district.code}${String(rows[0].nextCodeSeq).padStart(3, '0')}`;
   }
 
   // No district to atomically count against — random-with-retry, same

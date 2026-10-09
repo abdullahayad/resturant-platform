@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateMasterDataItemDto, UpdateMasterDataItemDto } from './dto/master-data-item.dto';
 import type {
@@ -189,12 +189,14 @@ export class MasterDataService {
 
   async createDistrict(provinceId: string, dto: CreateDistrictDto) {
     await this.ensureExists(this.prisma.db.province, provinceId);
+    const code = dto.code.toUpperCase();
+    await this.assertDistrictCodeAvailable(provinceId, null, code);
     return this.prisma.db.district.create({
       data: {
         provinceId,
         nameEn: dto.nameEn,
         nameAr: dto.nameAr,
-        code: dto.code.toUpperCase(),
+        code,
         sortOrder: dto.sortOrder ?? 0,
       },
     });
@@ -212,10 +214,41 @@ export class MasterDataService {
         throw new BadRequestException("That zone does not belong to this district's province");
       }
     }
+    const code = dto.code ? dto.code.toUpperCase() : undefined;
+    // Effective zone after this update - either what's being set now, or
+    // (if zoneId isn't part of this call at all) whatever the district
+    // already had, including a deliberate detach via explicit `null`.
+    const effectiveZoneId = dto.zoneId !== undefined ? dto.zoneId : district.zoneId;
+    if (code) await this.assertDistrictCodeAvailable(district.provinceId, effectiveZoneId, code, id);
     return this.prisma.db.district.update({
       where: { id },
-      data: { ...dto, code: dto.code ? dto.code.toUpperCase() : undefined },
+      data: { ...dto, code },
     });
+  }
+
+  // A district's code only has to be distinct from its direct siblings -
+  // other districts in the same zone, or (no zone) the same province's
+  // other zoneless districts. Checked here in the service rather than a DB
+  // constraint, since a composite unique index can't express "unique per
+  // zone, or per province when zoneId is null" (see District.code's own
+  // comment in schema.prisma for why).
+  private async assertDistrictCodeAvailable(
+    provinceId: string,
+    zoneId: string | null,
+    code: string,
+    excludeId?: string,
+  ) {
+    const existing = await this.prisma.db.district.findFirst({
+      where: { provinceId, zoneId, code, ...(excludeId ? { id: { not: excludeId } } : {}) },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException(
+        zoneId
+          ? 'Another district in this zone already uses that code'
+          : 'Another district in this province already uses that code',
+      );
+    }
   }
 
   // ── zones (Baghdad's Rusafa/Karkh grouping layer - see the Zone model's
@@ -223,13 +256,16 @@ export class MasterDataService {
   async createZone(provinceId: string, dto: CreateZoneDto) {
     await this.ensureExists(this.prisma.db.province, provinceId);
     return this.prisma.db.zone.create({
-      data: { provinceId, nameEn: dto.nameEn, nameAr: dto.nameAr, sortOrder: dto.sortOrder ?? 0 },
+      data: { provinceId, nameEn: dto.nameEn, nameAr: dto.nameAr, code: dto.code.toUpperCase(), sortOrder: dto.sortOrder ?? 0 },
     });
   }
 
   async updateZone(id: string, dto: UpdateZoneDto) {
     await this.ensureExists(this.prisma.db.zone, id);
-    return this.prisma.db.zone.update({ where: { id }, data: { ...dto } });
+    return this.prisma.db.zone.update({
+      where: { id },
+      data: { ...dto, code: dto.code ? dto.code.toUpperCase() : undefined },
+    });
   }
 
   async deleteZone(id: string) {
@@ -243,13 +279,15 @@ export class MasterDataService {
   async createDistrictForZone(zoneId: string, dto: CreateDistrictDto) {
     const zone = await this.prisma.db.zone.findUnique({ where: { id: zoneId }, select: { provinceId: true } });
     if (!zone) throw new NotFoundException('Zone not found');
+    const code = dto.code.toUpperCase();
+    await this.assertDistrictCodeAvailable(zone.provinceId, zoneId, code);
     return this.prisma.db.district.create({
       data: {
         provinceId: zone.provinceId,
         zoneId,
         nameEn: dto.nameEn,
         nameAr: dto.nameAr,
-        code: dto.code.toUpperCase(),
+        code,
         sortOrder: dto.sortOrder ?? 0,
       },
     });

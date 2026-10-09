@@ -14,7 +14,8 @@ import {
 const MAX_SORT_ORDER = 100_000;
 // Case-insensitive at the API boundary — the service uppercases before
 // saving, so an admin typing "bagh" doesn't get a confusing validation error.
-const CODE_PATTERN = /^[A-Za-z]{4}$/;
+const PROVINCE_CODE_PATTERN = /^[A-Za-z]{2}$/;
+const SHORT_CODE_PATTERN = /^[A-Za-z]{1}$/;
 
 export class CreateProvinceDto {
   @IsString()
@@ -25,10 +26,10 @@ export class CreateProvinceDto {
   @MaxLength(200)
   nameAr: string;
 
-  // First segment of every restaurant code in this province, e.g. "BAGH" for
-  // Baghdad -> BAGHKARK001.
+  // First segment of every restaurant code in this province, e.g. "BG" for
+  // Baghdad -> BGKM001.
   @IsString()
-  @Matches(CODE_PATTERN, { message: 'code must be exactly 4 letters' })
+  @Matches(PROVINCE_CODE_PATTERN, { message: 'code must be exactly 2 letters' })
   code: string;
 
   @IsOptional()
@@ -51,7 +52,7 @@ export class UpdateProvinceDto {
 
   @IsOptional()
   @IsString()
-  @Matches(CODE_PATTERN, { message: 'code must be exactly 4 letters' })
+  @Matches(PROVINCE_CODE_PATTERN, { message: 'code must be exactly 2 letters' })
   code?: string;
 
   @IsOptional()
@@ -74,11 +75,12 @@ export class CreateDistrictDto {
   @MaxLength(200)
   nameAr: string;
 
-  // Second segment of every restaurant code in this district, e.g. "KARK" for
-  // Karkh -> BAGHKARK001. Only needs to be unique within its own province —
-  // the province code already disambiguates across provinces.
+  // Last segment of every restaurant code for this district, e.g. "M" for
+  // Mansour -> BGKM001. Only needs to be unique within its own zone (or
+  // province, if it has no zone) — MasterDataService enforces this, not a
+  // DB constraint, see District.code's comment in schema.prisma.
   @IsString()
-  @Matches(CODE_PATTERN, { message: 'code must be exactly 4 letters' })
+  @Matches(SHORT_CODE_PATTERN, { message: 'code must be exactly 1 letter' })
   code: string;
 
   @IsOptional()
@@ -101,7 +103,7 @@ export class UpdateDistrictDto {
 
   @IsOptional()
   @IsString()
-  @Matches(CODE_PATTERN, { message: 'code must be exactly 4 letters' })
+  @Matches(SHORT_CODE_PATTERN, { message: 'code must be exactly 1 letter' })
   code?: string;
 
   @IsOptional()
@@ -124,9 +126,9 @@ export class UpdateDistrictDto {
   zoneId?: string | null;
 }
 
-// Zones carry no code of their own — they're a pure browsing/grouping layer
-// (see the Zone model's own comment), never part of the restaurant code
-// scheme the way provinces and districts are.
+// A zone's own code is the restaurant code's middle segment, between its
+// province and district letters (e.g. "BG" + "K" + "M" -> BGKM) - only
+// meaningful for provinces that actually use zones (Baghdad today).
 export class CreateZoneDto {
   @IsString()
   @MaxLength(200)
@@ -135,6 +137,10 @@ export class CreateZoneDto {
   @IsString()
   @MaxLength(200)
   nameAr: string;
+
+  @IsString()
+  @Matches(SHORT_CODE_PATTERN, { message: 'code must be exactly 1 letter' })
+  code: string;
 
   @IsOptional()
   @IsInt()
@@ -153,6 +159,11 @@ export class UpdateZoneDto {
   @IsString()
   @MaxLength(200)
   nameAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(SHORT_CODE_PATTERN, { message: 'code must be exactly 1 letter' })
+  code?: string;
 
   @IsOptional()
   @IsInt()

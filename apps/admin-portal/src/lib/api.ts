@@ -476,6 +476,7 @@ export interface Zone {
   id: string
   nameEn: string
   nameAr: string
+  code: string
   sortOrder: number
   isActive: boolean
   districts: District[]
@@ -718,9 +719,9 @@ export const api = {
     send<District>('PATCH', `/master-data/admin/districts/${id}`, payload),
   deleteDistrict: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/districts/${id}`),
 
-  createZone: (provinceId: string, payload: { nameEn: string; nameAr: string; sortOrder?: number }) =>
+  createZone: (provinceId: string, payload: { nameEn: string; nameAr: string; code: string; sortOrder?: number }) =>
     send<Zone>('POST', `/master-data/admin/provinces/${provinceId}/zones`, payload),
-  updateZone: (id: string, payload: Partial<MasterDataItemPayload>) =>
+  updateZone: (id: string, payload: Partial<MasterDataItemPayload & { code: string }>) =>
     send<Zone>('PATCH', `/master-data/admin/zones/${id}`, payload),
   deleteZone: (id: string) => send<{ id: string }>('DELETE', `/master-data/admin/zones/${id}`),
   createDistrictForZone: (zoneId: string, payload: { nameEn: string; nameAr: string; code: string; sortOrder?: number }) =>

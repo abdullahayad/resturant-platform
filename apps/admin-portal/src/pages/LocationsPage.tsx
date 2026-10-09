@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api, UnauthorizedError, type District, type Province, type Zone } from '@/lib/api'
 
 const emptyProvinceForm = { nameEn: '', nameAr: '', code: '' }
-const emptyZoneForm = { nameEn: '', nameAr: '' }
+const emptyZoneForm = { nameEn: '', nameAr: '', code: '' }
 
 export function LocationsPage() {
   const navigate = useNavigate()
@@ -57,8 +57,8 @@ export function LocationsPage() {
   }
 
   const addProvince = async () => {
-    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 4) {
-      setError('Fill in both names and a 4-letter code to add a province.')
+    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 2) {
+      setError('Fill in both names and a 2-letter code to add a province.')
       return
     }
     try {
@@ -82,7 +82,7 @@ export function LocationsPage() {
   }
 
   const saveProvinceCode = async (p: Province, code: string) => {
-    if (code === p.code || code.trim().length !== 4) return
+    if (code === p.code || code.trim().length !== 2) return
     try {
       setError(null)
       const updated = await api.updateProvince(p.id, { code })
@@ -93,7 +93,7 @@ export function LocationsPage() {
   }
 
   const saveDistrictCode = async (provinceId: string, d: District, code: string) => {
-    if (code === d.code || code.trim().length !== 4) return
+    if (code === d.code || code.trim().length !== 1) return
     try {
       setError(null)
       const updated = await api.updateDistrict(d.id, { code })
@@ -118,8 +118,8 @@ export function LocationsPage() {
   }
 
   const addDistrict = async (provinceId: string) => {
-    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 4) {
-      setError('Fill in both names and a 4-letter code to add a district.')
+    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 1) {
+      setError('Fill in both names and a 1-letter code to add a district.')
       return
     }
     try {
@@ -174,8 +174,8 @@ export function LocationsPage() {
   }
 
   const addZone = async (provinceId: string) => {
-    if (!newZone.nameEn.trim() || !newZone.nameAr.trim()) {
-      setError('Fill in both names to add a zone.')
+    if (!newZone.nameEn.trim() || !newZone.nameAr.trim() || newZone.code.trim().length !== 1) {
+      setError('Fill in both names and a 1-letter code to add a zone.')
       return
     }
     try {
@@ -186,6 +186,23 @@ export function LocationsPage() {
       )
       setNewZone(emptyZoneForm)
       setExpandedZoneIds((prev) => new Set(prev).add(created.id))
+    } catch (err) {
+      handleWriteError(err)
+    }
+  }
+
+  const saveZoneCode = async (provinceId: string, zone: Zone, code: string) => {
+    if (code === zone.code || code.trim().length !== 1) return
+    try {
+      setError(null)
+      const updated = await api.updateZone(zone.id, { code })
+      setProvinces((prev) =>
+        prev.map((p) =>
+          p.id === provinceId
+            ? { ...p, zones: p.zones.map((z) => (z.id === zone.id ? { ...z, ...updated } : z)) }
+            : p,
+        ),
+      )
     } catch (err) {
       handleWriteError(err)
     }
@@ -251,7 +268,7 @@ export function LocationsPage() {
   }
 
   const saveZoneDistrictCode = async (provinceId: string, zoneId: string, d: District, code: string) => {
-    if (code === d.code || code.trim().length !== 4) return
+    if (code === d.code || code.trim().length !== 1) return
     const updated = await api.updateDistrict(d.id, { code })
     setProvinces((prev) =>
       prev.map((p) =>
@@ -313,11 +330,11 @@ export function LocationsPage() {
           />
           <input
             value={newProvince.code}
-            onChange={(e) => setNewProvince((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 4) }))}
+            onChange={(e) => setNewProvince((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 2) }))}
             placeholder="Code"
-            maxLength={4}
-            title="Four-letter code used in restaurant codes, e.g. BAGH for Baghdad"
-            className="w-20 rounded-lg border border-border bg-secondary px-3 py-2 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+            maxLength={2}
+            title="Two-letter code used in restaurant codes, e.g. BG for Baghdad"
+            className="w-16 rounded-lg border border-border bg-secondary px-3 py-2 text-center font-mono text-sm uppercase outline-none focus:border-primary"
           />
           <button onClick={addProvince} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             Add Province
@@ -346,9 +363,9 @@ export function LocationsPage() {
                   key={p.code}
                   defaultValue={p.code}
                   onBlur={(e) => saveProvinceCode(p, e.target.value.toUpperCase())}
-                  maxLength={4}
-                  title="Four-letter code used in restaurant codes"
-                  className="w-16 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+                  maxLength={2}
+                  title="Two-letter code used in restaurant codes"
+                  className="w-14 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
                 />
                 <button
                   onClick={() => toggleProvinceActive(p)}
@@ -382,6 +399,14 @@ export function LocationsPage() {
                         <span className="text-xs font-normal text-muted-foreground">({z.districts.length} districts)</span>
                       </button>
                       <div className="flex items-center gap-3">
+                        <input
+                          key={z.code}
+                          defaultValue={z.code}
+                          onBlur={(e) => saveZoneCode(p.id, z, e.target.value.toUpperCase())}
+                          maxLength={1}
+                          title="One-letter code used in restaurant codes, e.g. R for Rusafa"
+                          className="w-10 rounded-lg border border-border bg-card px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+                        />
                         <button
                           onClick={() => toggleZoneActive(p.id, z)}
                           className={
@@ -427,6 +452,14 @@ export function LocationsPage() {
                     placeholder="Zone name (Arabic)"
                     className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary"
                   />
+                  <input
+                    value={newZone.code}
+                    onChange={(e) => setNewZone((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 1) }))}
+                    placeholder="Code"
+                    maxLength={1}
+                    title="One-letter code used in restaurant codes, e.g. R for Rusafa"
+                    className="w-16 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+                  />
                   <button
                     onClick={() => addZone(p.id)}
                     className="rounded-lg border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -445,9 +478,9 @@ export function LocationsPage() {
                         key={d.code}
                         defaultValue={d.code}
                         onBlur={(e) => saveDistrictCode(p.id, d, e.target.value.toUpperCase())}
-                        maxLength={4}
-                        title="Four-letter code used in restaurant codes"
-                        className="w-16 rounded-lg border border-border bg-card px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+                        maxLength={1}
+                        title="One-letter code used in restaurant codes"
+                        className="w-10 rounded-lg border border-border bg-card px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
                       />
                       <button
                         onClick={() => toggleDistrictActive(p.id, d)}
@@ -480,11 +513,11 @@ export function LocationsPage() {
                   />
                   <input
                     value={newDistrict.code}
-                    onChange={(e) => setNewDistrict((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 4) }))}
+                    onChange={(e) => setNewDistrict((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 1) }))}
                     placeholder="Code"
-                    maxLength={4}
-                    title="Four-letter code used in restaurant codes, e.g. KARK for Karkh"
-                    className="w-20 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+                    maxLength={1}
+                    title="One-letter code used in restaurant codes, e.g. Z for Zubair"
+                    className="w-16 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
                   />
                   <button
                     onClick={() => addDistrict(p.id)}
@@ -527,8 +560,8 @@ function ZoneDistricts({
   const [form, setForm] = useState({ nameEn: '', nameAr: '', code: '' })
 
   const add = async () => {
-    if (!form.nameEn.trim() || !form.nameAr.trim() || form.code.trim().length !== 4) {
-      onError(new Error('Fill in both names and a 4-letter code to add a district.'))
+    if (!form.nameEn.trim() || !form.nameAr.trim() || form.code.trim().length !== 1) {
+      onError(new Error('Fill in both names and a 1-letter code to add a district.'))
       return
     }
     try {
@@ -549,9 +582,9 @@ function ZoneDistricts({
               key={d.code}
               defaultValue={d.code}
               onBlur={(e) => onSaveCode(provinceId, zone.id, d, e.target.value.toUpperCase()).catch(onError)}
-              maxLength={4}
-              title="Four-letter code used in restaurant codes"
-              className="w-16 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
+              maxLength={1}
+              title="One-letter code used in restaurant codes"
+              className="w-10 rounded-lg border border-border bg-secondary px-2 py-1 text-center font-mono text-xs uppercase outline-none focus:border-primary"
             />
             <button
               onClick={() => onToggleActive(provinceId, zone.id, d).catch(onError)}
@@ -582,11 +615,11 @@ function ZoneDistricts({
         />
         <input
           value={form.code}
-          onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 4) }))}
+          onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase().slice(0, 1) }))}
           placeholder="Code"
-          maxLength={4}
-          title="Four-letter code used in restaurant codes"
-          className="w-20 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
+          maxLength={1}
+          title="One-letter code used in restaurant codes"
+          className="w-16 rounded-lg border border-border bg-secondary px-3 py-1.5 text-center font-mono text-sm uppercase outline-none focus:border-primary"
         />
         <button onClick={add} className="rounded-lg border border-border px-3 py-1.5 text-sm text-foreground">
           Add District

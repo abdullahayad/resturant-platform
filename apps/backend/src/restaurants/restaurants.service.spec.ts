@@ -13,7 +13,8 @@ import { Prisma } from '../../generated/prisma/client';
 
 describe('RestaurantsService', () => {
   let service: RestaurantsService;
-  let prisma: { db: Record<string, Record<string, jest.Mock>> };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed-shape mock (nested model mocks plus a bare $queryRaw mock)
+  let prisma: any;
   let jwt: { signAsync: jest.Mock };
   let activityLog: { log: jest.Mock };
   let email: { send: jest.Mock };
@@ -55,6 +56,13 @@ describe('RestaurantsService', () => {
         dish: {
           aggregate: jest.fn().mockResolvedValue({ _avg: { price: null } }),
         },
+        province: {
+          findUnique: jest.fn(),
+        },
+        district: {
+          findUnique: jest.fn(),
+        },
+        $queryRaw: jest.fn(),
       },
     };
     jwt = { signAsync: jest.fn().mockResolvedValue('token') };
@@ -103,6 +111,38 @@ describe('RestaurantsService', () => {
 
       expect(result).toEqual({ id: 'new-id', publishStatus: 'NOT_SUBMITTED' });
       expect(prisma.db.restaurant.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('builds the code number as province + zone + district letters when both are set', async () => {
+      prisma.db.restaurant.findUnique
+        .mockResolvedValueOnce(null) // ownerEmail lookup: free
+        .mockResolvedValueOnce(null); // phone lookup: free
+      prisma.db.province.findUnique.mockResolvedValueOnce({ code: 'BG' });
+      prisma.db.district.findUnique.mockResolvedValueOnce({ code: 'M', zone: { code: 'K' } });
+      prisma.db.$queryRaw.mockResolvedValueOnce([{ nextCodeSeq: 1 }]);
+      prisma.db.restaurant.create.mockImplementation(({ data }: { data: { codeNumber: string } }) =>
+        Promise.resolve({ id: 'new-id', publishStatus: 'NOT_SUBMITTED', codeNumber: data.codeNumber }),
+      );
+
+      const result = await service.register({ ...baseRegisterDto, provinceId: 'p1', districtId: 'd1' });
+
+      expect((result as { codeNumber: string }).codeNumber).toBe('BGKM001');
+    });
+
+    it('skips the zone letter for a district with no zone', async () => {
+      prisma.db.restaurant.findUnique
+        .mockResolvedValueOnce(null) // ownerEmail lookup: free
+        .mockResolvedValueOnce(null); // phone lookup: free
+      prisma.db.province.findUnique.mockResolvedValueOnce({ code: 'BS' });
+      prisma.db.district.findUnique.mockResolvedValueOnce({ code: 'Z', zone: null });
+      prisma.db.$queryRaw.mockResolvedValueOnce([{ nextCodeSeq: 1 }]);
+      prisma.db.restaurant.create.mockImplementation(({ data }: { data: { codeNumber: string } }) =>
+        Promise.resolve({ id: 'new-id', publishStatus: 'NOT_SUBMITTED', codeNumber: data.codeNumber }),
+      );
+
+      const result = await service.register({ ...baseRegisterDto, provinceId: 'p1', districtId: 'd1' });
+
+      expect((result as { codeNumber: string }).codeNumber).toBe('BSZ001');
     });
 
     it('converts a database-level unique-constraint race into the same clean message', async () => {
