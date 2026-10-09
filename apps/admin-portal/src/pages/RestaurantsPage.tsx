@@ -323,8 +323,19 @@ export function RestaurantsPage() {
           className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50"
         >
           <option value={ALL}>All Districts</option>
+          {/* Un-zoned districts sit directly under the province (every
+              province except Baghdad today); zoned ones only show up nested
+              under their zone, so both lists need to be offered here - a
+              province's own `districts` array is empty once it has zones. */}
           {selectedProvince?.districts.map((d) => (
             <option key={d.id} value={d.id}>{d.nameEn}</option>
+          ))}
+          {selectedProvince?.zones.map((z) => (
+            <optgroup key={z.id} label={z.nameEn}>
+              {z.districts.map((d) => (
+                <option key={d.id} value={d.id}>{d.nameEn}</option>
+              ))}
+            </optgroup>
           ))}
         </select>
 
