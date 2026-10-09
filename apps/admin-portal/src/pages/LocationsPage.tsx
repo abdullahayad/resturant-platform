@@ -57,7 +57,10 @@ export function LocationsPage() {
   }
 
   const addProvince = async () => {
-    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 4) return
+    if (!newProvince.nameEn.trim() || !newProvince.nameAr.trim() || newProvince.code.trim().length !== 4) {
+      setError('Fill in both names and a 4-letter code to add a province.')
+      return
+    }
     try {
       setError(null)
       const created = await api.createProvince(newProvince)
@@ -115,7 +118,10 @@ export function LocationsPage() {
   }
 
   const addDistrict = async (provinceId: string) => {
-    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 4) return
+    if (!newDistrict.nameEn.trim() || !newDistrict.nameAr.trim() || newDistrict.code.trim().length !== 4) {
+      setError('Fill in both names and a 4-letter code to add a district.')
+      return
+    }
     try {
       setError(null)
       const created = await api.createDistrict(provinceId, newDistrict)
@@ -168,7 +174,10 @@ export function LocationsPage() {
   }
 
   const addZone = async (provinceId: string) => {
-    if (!newZone.nameEn.trim() || !newZone.nameAr.trim()) return
+    if (!newZone.nameEn.trim() || !newZone.nameAr.trim()) {
+      setError('Fill in both names to add a zone.')
+      return
+    }
     try {
       setError(null)
       const created = await api.createZone(provinceId, newZone)
@@ -518,7 +527,10 @@ function ZoneDistricts({
   const [form, setForm] = useState({ nameEn: '', nameAr: '', code: '' })
 
   const add = async () => {
-    if (!form.nameEn.trim() || !form.nameAr.trim() || form.code.trim().length !== 4) return
+    if (!form.nameEn.trim() || !form.nameAr.trim() || form.code.trim().length !== 4) {
+      onError(new Error('Fill in both names and a 4-letter code to add a district.'))
+      return
+    }
     try {
       await onAdd(provinceId, zone.id, form)
       setForm({ nameEn: '', nameAr: '', code: '' })
