@@ -11,6 +11,7 @@ import {
   type RestaurantDetail,
   type RestaurantListItem,
   type RestaurantStatus,
+  type PublishStatus,
   type VerificationDocument,
 } from '@/lib/api'
 import { downloadCsv } from '@/lib/csv'
@@ -34,6 +35,23 @@ const statusTones: Record<RestaurantStatus, StatusPillTone> = {
   APPROVED: 'success',
   REJECTED: 'destructive',
   SUSPENDED: 'destructive',
+}
+
+// "Status" above is the registration gate (can this restaurant use the
+// app at all); this is the separate, later Publish Review gate (is this
+// restaurant's listing actually live and visible to the public) - easy to
+// conflate since both can show "Approved"/"APPROVED" at a glance.
+const publishStatusLabels: Record<PublishStatus, string> = {
+  NOT_SUBMITTED: 'Not Submitted',
+  PENDING: 'Awaiting Review',
+  APPROVED: 'Live',
+  REJECTED: 'Changes Needed',
+}
+const publishStatusTones: Record<PublishStatus, StatusPillTone> = {
+  NOT_SUBMITTED: 'muted',
+  PENDING: 'primary',
+  APPROVED: 'success',
+  REJECTED: 'destructive',
 }
 
 const ALL = '__all__'
@@ -399,6 +417,7 @@ export function RestaurantsPage() {
               <th className="px-4 py-2 font-medium">Business Type</th>
               <th className="px-4 py-2 font-medium">Phone</th>
               <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-4 py-2 font-medium">Live</th>
               <th className="px-4 py-2 font-medium">Active</th>
             </tr>
           </thead>
@@ -431,6 +450,9 @@ export function RestaurantsPage() {
                   <td className="px-4 py-2">
                     <StatusPill label={r.status.replace('_', ' ')} tone={statusTones[r.status]} />
                   </td>
+                  <td className="px-4 py-2">
+                    <StatusPill label={publishStatusLabels[r.publishStatus]} tone={publishStatusTones[r.publishStatus]} />
+                  </td>
                   <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                     {(r.status === 'APPROVED' || r.status === 'SUSPENDED') && (
                       <Switch
@@ -453,7 +475,7 @@ export function RestaurantsPage() {
                 </tr>
                 {expandedId === r.id && (
                   <tr className="border-b border-border last:border-0 bg-secondary/30">
-                    <td colSpan={9} className="px-4 py-4 text-sm">
+                    <td colSpan={10} className="px-4 py-4 text-sm">
                       {!detail ? (
                         <p className="text-muted-foreground">Loading…</p>
                       ) : (
@@ -583,7 +605,7 @@ export function RestaurantsPage() {
             ))}
             {!loading && restaurants.length === 0 && !error && (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={10} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No restaurants match these filters.
                 </td>
               </tr>
