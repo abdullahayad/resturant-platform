@@ -11,6 +11,7 @@ import { randomInt } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
+import type { ConfirmRegisterDto } from './dto/confirm-register.dto';
 import type { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { UpdateNotificationPrefsDto } from './dto/notification-prefs.dto';
@@ -149,37 +150,103 @@ export class RestaurantsService {
   }
 
   async register(dto: RegisterRestaurantDto) {
-    // One shared message for both fields — a distinct message per field
-    // would let an anonymous caller enumerate which emails/phone numbers
-    // are already registered (see security review).
+    await this.assertEmailAndPhoneAvailable(dto.ownerEmail, dto.phone);
+    const { ownerPassword, ...data } = dto;
+    const ownerPasswordHash = await bcrypt.hash(ownerPassword, 10);
+    return this.createRestaurantAccount(data, ownerPasswordHash);
+  }
+
+  // One shared message for both fields — a distinct message per field would
+  // let an anonymous caller enumerate which emails/phone numbers are
+  // already registered (see security review).
+  private async assertEmailAndPhoneAvailable(ownerEmail: string, phone: string) {
     const [existingOwner, existingPhone] = await Promise.all([
-      this.prisma.db.restaurant.findUnique({ where: { ownerEmail: dto.ownerEmail }, select: { id: true } }),
-      this.prisma.db.restaurant.findUnique({ where: { phone: dto.phone }, select: { id: true } }),
+      this.prisma.db.restaurant.findUnique({ where: { ownerEmail }, select: { id: true } }),
+      this.prisma.db.restaurant.findUnique({ where: { phone }, select: { id: true } }),
     ]);
     if (existingOwner || existingPhone) {
       throw new ConflictException('An account with this email or phone number already exists');
     }
+  }
 
-    const codeNumber = await this.generateCodeNumber(dto.provinceId, dto.districtId);
-    const ownerPasswordHash = await bcrypt.hash(dto.ownerPassword, 10);
+  // Step 1 of email-verified registration: everything register() checks
+  // today, but instead of creating the account, mints a short-lived token
+  // holding the (already-hashed, never the plaintext - this token round-
+  // trips through the client, and a bearer token carrying a raw password is
+  // exactly the kind of thing that ends up in a request log or Sentry
+  // breadcrumb) submission plus a hashed 6-digit code, and emails the code.
+  // Nothing is written to the database until confirmRegister verifies it -
+  // an unreachable/typo'd email just means the token expires unused, not a
+  // dead PENDING_REVIEW row sitting in the admin's queue forever.
+  async startRegister(dto: RegisterRestaurantDto) {
+    await this.assertEmailAndPhoneAvailable(dto.ownerEmail, dto.phone);
+
+    const { ownerPassword, ...data } = dto;
+    const ownerPasswordHash = await bcrypt.hash(ownerPassword, 10);
+    // crypto.randomInt, not Math.random - same reasoning as the password
+    // reset code (see generateResetCode).
+    const code = String(randomInt(100000, 1000000));
+    const codeHash = await bcrypt.hash(code, 10);
+
+    const pendingToken = await this.jwt.signAsync(
+      { type: 'register-pending', data, ownerPasswordHash, codeHash },
+      { expiresIn: '15m' },
+    );
+    await this.sendRegistrationCodeEmail(dto.ownerEmail, code);
+    return { pendingToken };
+  }
+
+  // Step 2: verifies the code against the token from startRegister, then
+  // creates the account exactly as register() always has.
+  async confirmRegister(dto: ConfirmRegisterDto) {
+    let payload: {
+      type?: string;
+      data?: Omit<RegisterRestaurantDto, 'ownerPassword'>;
+      ownerPasswordHash?: string;
+      codeHash?: string;
+    };
+    try {
+      payload = await this.jwt.verifyAsync(dto.pendingToken);
+    } catch {
+      throw new BadRequestException('This code has expired. Please start registration again.');
+    }
+    if (payload.type !== 'register-pending' || !payload.data || !payload.ownerPasswordHash || !payload.codeHash) {
+      throw new BadRequestException('This code has expired. Please start registration again.');
+    }
+    if (!(await bcrypt.compare(dto.code, payload.codeHash))) {
+      throw new BadRequestException('Incorrect code. Please check your email and try again.');
+    }
+    return this.createRestaurantAccount(payload.data, payload.ownerPasswordHash);
+  }
+
+  private sendRegistrationCodeEmail(email: string, code: string) {
+    return this.email.send(
+      email,
+      'Verify your email to register your restaurant',
+      `<p>Your verification code is:</p><h1 style="letter-spacing:4px">${code}</h1><p>This code expires in 15 minutes. Enter it in the app to finish registering your restaurant. If you didn't request this, you can safely ignore this email.</p>`,
+    );
+  }
+
+  private async createRestaurantAccount(data: Omit<RegisterRestaurantDto, 'ownerPassword'>, ownerPasswordHash: string) {
+    const codeNumber = await this.generateCodeNumber(data.provinceId, data.districtId);
 
     try {
       return await this.prisma.db.restaurant.create({
         data: {
           codeNumber,
-          nameEn: dto.nameEn,
-          nameAr: dto.nameAr,
-          phone: dto.phone,
-          ownerEmail: dto.ownerEmail,
+          nameEn: data.nameEn,
+          nameAr: data.nameAr,
+          phone: data.phone,
+          ownerEmail: data.ownerEmail,
           ownerPasswordHash,
           termsAcceptedAt: new Date(),
-          provinceId: dto.provinceId,
-          districtId: dto.districtId,
-          latitude: dto.latitude,
-          longitude: dto.longitude,
-          businessTypes: { create: dto.businessTypeIds.map((businessTypeId) => ({ businessTypeId })) },
-          foodCategories: { create: dto.foodCategoryIds.map((foodCategoryId) => ({ foodCategoryId })) },
-          facilities: { create: (dto.facilityIds ?? []).map((facilityId) => ({ facilityId })) },
+          provinceId: data.provinceId,
+          districtId: data.districtId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          businessTypes: { create: data.businessTypeIds.map((businessTypeId) => ({ businessTypeId })) },
+          foodCategories: { create: data.foodCategoryIds.map((foodCategoryId) => ({ foodCategoryId })) },
+          facilities: { create: (data.facilityIds ?? []).map((facilityId) => ({ facilityId })) },
         },
         select: restaurantDetailSelect,
       });

@@ -15,7 +15,7 @@ describe('RestaurantsService', () => {
   let service: RestaurantsService;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mixed-shape mock (nested model mocks plus a bare $queryRaw mock)
   let prisma: any;
-  let jwt: { signAsync: jest.Mock };
+  let jwt: { signAsync: jest.Mock; verifyAsync: jest.Mock };
   let activityLog: { log: jest.Mock };
   let email: { send: jest.Mock };
   const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
@@ -65,7 +65,7 @@ describe('RestaurantsService', () => {
         $queryRaw: jest.fn(),
       },
     };
-    jwt = { signAsync: jest.fn().mockResolvedValue('token') };
+    jwt = { signAsync: jest.fn().mockResolvedValue('token'), verifyAsync: jest.fn() };
     activityLog = { log: jest.fn() };
     email = { send: jest.fn().mockResolvedValue(true) };
 
@@ -168,6 +168,79 @@ describe('RestaurantsService', () => {
       }
       expect(caught).toBeInstanceOf(ConflictException);
       expect((caught as ConflictException).message).toBe('An account with this email or phone number already exists');
+    });
+  });
+
+  describe('startRegister', () => {
+    it('rejects a duplicate email/phone before sending anything', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce({ id: 'existing' }); // ownerEmail lookup
+
+      await expect(service.startRegister(baseRegisterDto)).rejects.toThrow(ConflictException);
+      expect(email.send).not.toHaveBeenCalled();
+      expect(jwt.signAsync).not.toHaveBeenCalled();
+    });
+
+    it('emails a 6-digit code and returns a pending token without touching the database', async () => {
+      prisma.db.restaurant.findUnique
+        .mockResolvedValueOnce(null) // ownerEmail lookup: free
+        .mockResolvedValueOnce(null); // phone lookup: free
+      jwt.signAsync.mockResolvedValueOnce('pending-token');
+
+      const result = await service.startRegister(baseRegisterDto);
+
+      expect(result).toEqual({ pendingToken: 'pending-token' });
+      expect(prisma.db.restaurant.create).not.toHaveBeenCalled();
+      expect(email.send).toHaveBeenCalledTimes(1);
+      const [, , body] = email.send.mock.calls[0] as [string, string, string];
+      expect(body).toMatch(/<h1[^>]*>\d{6}<\/h1>/);
+    });
+
+    it('never puts the plaintext password in the signed token', async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+
+      await service.startRegister(baseRegisterDto);
+
+      const [payload] = jwt.signAsync.mock.calls[0] as [Record<string, unknown>];
+      expect(JSON.stringify(payload)).not.toContain(baseRegisterDto.ownerPassword);
+      expect(payload.ownerPasswordHash).toEqual(expect.any(String));
+    });
+  });
+
+  describe('confirmRegister', () => {
+    const validPayload = async () => ({
+      type: 'register-pending',
+      data: (({ ownerPassword: _ownerPassword, ...rest }) => rest)(baseRegisterDto),
+      ownerPasswordHash: await bcrypt.hash(baseRegisterDto.ownerPassword, 10),
+      codeHash: await bcrypt.hash('123456', 10),
+    });
+
+    it('rejects an expired or tampered token', async () => {
+      jwt.verifyAsync.mockRejectedValueOnce(new Error('jwt expired'));
+
+      await expect(service.confirmRegister({ pendingToken: 'bad', code: '123456' })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.db.restaurant.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects the wrong code without creating the account', async () => {
+      jwt.verifyAsync.mockResolvedValueOnce(await validPayload());
+
+      await expect(service.confirmRegister({ pendingToken: 'tok', code: '000000' })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.db.restaurant.create).not.toHaveBeenCalled();
+    });
+
+    it('creates the account once the code matches', async () => {
+      jwt.verifyAsync.mockResolvedValueOnce(await validPayload());
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null); // generateFallbackCode's first candidate
+      prisma.db.restaurant.create.mockResolvedValueOnce({ id: 'new-id', publishStatus: 'NOT_SUBMITTED' });
+
+      const result = await service.confirmRegister({ pendingToken: 'tok', code: '123456' });
+
+      expect(result).toEqual({ id: 'new-id', publishStatus: 'NOT_SUBMITTED' });
+      expect(prisma.db.restaurant.create).toHaveBeenCalledTimes(1);
     });
   });
 

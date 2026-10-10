@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuard
 import { Throttle } from '@nestjs/throttler';
 import { RestaurantsService } from './restaurants.service';
 import { RegisterRestaurantDto } from './dto/register-restaurant.dto';
+import { ConfirmRegisterDto } from './dto/confirm-register.dto';
 import { ListRestaurantsQuery, ModeratePublishDto, RejectRestaurantDto } from './dto/update-restaurant-status.dto';
 import { UpdateRestaurantProfileDto } from './dto/update-restaurant-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -25,14 +26,25 @@ import type { AdminJwtPayload, PartnerJwtPayload } from '../auth/jwt-payload';
 export class RestaurantsController {
   constructor(private readonly restaurants: RestaurantsService) {}
 
-  @Post()
-  register(@Body() dto: RegisterRestaurantDto) {
-    return this.restaurants.register(dto);
+  // Public, unauthenticated — tightly throttled since both let an anonymous
+  // caller trigger a side effect (an email send) keyed only on an email
+  // address they don't have to prove they own up front. confirm is
+  // throttled separately and a bit more generously - 1,000,000 possible
+  // codes makes brute-forcing impractical well before 10/min would get
+  // anyone there, but a real user mistyping a digit shouldn't get locked
+  // out immediately either.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('register/start')
+  startRegister(@Body() dto: RegisterRestaurantDto) {
+    return this.restaurants.startRegister(dto);
   }
 
-  // Public, unauthenticated — tightly throttled since both let an anonymous
-  // caller trigger side effects (an email send, a password change) keyed
-  // only on an email address they don't have to prove they own up front.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('register/confirm')
+  confirmRegister(@Body() dto: ConfirmRegisterDto) {
+    return this.restaurants.confirmRegister(dto);
+  }
+
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
