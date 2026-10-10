@@ -306,23 +306,35 @@ export function RestaurantsPage() {
         </button>
       </div>
 
-      <FilterTabs
-        options={statusFilters}
-        active={filter}
-        onChange={(v) => {
-          setFilter(v)
-          setPage(1)
-        }}
-      />
+      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <div>
+          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Account Status
+          </div>
+          <FilterTabs
+            options={statusFilters}
+            active={filter}
+            onChange={(v) => {
+              setFilter(v)
+              setPage(1)
+            }}
+          />
+        </div>
 
-      <FilterTabs
-        options={publishFilters}
-        active={publishFilter}
-        onChange={(v) => {
-          setPublishFilter(v)
-          setPage(1)
-        }}
-      />
+        <div>
+          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Live Status
+          </div>
+          <FilterTabs
+            options={publishFilters}
+            active={publishFilter}
+            onChange={(v) => {
+              setPublishFilter(v)
+              setPage(1)
+            }}
+          />
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-3">
         <input
