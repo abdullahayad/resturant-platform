@@ -68,6 +68,15 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
+  // Set once the form's been submitted and a code emailed - while this is
+  // set, the screen shows the "enter your code" step instead of the form.
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+
   // Which text fields the user has already left (tabbed/clicked away from)
   // at least once - an inline red error only shows for a field once they've
   // actually moved past it, not while they're still mid-typing their first
@@ -128,27 +137,59 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
       ].filter((reason): reason is string => Boolean(reason))
     : [];
 
+  const registrationPayload = () => ({
+    nameEn,
+    nameAr,
+    phone,
+    ownerEmail: email,
+    ownerPassword: password,
+    provinceId: provinceId ?? undefined,
+    districtId: districtId ?? undefined,
+    businessTypeIds,
+    foodCategoryIds,
+    agreedToTerms,
+  });
+
   const handleSubmit = async () => {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      await api.registerRestaurant({
-        nameEn,
-        nameAr,
-        phone,
-        ownerEmail: email,
-        ownerPassword: password,
-        provinceId: provinceId ?? undefined,
-        districtId: districtId ?? undefined,
-        businessTypeIds,
-        foodCategoryIds,
-        agreedToTerms,
-      });
-      setSubmitted(true);
+      const { pendingToken: token } = await api.startRegisterRestaurant(registrationPayload());
+      setPendingToken(token);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : t('register.genericError'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleConfirmCode = async () => {
+    if (!pendingToken) return;
+    setVerifyError(null);
+    setVerifying(true);
+    try {
+      await api.confirmRegisterRestaurant(pendingToken, verifyCode.trim());
+      setSubmitted(true);
+    } catch (err) {
+      setVerifyError(err instanceof Error ? err.message : t('register.genericError'));
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setVerifyError(null);
+    setResent(false);
+    setResending(true);
+    try {
+      const { pendingToken: token } = await api.startRegisterRestaurant(registrationPayload());
+      setPendingToken(token);
+      setVerifyCode('');
+      setResent(true);
+    } catch (err) {
+      setVerifyError(err instanceof Error ? err.message : t('register.genericError'));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -163,6 +204,53 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
           <Text style={styles.successBody}>{t('register.successBody')}</Text>
           <Pressable style={[styles.button, styles.primaryButton]} onPress={onRegistered}>
             <Text style={styles.primaryButtonText}>{t('register.backToSignIn')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (pendingToken) {
+    return (
+      <View style={styles.centered}>
+        <View style={styles.card}>
+          <View style={styles.badgeWrap}>
+            <BrandMark size={44} />
+          </View>
+          <Text style={styles.successTitle}>{t('register.verify.title')}</Text>
+          <Text style={styles.successBody}>{t('register.verify.subtitle', { email })}</Text>
+
+          <FormField
+            label={t('register.verify.codeLabel')}
+            value={verifyCode}
+            onChangeText={setVerifyCode}
+            keyboardType="number-pad"
+            maxLength={6}
+            placeholder="123456"
+          />
+          {verifyError && <Text style={styles.error}>{verifyError}</Text>}
+          {resent && !verifyError && <Text style={styles.resentText}>{t('register.verify.resent')}</Text>}
+
+          <Pressable
+            style={[styles.button, styles.primaryButton, verifyCode.trim().length !== 6 && styles.buttonDisabled]}
+            disabled={verifyCode.trim().length !== 6 || verifying}
+            onPress={handleConfirmCode}
+          >
+            {verifying ? (
+              <ActivityIndicator color={colors.primaryForeground} />
+            ) : (
+              <Text style={styles.primaryButtonText}>{t('register.verify.submit')}</Text>
+            )}
+          </Pressable>
+          <Pressable style={[styles.button, styles.secondaryButton]} onPress={handleResendCode} disabled={resending}>
+            {resending ? (
+              <ActivityIndicator color={colors.foreground} />
+            ) : (
+              <Text style={styles.secondaryButtonText}>{t('register.verify.resend')}</Text>
+            )}
+          </Pressable>
+          <Pressable onPress={() => setPendingToken(null)}>
+            <Text style={styles.back}>{t('register.verify.backToForm')}</Text>
           </Pressable>
         </View>
       </View>
@@ -373,7 +461,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     elevation: 4,
   },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
+  secondaryButton: { borderWidth: 1, borderColor: colors.border },
+  secondaryButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },
+  resentText: { color: colors.success, fontSize: 13 },
   fieldError: { color: colors.destructive, fontSize: 12, marginTop: 4 },
   hintBox: { gap: 3 },
   hintText: { color: colors.mutedForeground, fontSize: 12 },

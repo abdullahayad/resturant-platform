@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { ThemeColors } from '../../theme/colors';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { BrandMark } from '../../components/BrandMark';
 
 interface AuthLandingScreenProps {
@@ -12,10 +13,14 @@ interface AuthLandingScreenProps {
 
 export function AuthLandingScreen({ onSignIn, onRegister }: AuthLandingScreenProps) {
   const { colors } = useTheme();
+  const { language, toggleLanguage } = useLanguage();
   const { t } = useTranslation('auth');
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
+      <Pressable onPress={toggleLanguage} style={styles.langToggle}>
+        <Text style={styles.langToggleText}>{language === 'en' ? 'العربية' : 'English'}</Text>
+      </Pressable>
       <View style={styles.card}>
         <View style={styles.badgeWrap}>
           <BrandMark size={56} />
@@ -57,6 +62,18 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowRadius: 32,
     elevation: 12,
   },
+  langToggle: {
+    alignSelf: 'center',
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  langToggleText: { color: colors.mutedForeground, fontSize: 13, fontWeight: '700' },
   badgeWrap: { alignSelf: 'center', marginBottom: 4 },
   brand: { fontSize: 22, fontWeight: '700', color: colors.primary, textAlign: 'center' },
   subtitle: {

@@ -700,11 +700,28 @@ export const api = {
   facilities: () => get<MasterDataItem[]>('/master-data/facilities'),
   provinces: () => get<Province[]>('/master-data/provinces'),
 
-  async registerRestaurant(payload: RegisterRestaurantPayload) {
-    const res = await fetch(`${API_BASE_URL}/restaurants`, {
+  // Two-step, email-verified registration: start sends a 6-digit code to
+  // ownerEmail and hands back a short-lived token; confirm trades that
+  // token plus the code the owner typed back in for the actual account.
+  async startRegisterRestaurant(payload: RegisterRestaurantPayload) {
+    const res = await fetch(`${API_BASE_URL}/restaurants/register/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const message = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+      throw new Error(message || 'Registration failed');
+    }
+    return data as { pendingToken: string };
+  },
+
+  async confirmRegisterRestaurant(pendingToken: string, code: string) {
+    const res = await fetch(`${API_BASE_URL}/restaurants/register/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pendingToken, code }),
     });
     const data = await res.json();
     if (!res.ok) {
