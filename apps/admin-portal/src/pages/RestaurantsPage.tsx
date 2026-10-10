@@ -47,6 +47,13 @@ const publishStatusLabels: Record<PublishStatus, string> = {
   APPROVED: 'Live',
   REJECTED: 'Changes Needed',
 }
+const publishFilters: { key: PublishStatus | 'ALL'; label: string }[] = [
+  { key: 'ALL', label: 'All' },
+  { key: 'NOT_SUBMITTED', label: publishStatusLabels.NOT_SUBMITTED },
+  { key: 'PENDING', label: publishStatusLabels.PENDING },
+  { key: 'APPROVED', label: publishStatusLabels.APPROVED },
+  { key: 'REJECTED', label: publishStatusLabels.REJECTED },
+]
 const publishStatusTones: Record<PublishStatus, StatusPillTone> = {
   NOT_SUBMITTED: 'muted',
   PENDING: 'primary',
@@ -59,6 +66,7 @@ const ALL = '__all__'
 export function RestaurantsPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<RestaurantStatus | 'ALL'>('ALL')
+  const [publishFilter, setPublishFilter] = useState<PublishStatus | 'ALL'>('ALL')
   const [provinceId, setProvinceId] = useState(ALL)
   const [districtId, setDistrictId] = useState(ALL)
   const [businessTypeId, setBusinessTypeId] = useState(ALL)
@@ -109,6 +117,7 @@ export function RestaurantsPage() {
 
   const currentFilters = () => ({
     status: filter === 'ALL' ? undefined : filter,
+    publishStatus: publishFilter === 'ALL' ? undefined : publishFilter,
     provinceId: provinceId === ALL ? undefined : provinceId,
     districtId: districtId === ALL ? undefined : districtId,
     businessTypeId: businessTypeId === ALL ? undefined : businessTypeId,
@@ -136,7 +145,7 @@ export function RestaurantsPage() {
       })
   }
 
-  useEffect(load, [filter, provinceId, districtId, businessTypeId, foodCategoryId, debouncedSearch, page])
+  useEffect(load, [filter, publishFilter, provinceId, districtId, businessTypeId, foodCategoryId, debouncedSearch, page])
 
   const selectedProvince = provinces.find((p) => p.id === provinceId)
 
@@ -302,6 +311,15 @@ export function RestaurantsPage() {
         active={filter}
         onChange={(v) => {
           setFilter(v)
+          setPage(1)
+        }}
+      />
+
+      <FilterTabs
+        options={publishFilters}
+        active={publishFilter}
+        onChange={(v) => {
+          setPublishFilter(v)
           setPage(1)
         }}
       />
