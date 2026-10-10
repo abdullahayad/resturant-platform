@@ -15,8 +15,8 @@ import {
   type VerificationDocument,
 } from '@/lib/api'
 import { downloadCsv } from '@/lib/csv'
+import { cn } from '@/lib/utils'
 import { Switch } from '@/components/Switch'
-import { FilterTabs } from '@/components/FilterTabs'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 import { Pager } from '@/components/Pager'
 import { SupportSessionModal } from '@/components/SupportSessionModal'
@@ -306,33 +306,45 @@ export function RestaurantsPage() {
         </button>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-        <div>
-          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Account Status
-          </div>
-          <FilterTabs
-            options={statusFilters}
-            active={filter}
-            onChange={(v) => {
-              setFilter(v)
-              setPage(1)
-            }}
-          />
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-card px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Account</span>
+          {statusFilters.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => {
+                setFilter(o.key)
+                setPage(1)
+              }}
+              className={cn(
+                'rounded-lg px-2.5 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
+                filter === o.key && 'bg-primary/10 text-primary',
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
 
-        <div>
-          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Live Status
-          </div>
-          <FilterTabs
-            options={publishFilters}
-            active={publishFilter}
-            onChange={(v) => {
-              setPublishFilter(v)
-              setPage(1)
-            }}
-          />
+        <div className="h-5 w-px bg-border" />
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live</span>
+          {publishFilters.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => {
+                setPublishFilter(o.key)
+                setPage(1)
+              }}
+              className={cn(
+                'rounded-lg px-2.5 py-1 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground',
+                publishFilter === o.key && 'bg-primary/10 text-primary',
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
       </div>
 
