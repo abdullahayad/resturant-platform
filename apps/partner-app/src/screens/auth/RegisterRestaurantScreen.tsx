@@ -18,6 +18,27 @@ interface RegisterRestaurantScreenProps {
   onRegistered: () => void;
 }
 
+// Iraqi domestic numbers are written with or without the leading 0
+// (07XXXXXXXXX, 11 digits, or 7XXXXXXXXX, 10 digits); anything starting
+// with + or 00 is treated as international - a 2-3 digit country code
+// followed by a 10-digit number, e.g. +964 770 123 4567 or
+// 00964 770 123 4567.
+function isValidPhoneNumber(raw: string): boolean {
+  const cleaned = raw.trim().replace(/[\s-]/g, '');
+  if (cleaned.startsWith('+')) {
+    const digits = cleaned.slice(1).replace(/\D/g, '');
+    return digits.length === 12 || digits.length === 13;
+  }
+  if (cleaned.startsWith('00')) {
+    const digits = cleaned.slice(2).replace(/\D/g, '');
+    return digits.length === 12 || digits.length === 13;
+  }
+  const digits = cleaned.replace(/\D/g, '');
+  return cleaned.startsWith('0') ? digits.length === 11 : digits.length === 10;
+}
+
+const isValidEmailAddress = (raw: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw.trim());
+
 export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterRestaurantScreenProps) {
   const { colors } = useTheme();
   const { isRTL, language } = useLanguage();
@@ -46,6 +67,13 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  // Which text fields the user has already left (tabbed/clicked away from)
+  // at least once - an inline red error only shows for a field once they've
+  // actually moved past it, not while they're still mid-typing their first
+  // character.
+  const [touched, setTouched] = useState({ nameEn: false, nameAr: false, phone: false, email: false, password: false });
+  const markTouched = (field: keyof typeof touched) => setTouched((t) => ({ ...t, [field]: true }));
 
   useEffect(() => {
     Promise.all([api.businessTypes(), api.foodCategories(), api.provinces()])
@@ -78,26 +106,22 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
   // outright), but nothing there currently catches a garbage phone number
   // like "1", so a bad value here would otherwise create an account whose
   // owner can never actually be reached for password resets or support.
-  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const isValidPhone = phone.replace(/\D/g, '').length >= 10;
+  const isValidEmail = isValidEmailAddress(email);
+  const isValidPhone = isValidPhoneNumber(phone);
 
   const canSubmit =
     nameEn.trim() && nameAr.trim() && isValidPhone && isValidEmail && password.length >= 8 &&
     businessTypeIds.length > 0 && foodCategoryIds.length > 0 && agreedToTerms;
 
   // The submit button below is simply disabled while canSubmit is false, so
-  // nothing fires on tap to explain why - without this, an invalid email or
-  // too-short phone just makes the button silently do nothing, indistinguishable
-  // from the button being broken. Only shown once something's actually been
-  // typed, not on the pristine empty form.
+  // nothing fires on tap to explain why. Text fields get their own inline
+  // red message once the user leaves them (see `touched` above); these two
+  // can't use the same "leave the field" moment (a chip toggle or checkbox
+  // tap doesn't blur anything), so they're listed here instead, once the
+  // form has been touched at all.
   const hasStartedFilling = nameEn || nameAr || phone || email || password;
   const missingReasons = hasStartedFilling
     ? [
-        !nameEn.trim() && t('register.validation.nameEn'),
-        !nameAr.trim() && t('register.validation.nameAr'),
-        phone && !isValidPhone && t('register.validation.phone'),
-        email && !isValidEmail && t('register.validation.email'),
-        password && password.length < 8 && t('register.validation.password'),
         businessTypeIds.length === 0 && t('register.validation.businessTypes'),
         foodCategoryIds.length === 0 && t('register.validation.foodCategories'),
         !agreedToTerms && t('register.validation.terms'),
@@ -159,11 +183,60 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
 
       {loadError && <Text style={styles.error}>{loadError}</Text>}
 
-      <FormField label={t('register.nameEnLabel')} value={nameEn} onChangeText={setNameEn} placeholder={t('register.nameEnPlaceholder')} />
-      <FormField label={t('register.nameArLabel')} value={nameAr} onChangeText={setNameAr} placeholder={t('register.nameArPlaceholder')} />
-      <FormField label={t('register.phoneLabel')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder={t('register.phonePlaceholder')} />
-      <FormField label={t('register.emailLabel')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder={t('register.emailPlaceholder')} />
-      <FormField label={t('register.passwordLabel')} value={password} onChangeText={setPassword} secureTextEntry placeholder={t('register.passwordPlaceholder')} />
+      <View>
+        <FormField
+          label={t('register.nameEnLabel')}
+          value={nameEn}
+          onChangeText={setNameEn}
+          onBlur={() => markTouched('nameEn')}
+          placeholder={t('register.nameEnPlaceholder')}
+        />
+        {touched.nameEn && !nameEn.trim() && <Text style={styles.fieldError}>{t('register.validation.nameEn')}</Text>}
+      </View>
+      <View>
+        <FormField
+          label={t('register.nameArLabel')}
+          value={nameAr}
+          onChangeText={setNameAr}
+          onBlur={() => markTouched('nameAr')}
+          placeholder={t('register.nameArPlaceholder')}
+        />
+        {touched.nameAr && !nameAr.trim() && <Text style={styles.fieldError}>{t('register.validation.nameAr')}</Text>}
+      </View>
+      <View>
+        <FormField
+          label={t('register.phoneLabel')}
+          value={phone}
+          onChangeText={setPhone}
+          onBlur={() => markTouched('phone')}
+          keyboardType="phone-pad"
+          placeholder={t('register.phonePlaceholder')}
+        />
+        {touched.phone && !isValidPhone && <Text style={styles.fieldError}>{t('register.validation.phone')}</Text>}
+      </View>
+      <View>
+        <FormField
+          label={t('register.emailLabel')}
+          value={email}
+          onChangeText={setEmail}
+          onBlur={() => markTouched('email')}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder={t('register.emailPlaceholder')}
+        />
+        {touched.email && !isValidEmail && <Text style={styles.fieldError}>{t('register.validation.email')}</Text>}
+      </View>
+      <View>
+        <FormField
+          label={t('register.passwordLabel')}
+          value={password}
+          onChangeText={setPassword}
+          onBlur={() => markTouched('password')}
+          secureTextEntry
+          placeholder={t('register.passwordPlaceholder')}
+        />
+        {touched.password && password.length < 8 && <Text style={styles.fieldError}>{t('register.validation.password')}</Text>}
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>{t('register.businessTypes')}</Text>
@@ -301,6 +374,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13 },
+  fieldError: { color: colors.destructive, fontSize: 12, marginTop: 4 },
   hintBox: { gap: 3 },
   hintText: { color: colors.mutedForeground, fontSize: 12 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
