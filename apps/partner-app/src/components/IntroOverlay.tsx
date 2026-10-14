@@ -171,7 +171,7 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
           {t(WITH_LABEL_KEY)}
         </Animated.Text>
         <View style={styles.row}>
-          {displayIndices.map((i) => {
+          {displayIndices.map((i, renderIndex) => {
             const seg = set.segments[i];
             return (
               <Animated.Image
@@ -180,6 +180,12 @@ export function IntroOverlay({ onDone, holdMs = 2000, fadeMs = 400 }: IntroOverl
                 style={{
                   width: seg.width * scale,
                   height: displayHeight,
+                  // Fractional widths (DISPLAY_WIDTH's scale rarely divides evenly into each
+                  // segment's source width) get rounded individually by the layout engine,
+                  // which can leave a 1px gap between two pieces that are meant to form one
+                  // continuous stroke. A small overlap on every piece after the first hides
+                  // that rounding gap instead of trying to predict which side it lands on.
+                  marginLeft: renderIndex === 0 ? 0 : -1,
                   transform: [{ translateY: dropY[i] }],
                 }}
                 resizeMode="contain"
