@@ -16,7 +16,7 @@ interface IntroOverlayProps {
 // below) — it's independent of their fixed left-to-right screen position.
 const SEGMENT_SETS = {
   en: {
-    sourceHeight: 237,
+    sourceHeight: 171,
     reverseDropOrder: false,
     // "Li" / "G" (with the pin) / "ETA" — drops in reading order, left to right.
     // withAnchorIndex: which segment the small "With" label sits above - "G"
@@ -25,9 +25,9 @@ const SEGMENT_SETS = {
     withAnchorIndex: 1,
     withOffsetPx: 0,
     segments: [
-      { source: require('../../assets/intro-en-1-partner.png'), width: 260 },
-      { source: require('../../assets/intro-en-2-partner.png'), width: 215 },
-      { source: require('../../assets/intro-en-3-partner.png'), width: 577 },
+      { source: require('../../assets/intro-en-1-partner.png'), width: 115 },
+      { source: require('../../assets/intro-en-2-partner.png'), width: 139 },
+      { source: require('../../assets/intro-en-3-partner.png'), width: 352 },
     ],
   },
   ar: {
