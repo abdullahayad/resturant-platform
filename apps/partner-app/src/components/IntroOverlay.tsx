@@ -25,9 +25,9 @@ const SEGMENT_SETS = {
     withAnchorIndex: 1,
     withOffsetPx: 0,
     segments: [
-      { source: require('../../assets/intro-en-1.png'), width: 115 },
-      { source: require('../../assets/intro-en-2.png'), width: 139 },
-      { source: require('../../assets/intro-en-3.png'), width: 352 },
+      { source: require('../../assets/intro-en-1-partner.png'), width: 115 },
+      { source: require('../../assets/intro-en-2-partner.png'), width: 139 },
+      { source: require('../../assets/intro-en-3-partner.png'), width: 352 },
     ],
   },
   ar: {
@@ -43,9 +43,9 @@ const SEGMENT_SETS = {
     withAnchorIndex: 1,
     withOffsetPx: -74,
     segments: [
-      { source: require('../../assets/intro-ar-1.png'), width: 348 },
-      { source: require('../../assets/intro-ar-2.png'), width: 187 },
-      { source: require('../../assets/intro-ar-3.png'), width: 155 },
+      { source: require('../../assets/intro-ar-1-partner.png'), width: 348 },
+      { source: require('../../assets/intro-ar-2-partner.png'), width: 187 },
+      { source: require('../../assets/intro-ar-3-partner.png'), width: 155 },
     ],
   },
 } as const;
@@ -232,9 +232,9 @@ const styles = StyleSheet.create({
   // it) so the "With" label can be positioned absolutely above the wordmark's first-read segment
   // without disturbing the row's own centering.
   wordmarkWrap: { width: DISPLAY_WIDTH, position: 'relative', marginTop: 24 },
-  withLabel: { position: 'absolute', top: -22, fontSize: 13, fontWeight: '600', color: '#cc4408', letterSpacing: 0.5, textAlign: 'center' },
+  withLabel: { position: 'absolute', top: -22, fontSize: 13, fontWeight: '600', color: '#1a4fd1', letterSpacing: 0.5, textAlign: 'center' },
   // The tagline is ordinary text, not a fixed logo asset — it's left free to mirror under RTL
   // (Arabic words cascade in from the right, matching how the language is actually read).
   taglineRow: { flexDirection: 'row', marginTop: 14, gap: 8 },
-  taglineWord: { color: '#cc4408', fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
+  taglineWord: { color: '#1a4fd1', fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
 });
