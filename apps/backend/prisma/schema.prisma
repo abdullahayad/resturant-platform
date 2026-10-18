@@ -1018,6 +1018,7 @@ model PartnerStaffUser {
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   activityLogs RestaurantActivityLog[]
 
+  @@index([restaurantId])
   @@map("partner_staff_users")
 }
 
