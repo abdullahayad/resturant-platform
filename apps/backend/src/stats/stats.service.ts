@@ -6,25 +6,24 @@ export class StatsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async platformStats() {
-    const [totalPartners, activeCount, inactiveCount, pendingApprovals, rejectedCount, totalReviews, flaggedReviews] =
-      await Promise.all([
-        this.prisma.db.restaurant.count(),
-        this.prisma.db.restaurant.count({ where: { status: 'APPROVED' } }),
-        this.prisma.db.restaurant.count({ where: { status: 'SUSPENDED' } }),
-        this.prisma.db.restaurant.count({ where: { status: 'PENDING_REVIEW' } }),
-        this.prisma.db.restaurant.count({ where: { status: 'REJECTED' } }),
-        this.prisma.db.review.count(),
-        this.prisma.db.review.count({ where: { moderationStatus: 'FLAGGED' } }),
-      ]);
+    // One grouped query per table instead of a separate count() per status -
+    // Sentry flagged the old version as an N+1 query pattern.
+    const [restaurantsByStatus, reviewsByModerationStatus] = await Promise.all([
+      this.prisma.db.restaurant.groupBy({ by: ['status'], _count: true }),
+      this.prisma.db.review.groupBy({ by: ['moderationStatus'], _count: true }),
+    ]);
+
+    const restaurantCount = (status: 'APPROVED' | 'SUSPENDED' | 'PENDING_REVIEW' | 'REJECTED') =>
+      restaurantsByStatus.find((r) => r.status === status)?._count ?? 0;
 
     return {
-      totalPartners,
-      activeCount,
-      inactiveCount,
-      pendingApprovals,
-      rejectedCount,
-      totalReviews,
-      flaggedReviews,
+      totalPartners: restaurantsByStatus.reduce((sum, r) => sum + r._count, 0),
+      activeCount: restaurantCount('APPROVED'),
+      inactiveCount: restaurantCount('SUSPENDED'),
+      pendingApprovals: restaurantCount('PENDING_REVIEW'),
+      rejectedCount: restaurantCount('REJECTED'),
+      totalReviews: reviewsByModerationStatus.reduce((sum, r) => sum + r._count, 0),
+      flaggedReviews: reviewsByModerationStatus.find((r) => r.moderationStatus === 'FLAGGED')?._count ?? 0,
     };
   }
 }
