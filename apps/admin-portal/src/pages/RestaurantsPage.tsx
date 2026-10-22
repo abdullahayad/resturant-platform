@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import {
   api,
   UnauthorizedError,
@@ -473,7 +474,14 @@ export function RestaurantsPage() {
                   <td className="px-4 py-2 text-muted-foreground">{(page - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{r.codeNumber}</td>
                   <td className="px-4 py-2 font-semibold">
-                    {r.nameEn} <span className="font-normal text-muted-foreground">· {r.nameAr}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      {expandedId === r.id ? (
+                        <ChevronUp size={14} className="shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
+                      )}
+                      {r.nameEn} <span className="font-normal text-muted-foreground">· {r.nameAr}</span>
+                    </span>
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">{r.province?.nameEn ?? '—'}</td>
                   <td className="px-4 py-2 text-muted-foreground">{r.district?.nameEn ?? '—'}</td>
@@ -518,6 +526,15 @@ export function RestaurantsPage() {
                 {expandedId === r.id && (
                   <tr className="border-b border-border last:border-0 bg-secondary/30">
                     <td colSpan={10} className="px-4 py-4 text-sm">
+                      <div className="mb-3 flex justify-end">
+                        <button
+                          onClick={() => toggleExpand(r.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <ChevronUp size={14} />
+                          Close
+                        </button>
+                      </div>
                       {!detail ? (
                         <p className="text-muted-foreground">Loading…</p>
                       ) : (
