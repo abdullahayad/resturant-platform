@@ -35,6 +35,7 @@ import { ActivityModule } from './activity/activity.module';
 import { PreviewModule } from './preview/preview.module';
 import { PaymentAccountsModule } from './payment-accounts/payment-accounts.module';
 import { ChainsModule } from './chains/chains.module';
+import { MoodsModule } from './moods/moods.module';
 import { AdminActivityModule } from './admin-activity/admin-activity.module';
 
 @Module({
@@ -70,6 +71,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     PreviewModule,
     PaymentAccountsModule,
     ChainsModule,
+    MoodsModule,
     AdminActivityModule,
   ],
   controllers: [AppController, LegalController, SupportSessionPageController, ReviewPageController],

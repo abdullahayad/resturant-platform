@@ -132,6 +132,35 @@ export interface Chain {
   _count: { restaurants: number }
 }
 
+export type MoodGroup = 'CLASSIC' | 'PEOPLE' | 'PLACE' | 'TIME' | 'FOOD' | 'SEASONAL'
+export type RestaurantClassValue = 'LUXURY' | 'UPSCALE' | 'MODERATE' | 'BUDGET'
+
+// A "What's the mood today?" tile on the customer app's Home screen - see
+// the Mood model in the backend's schema.prisma for how matching works.
+export interface Mood {
+  id: string
+  nameEn: string
+  nameAr: string
+  emoji: string
+  group: MoodGroup
+  foodsEn: string | null
+  foodsAr: string | null
+  matchNotes: string | null
+  businessTypeIds: string[]
+  foodCategoryIds: string[]
+  facilityIds: string[]
+  eventTypeIds: string[]
+  classes: RestaurantClassValue[]
+  healthyOnly: boolean
+  openAfterMidnight: boolean
+  startsAt: string | null
+  endsAt: string | null
+  isActive: boolean
+  sortOrder: number
+}
+
+export type MoodPayload = Omit<Mood, 'id' | 'sortOrder'>
+
 export interface AdminUserItem {
   id: string
   email: string
@@ -670,6 +699,13 @@ export const api = {
   updateChain: (id: string, payload: { nameEn: string; nameAr: string }) =>
     send<Chain>('PATCH', `/chains/${id}`, payload),
   deleteChain: (id: string) => send<{ id: string }>('DELETE', `/chains/${id}`),
+
+  moods: () => get<Mood[]>('/moods/admin'),
+  createMood: (payload: MoodPayload) => send<Mood>('POST', '/moods/admin', payload),
+  updateMood: (id: string, payload: MoodPayload) => send<Mood>('PATCH', `/moods/admin/${id}`, payload),
+  setMoodActive: (id: string, isActive: boolean) => send<Mood>('PATCH', `/moods/admin/${id}/active`, { isActive }),
+  reorderMoods: (ids: string[]) => send<Mood[]>('PATCH', '/moods/admin/reorder', { ids }),
+  deleteMood: (id: string) => send<{ id: string }>('DELETE', `/moods/admin/${id}`),
 
   publishReview: (id: string) => get<PublishReviewDetail>(`/restaurants/${id}/publish-review`),
   moderatePublish: (id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>

@@ -197,6 +197,60 @@ model EventType {
   @@map("event_types")
 }
 
+enum MoodGroup {
+  CLASSIC
+  PEOPLE
+  PLACE
+  TIME
+  FOOD
+  SEASONAL
+}
+
+// A "What's the mood today?" tile on the customer app's Home screen -
+// admin-managed end to end. Each mood is a saved filter: a restaurant shows
+// under it when it matches at least one item in every list the admin
+// filled (any business type, any food category, any price class, an
+// upcoming event of any listed type) and has ALL listed facilities. Empty
+// lists don't filter. The rule lists hold master-data ids directly rather
+// than join tables, so deleting a facility etc. just leaves a stale id that
+// matches nothing - moods never block master-data cleanup.
+model Mood {
+  id      String    @id @default(uuid())
+  nameEn  String
+  nameAr  String
+  emoji   String
+  group   MoodGroup @default(CLASSIC)
+  // What kind of food/restaurant belongs here, in words - shown to the
+  // admin as guidance and usable as a subtitle in the app.
+  foodsEn String?
+  foodsAr String?
+  // Free-text notes on how restaurants should be matched, for rules that
+  // the structured fields below can't express (yet).
+  matchNotes String?
+
+  businessTypeIds   String[]          @default([])
+  foodCategoryIds   String[]          @default([])
+  facilityIds       String[]          @default([])
+  eventTypeIds      String[]          @default([])
+  classes           RestaurantClass[] @default([])
+  // Only restaurants with the admin-approved Healthy tag (that tag itself
+  // arrives with the customer app's Healthy mode).
+  healthyOnly       Boolean           @default(false)
+  openAfterMidnight Boolean           @default(false)
+
+  // Seasonal moods (Ramadan, Eid, winter) only show between these dates.
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  isActive  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("moods")
+}
+
 model Province {
   id        String   @id @default(uuid())
   nameEn    String

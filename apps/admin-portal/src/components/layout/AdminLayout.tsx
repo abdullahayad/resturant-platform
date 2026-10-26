@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, Moon, Sun, UtensilsCrossed } from 'lucide-react'
-import { navItems } from '@/lib/nav'
+import { homeItem, workspaces, workspaceForPath, type NavItem, type WorkspaceId } from '@/lib/nav'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 import { useTheme } from '@/lib/theme'
@@ -14,6 +14,16 @@ export function AdminLayout() {
   const { theme, toggleTheme } = useTheme()
   const [approvalsBadge, setApprovalsBadge] = useState(0)
   const [blockedUploadsBadge, setBlockedUploadsBadge] = useState(0)
+  // Follows the URL; on the dashboard (which belongs to no workspace) it
+  // keeps showing whichever workspace was open last.
+  const [workspaceId, setWorkspaceId] = useState<WorkspaceId>(
+    () => workspaceForPath(location.pathname) ?? 'partners',
+  )
+
+  useEffect(() => {
+    const fromPath = workspaceForPath(location.pathname)
+    if (fromPath) setWorkspaceId(fromPath)
+  }, [location.pathname])
 
   // True pending count (signup + go-live review), refetched on every
   // navigation so it stays reasonably fresh as the admin moves around and
@@ -42,6 +52,14 @@ export function AdminLayout() {
     navigate('/login', { replace: true })
   }
 
+  const badges: Record<string, number> = {
+    '/approvals': approvalsBadge,
+    '/recent-activity': blockedUploadsBadge,
+  }
+  const visibleItems = (items: NavItem[]) =>
+    items.filter((item) => !item.superAdminOnly || admin?.role === 'SUPER_ADMIN')
+  const activeWorkspace = workspaces.find((ws) => ws.id === workspaceId) ?? workspaces[0]
+
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card px-3 py-5 shadow-[var(--shadow-sidebar)]">
@@ -55,48 +73,40 @@ export function AdminLayout() {
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {navItems
-            .filter((item) => !item.superAdminOnly || admin?.role === 'SUPER_ADMIN')
-            .map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all duration-150 hover:bg-secondary hover:text-foreground',
-                  isActive && 'bg-primary/10 text-primary font-medium',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span
-                    className={cn(
-                      'absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-primary transition-all duration-200',
-                      isActive ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0',
-                    )}
-                  />
-                  <item.icon
-                    className={cn(
-                      'size-4 transition-colors',
-                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
-                    )}
-                  />
-                  <span className="flex-1">{item.label}</span>
-                  {item.path === '/approvals' && approvalsBadge > 0 && (
-                    <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-                      {approvalsBadge > 9 ? '9+' : approvalsBadge}
-                    </span>
+          <SidebarLink item={homeItem} />
+          <div className="my-3 grid grid-cols-4 gap-1 rounded-xl bg-secondary/60 p-1">
+            {workspaces.map((ws) => {
+              const active = ws.id === workspaceId
+              const hasBadge = ws.items.some((item) => (badges[item.path] ?? 0) > 0)
+              return (
+                <button
+                  key={ws.id}
+                  type="button"
+                  title={ws.label}
+                  onClick={() => {
+                    setWorkspaceId(ws.id)
+                    const first = visibleItems(ws.items)[0]
+                    if (first) navigate(first.path)
+                  }}
+                  className={cn(
+                    'relative flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-medium text-muted-foreground transition-all duration-150 hover:text-foreground',
+                    active && 'bg-card text-primary shadow-sm',
                   )}
-                  {item.path === '/recent-activity' && blockedUploadsBadge > 0 && (
-                    <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-                      {blockedUploadsBadge > 9 ? '9+' : blockedUploadsBadge}
-                    </span>
+                >
+                  <ws.icon className="size-4" />
+                  {ws.label}
+                  {hasBadge && !active && (
+                    <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
                   )}
-                </>
-              )}
-            </NavLink>
+                </button>
+              )
+            })}
+          </div>
+          <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {activeWorkspace.label}
+          </div>
+          {visibleItems(activeWorkspace.items).map((item) => (
+            <SidebarLink key={item.path} item={item} badge={badges[item.path]} />
           ))}
         </nav>
         <div className="border-t border-border pt-3">
@@ -126,5 +136,43 @@ export function AdminLayout() {
         </div>
       </main>
     </div>
+  )
+}
+
+function SidebarLink({ item, badge = 0 }: { item: NavItem; badge?: number }) {
+  return (
+    <NavLink
+      to={item.path}
+      end={item.path === '/'}
+      className={({ isActive }) =>
+        cn(
+          'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all duration-150 hover:bg-secondary hover:text-foreground',
+          isActive && 'bg-primary/10 text-primary font-medium',
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <span
+            className={cn(
+              'absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-primary transition-all duration-200',
+              isActive ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0',
+            )}
+          />
+          <item.icon
+            className={cn(
+              'size-4 transition-colors',
+              isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
+            )}
+          />
+          <span className="flex-1">{item.label}</span>
+          {badge > 0 && (
+            <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+              {badge > 9 ? '9+' : badge}
+            </span>
+          )}
+        </>
+      )}
+    </NavLink>
   )
 }

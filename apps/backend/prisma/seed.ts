@@ -115,6 +115,13 @@ const facilities = [
   ['Large Groups', 'مجموعات كبيرة'],
   ['Scenic View', 'إطلالة مميزة'],
   ['Quick Bite', 'وجبة سريعة'],
+  // Matched on by the customer app's moods (see the Mood model).
+  ['Private Room', 'غرفة خاصة'],
+  ['River View', 'إطلالة على النهر'],
+  ['Rooftop', 'سطح'],
+  ['Big Screen', 'شاشة كبيرة'],
+  ['Power Sockets', 'مقابس كهرباء'],
+  ['Quiet', 'هادئ'],
 ];
 
 const eventTypes: [string, string, string][] = [

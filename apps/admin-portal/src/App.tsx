@@ -19,6 +19,14 @@ import { EventBookingsPage } from '@/pages/EventBookingsPage'
 import { PublishReviewPage } from '@/pages/PublishReviewPage'
 import { ContentModerationPage } from '@/pages/ContentModerationPage'
 import { FeatureFlagsPage } from '@/pages/FeatureFlagsPage'
+import { CustomersPage } from '@/pages/CustomersPage'
+import { CustomerReportsPage } from '@/pages/CustomerReportsPage'
+import { CustomerSupportPage } from '@/pages/CustomerSupportPage'
+import { CustomerCampaignsPage } from '@/pages/CustomerCampaignsPage'
+import { ReviewerLevelsPage } from '@/pages/ReviewerLevelsPage'
+import { HealthyTagsPage } from '@/pages/HealthyTagsPage'
+import { HomeLayoutPage } from '@/pages/HomeLayoutPage'
+import { MoodsPage } from '@/pages/MoodsPage'
 
 function App() {
   return (
@@ -32,6 +40,14 @@ function App() {
           <Route path="restaurants" element={<RestaurantsPage />} />
           <Route path="restaurants/:id/publish-review" element={<PublishReviewPage />} />
           <Route path="chains" element={<ChainsPage />} />
+          <Route path="customers" element={<CustomersPage />} />
+          <Route path="customer-reports" element={<CustomerReportsPage />} />
+          <Route path="customer-support" element={<CustomerSupportPage />} />
+          <Route path="customer-campaigns" element={<CustomerCampaignsPage />} />
+          <Route path="reviewer-levels" element={<ReviewerLevelsPage />} />
+          <Route path="healthy-tags" element={<HealthyTagsPage />} />
+          <Route path="home-layout" element={<HomeLayoutPage />} />
+          <Route path="moods" element={<MoodsPage />} />
           <Route path="master-data" element={<MasterDataPage />} />
           <Route path="locations" element={<LocationsPage />} />
           <Route path="reviews" element={<ReviewsPage />} />
