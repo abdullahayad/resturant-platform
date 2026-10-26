@@ -128,7 +128,9 @@ export const PRIVACY_POLICY: LegalSection[] = [
       'hours, menu, photos, and any events or promotions you create. Verification documents: photos of your ' +
       'business license or inspection approval, if you choose to submit them. These are stored privately and ' +
       'are only visible to platform administrators. Device location: only when you tap the "use my location" ' +
-      'button to place your restaurant on the map. Location is never collected in the background. Device and ' +
+      'button to place your restaurant on the map. Location is never collected in the background. Camera: only ' +
+      'while you are on the "Scan Visit" screen, to read a customer\'s visit QR code. No photos or video are ' +
+      'taken or stored - only the code itself is sent to record the visit. Device and ' +
       'usage information: actions taken in the partner dashboard (such as sign-ins and content you publish), ' +
       'a push notification token if you allow notifications, and crash and error reports, which include your ' +
       'device model, operating system, and app version.',

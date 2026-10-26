@@ -12,6 +12,7 @@ import enAdvertising from './locales/en/advertising.json';
 import enGallery from './locales/en/gallery.json';
 import enChefManagement from './locales/en/chefManagement.json';
 import enChefTable from './locales/en/chefTable.json';
+import enVisitScan from './locales/en/visitScan.json';
 import enReviews from './locales/en/reviews.json';
 import enAnnouncements from './locales/en/announcements.json';
 import enSettings from './locales/en/settings.json';
@@ -30,6 +31,7 @@ import arAdvertising from './locales/ar/advertising.json';
 import arGallery from './locales/ar/gallery.json';
 import arChefManagement from './locales/ar/chefManagement.json';
 import arChefTable from './locales/ar/chefTable.json';
+import arVisitScan from './locales/ar/visitScan.json';
 import arReviews from './locales/ar/reviews.json';
 import arAnnouncements from './locales/ar/announcements.json';
 import arSettings from './locales/ar/settings.json';
@@ -58,6 +60,7 @@ i18next.use(initReactI18next).init({
       gallery: enGallery,
       chefManagement: enChefManagement,
       chefTable: enChefTable,
+      visitScan: enVisitScan,
       reviews: enReviews,
       announcements: enAnnouncements,
       settings: enSettings,
@@ -77,6 +80,7 @@ i18next.use(initReactI18next).init({
       gallery: arGallery,
       chefManagement: arChefManagement,
       chefTable: arChefTable,
+      visitScan: arVisitScan,
       reviews: arReviews,
       announcements: arAnnouncements,
       settings: arSettings,

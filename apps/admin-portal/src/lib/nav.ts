@@ -25,6 +25,7 @@ import {
   Trophy,
   LayoutTemplate,
   Smile,
+  Smartphone,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -34,7 +35,7 @@ export interface NavItem {
   superAdminOnly?: boolean
 }
 
-export type WorkspaceId = 'partners' | 'customers' | 'content' | 'platform'
+export type WorkspaceId = 'partners' | 'customers' | 'app' | 'content' | 'platform'
 
 // The sidebar shows one workspace at a time instead of every page in one
 // long list - each workspace is a short group of related pages. Which
@@ -74,8 +75,19 @@ export const workspaces: Workspace[] = [
       { label: 'Customers', path: '/customers', icon: Users },
       { label: 'Reported & Blocked', path: '/customer-reports', icon: Flag },
       { label: 'Customer Support', path: '/customer-support', icon: LifeBuoy },
-      { label: 'Push Campaigns', path: '/customer-campaigns', icon: Send },
       { label: 'Levels & Critics', path: '/reviewer-levels', icon: Trophy },
+    ],
+  },
+  {
+    // Everything that shapes what customers see in the customer app itself,
+    // kept apart from Content (moderation and partner-facing marketing).
+    id: 'app',
+    label: 'App',
+    icon: Smartphone,
+    items: [
+      { label: 'Customer Home Layout', path: '/home-layout', icon: LayoutTemplate },
+      { label: 'Customer Moods', path: '/moods', icon: Smile },
+      { label: 'Push Campaigns', path: '/customer-campaigns', icon: Send },
     ],
   },
   {
@@ -83,8 +95,6 @@ export const workspaces: Workspace[] = [
     label: 'Content',
     icon: Megaphone,
     items: [
-      { label: 'Customer Home Layout', path: '/home-layout', icon: LayoutTemplate },
-      { label: 'Customer Moods', path: '/moods', icon: Smile },
       { label: 'Content Moderation', path: '/content-moderation', icon: ShieldAlert },
       { label: 'Reviews Moderation', path: '/reviews', icon: MessageSquareWarning },
       { label: 'Promotions', path: '/promotions', icon: Percent },

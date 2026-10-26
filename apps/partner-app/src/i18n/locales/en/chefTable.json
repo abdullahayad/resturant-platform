@@ -16,7 +16,7 @@
   "partySize": "Party of {{size}}",
   "confirm": "Confirm",
   "cancel": "Cancel",
-  "markCompleted": "Mark Completed",
+  "markCompleted": "Customer arrived",
   "noReservationsYet": "No reservation requests yet.",
   "tierBadge": "⭐ {{labelEn}} · {{labelAr}} guest",
   "createEvent": "Create Event",

@@ -9,7 +9,7 @@ import './src/i18n';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { getStoredSession, setStoredSession, type StoredSession } from './src/lib/session/storage';
 import { api, setUnauthorizedHandler } from './src/lib/api';
-import { FLAGGABLE_KEYS } from './src/lib/nav';
+import { FLAGGABLE_KEYS, OFF_UNLESS_ENABLED_KEYS } from './src/lib/nav';
 import { AuthLandingScreen } from './src/screens/auth/AuthLandingScreen';
 import { RegisterRestaurantScreen } from './src/screens/auth/RegisterRestaurantScreen';
 import { SignInScreen } from './src/screens/auth/SignInScreen';
@@ -79,7 +79,7 @@ function AppContent() {
       .then((keys) => { if (!cancelled) setEnabledKeys(keys); })
       // Fail open, not closed — a network hiccup here should never lock a
       // restaurant out of sections they'd normally see.
-      .catch(() => { if (!cancelled) setEnabledKeys([...FLAGGABLE_KEYS]); });
+      .catch(() => { if (!cancelled) setEnabledKeys(FLAGGABLE_KEYS.filter((k) => !OFF_UNLESS_ENABLED_KEYS.includes(k))); });
     return () => {
       cancelled = true;
     };

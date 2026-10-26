@@ -1,0 +1,15 @@
+{
+  "title": "Scan Visit",
+  "subtitle": "Scan the customer's “My visit code” from the LiGETA app to record their visit.",
+  "pointCamera": "Point the camera at the customer's code",
+  "checking": "Checking…",
+  "recorded": "Visit recorded",
+  "levelAndVisits": "Level {{level}} · {{visits}} verified visits",
+  "alreadyToday": "Already counted today - one visit per day per restaurant.",
+  "notRecognised": "Code not recognised",
+  "notRecognisedHint": "Ask the customer to open “My visit code” again - the code changes every minute.",
+  "scanNext": "Scan next",
+  "permissionNeeded": "The camera is needed to scan customers' visit codes.",
+  "allowCamera": "Allow camera",
+  "phoneOnly": "Scanning works in the phone app. Open LiGETA Restaurant on a phone to scan visit codes."
+}

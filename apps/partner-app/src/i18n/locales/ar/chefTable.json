@@ -16,7 +16,7 @@
   "partySize": "مجموعة من {{size}}",
   "confirm": "تأكيد",
   "cancel": "إلغاء",
-  "markCompleted": "وضع علامة كمكتمل",
+  "markCompleted": "وصل الزبون",
   "noReservationsYet": "لا توجد طلبات حجز بعد.",
   "tierBadge": "⭐ ضيف {{labelEn}} · {{labelAr}}",
   "createEvent": "إنشاء فعالية",

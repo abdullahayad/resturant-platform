@@ -74,7 +74,7 @@ export function AdminLayout() {
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           <SidebarLink item={homeItem} />
-          <div className="my-3 grid grid-cols-4 gap-1 rounded-xl bg-secondary/60 p-1">
+          <div className="my-3 grid grid-cols-5 gap-1 rounded-xl bg-secondary/60 p-1">
             {workspaces.map((ws) => {
               const active = ws.id === workspaceId
               const hasBadge = ws.items.some((item) => (badges[item.path] ?? 0) > 0)

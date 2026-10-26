@@ -546,6 +546,15 @@ export type ActivityItem =
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 
+export interface VisitScanResult {
+  customerName: string;
+  level: number;
+  visitCount: number;
+  // True when this customer was already counted at this restaurant today -
+  // the scan is accepted but doesn't add a second visit.
+  alreadyToday: boolean;
+}
+
 export interface ReservationItem {
   id: string;
   eventId: string;
@@ -919,6 +928,11 @@ export const api = {
   // accurate day counts across a month, not just a page of them.
   myReservations: (token: string) => get<ReservationItem[]>('/restaurants/me/reservations', token),
   pendingReservationsCount: (token: string) => get<{ count: number }>('/restaurants/me/reservations/pending-count', token),
+  // Records a verified visit from a customer's "My visit code" QR. The
+  // backend side arrives with customer accounts; until then the screen that
+  // calls this is hidden behind the off-by-default "visitScan" flag.
+  scanVisit: (token: string, code: string) => send<VisitScanResult>('POST', '/visits/scan', token, { code }),
+
   updateReservationStatus: (token: string, id: string, status: ReservationStatus) =>
     send<ReservationItem>('PATCH', `/restaurants/me/reservations/${id}`, token, { status }),
 
