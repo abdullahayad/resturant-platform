@@ -2,7 +2,7 @@
   "name": "restaurant-platform",
   "private": true,
   "version": "0.0.1",
-  "description": "Restaurant discovery platform (Iraq) - Partner tablet app + Admin control portal + shared backend",
+  "description": "Restaurant discovery platform (Iraq) - Partner tablet app + Customer app + Admin control portal + shared backend",
   "workspaces": [
     "apps/backend",
     "apps/admin-portal",
@@ -13,7 +13,8 @@
     "dev:admin": "npm run dev --workspace apps/admin-portal",
     "dev:partner": "npm --prefix apps/partner-app run start",
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "dev:customer": "npm --prefix apps/customer-app run start"
   },
   "allowScripts": {
     "@prisma/engines@7.9.1": true,
