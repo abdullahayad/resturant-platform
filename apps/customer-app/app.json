@@ -46,6 +46,13 @@
     },
     "runtimeVersion": {
       "policy": "appVersion"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5aef0afc-2bf7-43d2-84ba-1fffef46849d"
+      }
+    },
+    "owner": "abdullahayad90"
   }
 }
