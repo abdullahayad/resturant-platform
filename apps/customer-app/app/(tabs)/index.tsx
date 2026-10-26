@@ -3,10 +3,10 @@ import { ChevronDown, MapPin, Search } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
 import { api, type Mood, type MoodGroup } from '../../src/lib/api';
-import { colors } from '../../src/theme';
+import { colors, TAB_BAR_SPACE } from '../../src/theme';
 
 // Home shows 9 moods; the 10th tile opens all of them (matches the admin
 // portal's Customer Moods page, which explains the same rule).
@@ -16,6 +16,7 @@ const TILE_COLORS = ['#FDF0E6', '#E6EDFC', '#F5DDE3', '#F6E3D3', '#F8EBC6', '#E4
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [moods, setMoods] = useState<Mood[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,7 +81,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + TAB_BAR_SPACE }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.orange} />}
       >
         <View style={styles.header}>
@@ -159,7 +160,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.peach },
-  scroll: { backgroundColor: colors.background, paddingBottom: 120, flexGrow: 1 },
+  scroll: { backgroundColor: colors.background, flexGrow: 1 },
   header: { backgroundColor: colors.peach, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18, gap: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   location: { alignSelf: 'flex-start', minHeight: 44 },

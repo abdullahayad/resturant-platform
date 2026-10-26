@@ -26,3 +26,8 @@ export const fonts = {
   semibold: 'IBMPlexSansArabic_600SemiBold',
   bold: 'IBMPlexSansArabic_700Bold',
 };
+
+// Space a scrolling screen leaves at the bottom (on top of the safe-area
+// inset) so its last item isn't hidden behind the floating tab bar:
+// bar height + its gap above the system bar + breathing room.
+export const TAB_BAR_SPACE = 66 + 12 + 20;

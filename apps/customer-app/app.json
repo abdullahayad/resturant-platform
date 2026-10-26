@@ -21,6 +21,8 @@
       "package": "com.ligeta.app",
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
@@ -53,6 +55,9 @@
         "projectId": "5aef0afc-2bf7-43d2-84ba-1fffef46849d"
       }
     },
-    "owner": "abdullahayad90"
+    "owner": "abdullahayad90",
+    "updates": {
+      "url": "https://u.expo.dev/5aef0afc-2bf7-43d2-84ba-1fffef46849d"
+    }
   }
 }
