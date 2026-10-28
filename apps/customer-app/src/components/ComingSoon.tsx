@@ -6,7 +6,7 @@ import { AppText } from './AppText';
 
 // Holds a tab's place until its real screen is built, so the bottom bar
 // can already be navigated end to end.
-export function ComingSoon({ section }: { section: 'offers' | 'events' | 'profile' }) {
+export function ComingSoon({ section }: { section: 'profile' }) {
   const { t } = useTranslation();
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

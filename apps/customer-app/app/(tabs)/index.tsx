@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
-import { ChevronDown, MapPin, Search } from 'lucide-react-native';
+import { ChevronDown, MapPin, Search, Star, Utensils } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
-import { api, type Mood, type MoodGroup } from '../../src/lib/api';
+import { api, type Mood, type MoodGroup, type RestaurantCard } from '../../src/lib/api';
 import { colors, TAB_BAR_SPACE } from '../../src/theme';
 
 // Home shows 9 moods; the 10th tile opens all of them (matches the admin
@@ -21,12 +21,14 @@ export default function HomeScreen() {
   const [failed, setFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [allOpen, setAllOpen] = useState(false);
+  const [featured, setFeatured] = useState<RestaurantCard[]>([]);
 
   // Pull-to-refresh only; the first load happens in the effect below.
   const load = useCallback(async () => {
     try {
       setMoods(await api.moods());
       setFailed(false);
+      setFeatured(await api.featured());
     } catch {
       setFailed(true);
     }
@@ -42,6 +44,12 @@ export default function HomeScreen() {
       .catch(() => {
         if (!cancelled) setFailed(true);
       });
+    api
+      .featured()
+      .then((f) => {
+        if (!cancelled) setFeatured(f);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -130,6 +138,59 @@ export default function HomeScreen() {
             )}
           </View>
         )}
+
+        {featured.length > 0 && (
+          <>
+            <AppText weight="bold" style={styles.sectionTitle}>
+              {t('home.dontMiss')}
+            </AppText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
+              {featured.map((r) => (
+                <Pressable
+                  key={r.id}
+                  style={styles.featured}
+                  onPress={() => router.push({ pathname: '/restaurant/[id]', params: { id: r.id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel={i18n.language === 'ar' ? r.nameAr : r.nameEn}
+                >
+                  {r.coverPhotoUrl ? (
+                    <Image source={{ uri: r.coverPhotoUrl }} style={styles.featuredPhoto} resizeMode="cover" />
+                  ) : (
+                    <View style={[styles.featuredPhoto, styles.featuredNoPhoto]}>
+                      <Utensils size={30} color={colors.orange} strokeWidth={1.6} />
+                    </View>
+                  )}
+                  <View style={styles.sponsored}>
+                    <AppText weight="bold" style={styles.sponsoredText}>
+                      {t('home.sponsored')}
+                    </AppText>
+                  </View>
+                  <View style={styles.featuredBody}>
+                    <AppText weight="bold" style={styles.featuredName} numberOfLines={1}>
+                      {i18n.language === 'ar' ? r.nameAr : r.nameEn}
+                    </AppText>
+                    <View style={styles.featuredMeta}>
+                      {r.rating != null && (
+                        <>
+                          <Star size={12} color={colors.orange} fill={colors.orange} />
+                          <AppText weight="semibold" style={styles.featuredMetaText}>
+                            {r.rating.toFixed(1)}
+                          </AppText>
+                        </>
+                      )}
+                      <AppText style={styles.featuredMetaText} numberOfLines={1}>
+                        {r.foodCategories
+                          .slice(0, 2)
+                          .map((f) => (i18n.language === 'ar' ? f.nameAr : f.nameEn))
+                          .join(' · ')}
+                      </AppText>
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </>
+        )}
       </ScrollView>
 
       <Modal visible={allOpen} transparent animationType="slide" onRequestClose={() => setAllOpen(false)}>
@@ -186,6 +247,16 @@ const styles = StyleSheet.create({
   moreCount: { fontSize: 18, color: colors.blue },
   skeleton: { backgroundColor: colors.surface },
   error: { marginHorizontal: 16, fontSize: 14, color: colors.muted },
+  featuredRow: { paddingHorizontal: 16, gap: 12 },
+  featured: { width: 230, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  featuredPhoto: { width: '100%', height: 130, backgroundColor: colors.surface },
+  featuredNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.peach },
+  sponsored: { position: 'absolute', top: 8, start: 8, backgroundColor: 'rgba(31,22,64,0.78)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  sponsoredText: { color: colors.white, fontSize: 10.5 },
+  featuredBody: { padding: 10, gap: 2 },
+  featuredName: { fontSize: 15 },
+  featuredMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  featuredMetaText: { fontSize: 12, color: colors.muted, flexShrink: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(31,22,64,0.45)' },
   sheet: {
     maxHeight: '75%',

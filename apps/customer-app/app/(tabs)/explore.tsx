@@ -233,7 +233,12 @@ export default function ExploreScreen() {
         ref={listRef}
         data={current?.items ?? []}
         keyExtractor={(r) => r.id}
-        renderItem={({ item }) => <RestaurantCard restaurant={item} />}
+        renderItem={({ item }) => (
+          <RestaurantCard
+            restaurant={item}
+            onPress={() => router.push({ pathname: '/restaurant/[id]', params: { id: item.id } })}
+          />
+        )}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + TAB_BAR_SPACE }]}
         ListEmptyComponent={empty}
         ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.orange} style={styles.more} /> : null}

@@ -22,12 +22,12 @@
       "TIME": "By time",
       "FOOD": "By food",
       "SEASONAL": "Seasonal"
-    }
+    },
+    "dontMiss": "Don't miss these",
+    "sponsored": "Sponsored"
   },
   "comingSoon": {
     "title": "Coming soon",
-    "offers": "Discounts and food for 5,000 IQD or less",
-    "events": "Chef's tables, buffets and live music",
     "profile": "Your account, level and the places you follow"
   },
   "explore": {
@@ -57,5 +57,97 @@
     "errorTitle": "Connection problem",
     "errorText": "Check your internet and pull to refresh.",
     "clearAll": "Clear all filters"
+  },
+  "days": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
+  "dates": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "am": "AM",
+    "pm": "PM"
+  },
+  "events": {
+    "pricePerPerson": "{{price}} IQD per person",
+    "free": "Free entry",
+    "book": "Book",
+    "all": "All",
+    "allTypes": "All types",
+    "emptyTitle": "No events on this day",
+    "emptyText": "Try another day or type."
+  },
+  "booking": {
+    "guests": "Guests",
+    "fewer": "Fewer",
+    "more": "More",
+    "seatsLeft": "{{n}} seats left",
+    "soldOut": "Fully booked",
+    "name": "Name",
+    "phone": "Mobile number",
+    "notes": "Notes (optional)",
+    "notesHint": "e.g. a high chair",
+    "total": "Total {{price}} IQD - paid at the restaurant",
+    "send": "Send booking request",
+    "nameNeeded": "Please enter your name",
+    "phoneInvalid": "Please enter a valid Iraqi mobile number",
+    "failed": "The request didn't go through. Check your internet and try again.",
+    "sentTitle": "Request sent to the restaurant",
+    "sentText": "The restaurant will confirm and contact you on your number.",
+    "done": "Done"
+  },
+  "restaurant": {
+    "notFound": "This restaurant is not available right now",
+    "back": "Back",
+    "share": "Share",
+    "partOf": "Part of {{chain}}",
+    "events": "Events",
+    "sections": {
+      "menu": "Menu",
+      "photos": "Photos",
+      "reviews": "Reviews",
+      "info": "Info"
+    },
+    "noMenu": "The restaurant hasn't added its menu yet.",
+    "mostOrdered": "Most ordered",
+    "otherDishes": "Other dishes",
+    "noPhotos": "No photos yet.",
+    "menuPhotos": "Menu photos",
+    "noReviews": "No reviews yet.",
+    "ownerReply": "Reply from the restaurant",
+    "hours": "Opening hours",
+    "facilities": "Facilities",
+    "chefs": "Chefs",
+    "chefRole": {
+      "HEAD_CHEF": "Head chef",
+      "SOUS_CHEF": "Sous chef"
+    },
+    "years": "{{n}} years of experience",
+    "signature": "Signature dishes",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "directions": "Directions"
+  },
+  "offers": {
+    "tabs": {
+      "deals": "Deals",
+      "budget": "5,000 or less"
+    },
+    "noDeals": "No offers right now",
+    "noDealsText": "New offers will show up here.",
+    "budgetIntro": "Dishes at 5,000 IQD or less, cheapest first.",
+    "noBudget": "No dishes at this price yet",
+    "noBudgetText": "They will show up here as restaurants add them.",
+    "percentOff": "{{n}}% off",
+    "amountOff": "{{price}} off",
+    "everyDay": "Every {{day}}",
+    "until": "Until {{date}}",
+    "liveNow": "On now",
+    "wholeMenu": "On the whole menu"
   }
 }
