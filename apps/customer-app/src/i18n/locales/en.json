@@ -26,9 +26,36 @@
   },
   "comingSoon": {
     "title": "Coming soon",
-    "explore": "Search, filters and the map",
     "offers": "Discounts and food for 5,000 IQD or less",
     "events": "Chef's tables, buffets and live music",
     "profile": "Your account, level and the places you follow"
+  },
+  "explore": {
+    "search": "Search",
+    "clearSearch": "Clear search",
+    "openNow": "Open now",
+    "closed": "Closed",
+    "offersOnly": "Offers",
+    "offer": "Offer",
+    "sponsored": "Sponsored",
+    "new": "New",
+    "km": "{{km}} km",
+    "priceFrom": "From {{price}} IQD",
+    "reviews": "{{n}} reviews",
+    "results": "{{n}} restaurants",
+    "mood": "Mood",
+    "clearMood": "Clear mood",
+    "sortBy": "Sort by",
+    "sort": {
+      "recommended": "Recommended",
+      "rating": "Top rated",
+      "newest": "Newest",
+      "nearest": "Nearest"
+    },
+    "emptyTitle": "No restaurants found",
+    "emptyText": "Try another word or remove some filters.",
+    "errorTitle": "Connection problem",
+    "errorText": "Check your internet and pull to refresh.",
+    "clearAll": "Clear all filters"
   }
 }

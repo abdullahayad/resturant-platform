@@ -66,7 +66,7 @@ export default function HomeScreen() {
       accessibilityLabel={name(m)}
       onPress={() => {
         setAllOpen(false);
-        router.push('/explore');
+        router.push({ pathname: '/explore', params: { moodId: m.id, moodName: name(m) } });
       }}
     >
       <View style={[styles.moodIcon, { backgroundColor: TILE_COLORS[index % TILE_COLORS.length] }]}>

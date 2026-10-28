@@ -108,4 +108,6 @@ export const api = {
   restaurants: (query: DiscoverQuery = {}) =>
     get<Paginated<RestaurantCard>>('/discover/restaurants' + toQueryString(query)),
   featured: () => get<RestaurantCard[]>('/discover/featured'),
+  // Cuisine chips on Explore.
+  foodCategories: () => get<NamedRef[]>('/master-data/food-categories'),
 };
