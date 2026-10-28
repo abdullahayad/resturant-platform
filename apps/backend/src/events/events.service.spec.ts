@@ -24,7 +24,7 @@ describe('EventsService', () => {
     recurringDaysOfWeek: [5], // Friday
     capacity: 10,
     titleEn: 'Live Music Night',
-    restaurant: { status: 'APPROVED', notifyNewBooking: false },
+    restaurant: { status: 'APPROVED', publishStatus: 'APPROVED', notifyNewBooking: false },
   };
 
   const bookableMultiDayRecurringEvent = {
@@ -42,7 +42,7 @@ describe('EventsService', () => {
     recurringDaysOfWeek: [],
     capacity: 5,
     titleEn: 'Grand Opening',
-    restaurant: { status: 'APPROVED', notifyNewBooking: false },
+    restaurant: { status: 'APPROVED', publishStatus: 'APPROVED', notifyNewBooking: false },
   };
 
   beforeEach(async () => {
@@ -160,9 +160,23 @@ describe('EventsService', () => {
     it('throws NotFoundException for an event on a non-approved restaurant', async () => {
       prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce({
         ...bookableOneOffEvent,
-        restaurant: { status: 'SUSPENDED', notifyNewBooking: false },
+        restaurant: { status: 'SUSPENDED', publishStatus: 'APPROVED', notifyNewBooking: false },
       });
 
+      await expect(service.availability(restaurantId, eventId, '2026-09-10')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException for an unpublished restaurant or a hidden event', async () => {
+      prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce({
+        ...bookableOneOffEvent,
+        restaurant: { status: 'APPROVED', publishStatus: 'PENDING', notifyNewBooking: false },
+      });
+      await expect(service.availability(restaurantId, eventId, '2026-09-10')).rejects.toThrow(NotFoundException);
+
+      prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce({
+        ...bookableOneOffEvent,
+        moderationStatus: 'HIDDEN',
+      });
       await expect(service.availability(restaurantId, eventId, '2026-09-10')).rejects.toThrow(NotFoundException);
     });
   });

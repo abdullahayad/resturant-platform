@@ -250,14 +250,22 @@ export class EventsService {
     return reservations.reduce((sum, r) => sum + r.partySize, 0);
   }
 
-  // A publicly bookable event must belong to an active restaurant that is
-  // still APPROVED — mirrors reviews.service.ts's check for public writes.
+  // A publicly bookable event must belong to a live restaurant (APPROVED
+  // and published, same gate as the customer app's lists) and must not
+  // have been hidden by moderation.
   private async findBookableEvent(restaurantId: string, eventId: string) {
     const event = await this.prisma.db.restaurantEvent.findUnique({
       where: { id: eventId },
-      include: { restaurant: { select: { status: true, notifyNewBooking: true } } },
+      include: { restaurant: { select: { status: true, publishStatus: true, notifyNewBooking: true } } },
     });
-    if (!event || event.restaurantId !== restaurantId || !event.isActive || event.restaurant.status !== 'APPROVED') {
+    if (
+      !event ||
+      event.restaurantId !== restaurantId ||
+      !event.isActive ||
+      event.moderationStatus === 'HIDDEN' ||
+      event.restaurant.status !== 'APPROVED' ||
+      event.restaurant.publishStatus !== 'APPROVED'
+    ) {
       throw new NotFoundException('Event not found');
     }
     return event;

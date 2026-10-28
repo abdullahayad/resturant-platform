@@ -12,9 +12,9 @@ const day = (dayOfWeek: number, openTime: string | null, closeTime: string | nul
 
 describe('open-now', () => {
   it('reads the clock in Baghdad time, not the server time', () => {
-    expect(baghdadClock(at('2026-10-28T09:30:00Z'))).toEqual({ day: 3, time: '12:30' });
+    expect(baghdadClock(at('2026-10-28T09:30:00Z'))).toEqual({ day: 3, time: '12:30', date: '2026-10-28' });
     // 22:30 UTC Wednesday is already 01:30 Thursday in Baghdad.
-    expect(baghdadClock(at('2026-10-28T22:30:00Z'))).toEqual({ day: 4, time: '01:30' });
+    expect(baghdadClock(at('2026-10-28T22:30:00Z'))).toEqual({ day: 4, time: '01:30', date: '2026-10-29' });
   });
 
   it('is open inside the day window and closed outside it', () => {
