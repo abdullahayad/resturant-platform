@@ -1,13 +1,17 @@
 import { useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import { CheckCircle2, ScanLine, XCircle } from 'lucide-react-native';
+import { CheckCircle2, ScanLine, X, XCircle } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
 import { api, type VisitScanResult } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
+
+// Same fixed-position overlay as ReviewQrModal (see RestaurantPreviewModal
+// for why it's Platform-conditional rather than a bare 'fixed').
+const backdropStyle: ViewStyle = { position: Platform.OS === 'web' ? ('fixed' as ViewStyle['position']) : 'absolute' };
 
 type ScanState =
   | { kind: 'scanning' }
@@ -16,9 +20,10 @@ type ScanState =
   | { kind: 'failed' };
 
 // Staff scan the "My visit code" QR a customer shows in the customer app,
-// which records a verified visit. Hidden behind the off-by-default
-// "visitScan" feature flag until the customer app (and its accounts) launch.
-export function VisitScanScreen() {
+// which records a verified visit. Opened from the Reviews screen, next to
+// the restaurant's own review QR - and only offered when the off-by-default
+// "visitScan" feature flag is on (until the customer app's accounts launch).
+export function VisitScanModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('visitScan');
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -46,15 +51,20 @@ export function VisitScanScreen() {
   };
 
   const header = (
-    <View>
-      <Text style={styles.title}>{t('title')}</Text>
-      <Text style={styles.subtitle}>{t('subtitle')}</Text>
+    <View style={styles.headerRow}>
+      <View style={styles.flex1}>
+        <Text style={styles.title}>{t('title')}</Text>
+        <Text style={styles.subtitle}>{t('subtitle')}</Text>
+      </View>
+      <Pressable onPress={onClose} style={styles.closeButton} accessibilityRole="button" accessibilityLabel={t('close')}>
+        <X size={22} color={colors.foreground} />
+      </Pressable>
     </View>
   );
 
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, backdropStyle]}>
         {header}
         <View style={styles.notice}>
           <Text style={styles.noticeText}>{t('phoneOnly')}</Text>
@@ -63,11 +73,11 @@ export function VisitScanScreen() {
     );
   }
 
-  if (!permission) return <View style={styles.container}>{header}</View>;
+  if (!permission) return <View style={[styles.container, backdropStyle]}>{header}</View>;
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, backdropStyle]}>
         {header}
         <View style={styles.notice}>
           <Text style={styles.noticeText}>{t('permissionNeeded')}</Text>
@@ -80,7 +90,7 @@ export function VisitScanScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, backdropStyle]}>
       {header}
       {state.kind === 'done' || state.kind === 'failed' ? (
         <View style={[styles.result, state.kind === 'done' ? styles.resultOk : styles.resultFail]}>
@@ -123,7 +133,29 @@ export function VisitScanScreen() {
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: { flex: 1, gap: 16 },
+  container: {
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: colors.background,
+    padding: 16,
+    paddingTop: 48,
+    gap: 16,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  flex1: { flex: 1 },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   subtitle: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },
   notice: {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, QrCode, type LucideIcon } from 'lucide-react-native';
+import { Sparkles, UtensilsCrossed, Bell, Users, Building2, Star, QrCode, ScanLine, type LucideIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
@@ -15,6 +15,7 @@ import { useAuth } from '../lib/AuthContext';
 import { api, type Review, type ReviewSummary } from '../lib/api';
 import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
 import { ReviewQrModal } from '../components/ReviewQrModal';
+import { VisitScanModal } from '../components/VisitScanModal';
 import { radii, cardShadow } from '../theme/tokens';
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -32,11 +33,14 @@ export function CustomerReviewsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [scanVisible, setScanVisible] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [starFilter, setStarFilter] = useState<number | null>(null);
   const canSuggestReplies = enabledKeys.includes('aiReviewReplies');
+  // Off by default until the customer app (whose visit codes this scans) launches.
+  const canScanVisits = enabledKeys.includes('visitScan');
   // Tracks which drafts came from "Suggest a reply" and haven't been hand-
   // edited since, so the hint disappears the moment the owner starts typing.
   const [aiDraftIds, setAiDraftIds] = useState<Set<string>>(new Set());
@@ -222,6 +226,21 @@ export function CustomerReviewsScreen() {
             </Pressable>
           </View>
 
+          {canScanVisits && (
+            <View style={styles.qrCard}>
+              <View style={styles.qrCardIcon}>
+                <ScanLine size={20} color={colors.primary} />
+              </View>
+              <View style={styles.flex1}>
+                <Text style={styles.qrCardTitle}>{t('scanCardTitle')}</Text>
+                <Text style={styles.qrCardBody}>{t('scanCardBody')}</Text>
+              </View>
+              <Pressable style={styles.qrCardButton} onPress={() => setScanVisible(true)}>
+                <Text style={styles.qrCardButtonText}>{t('scanCardButton')}</Text>
+              </Pressable>
+            </View>
+          )}
+
           {loadError && <Text style={styles.error}>{loadError}</Text>}
 
           {summary && (
@@ -318,6 +337,7 @@ export function CustomerReviewsScreen() {
       ListEmptyComponent={loading ? <LoadingState /> : !loadError ? <EmptyState icon={Star} message={t('noReviewsMatchFilter')} /> : null}
     />
     {qrModalVisible && <ReviewQrModal restaurantId={restaurant.id} onClose={() => setQrModalVisible(false)} />}
+    {scanVisible && <VisitScanModal onClose={() => setScanVisible(false)} />}
     </>
   );
 }

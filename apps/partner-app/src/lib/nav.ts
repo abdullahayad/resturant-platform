@@ -14,7 +14,6 @@ import {
   BarChart3,
   Inbox,
   Settings,
-  ScanLine,
 } from 'lucide-react-native';
 
 export type ScreenKey =
@@ -26,7 +25,6 @@ export type ScreenKey =
   | 'chefTable'
   | 'reviews'
   | 'reservations'
-  | 'visitScan'
   | 'analytics'
   | 'promotions'
   | 'advertising'
@@ -54,7 +52,6 @@ export const navItems: NavItem[] = [
   { key: 'chefTable', labelEn: 'Chef Table & Events', icon: CalendarClock, managerOrOwnerOnly: true },
   { key: 'reviews', labelEn: 'Customer Reviews', icon: Star },
   { key: 'reservations', labelEn: 'Reservations', icon: CalendarCheck, managerOrOwnerOnly: true },
-  { key: 'visitScan', labelEn: 'Scan Visit', icon: ScanLine },
   { key: 'analytics', labelEn: 'Deep Analytics', icon: BarChart3, managerOrOwnerOnly: true },
   { key: 'announcements', labelEn: 'Inbox', icon: Inbox },
   { key: 'settings', labelEn: 'Settings & Staff', icon: Settings },
@@ -73,17 +70,10 @@ export const FLAGGABLE_KEYS: ScreenKey[] = [
   'chefTable',
   'reviews',
   'reservations',
-  'visitScan',
   'analytics',
   'announcements',
 ];
 const flaggableKeySet = new Set<ScreenKey>(FLAGGABLE_KEYS);
-
-// Flaggable sections that stay hidden unless the backend explicitly says
-// they're on - used when the flags can't be loaded, where every other
-// section falls back to visible. visitScan has nothing to scan until the
-// customer app launches.
-export const OFF_UNLESS_ENABLED_KEYS: ScreenKey[] = ['visitScan'];
 
 /** Shared across Sidebar/NavRail/BottomTabBar so the role + rollout filters live in one place. */
 export function getVisibleNavItems(role?: StaffRole, enabledKeys?: string[]): NavItem[] {

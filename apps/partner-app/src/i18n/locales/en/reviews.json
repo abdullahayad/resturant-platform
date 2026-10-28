@@ -23,6 +23,9 @@
   "qrCardTitle": "Get More Reviews",
   "qrCardBody": "Print this QR code on your tables so customers can leave a review in seconds — no app needed.",
   "qrCardButton": "Get Your QR Code",
+  "scanCardTitle": "Scan a Customer's Visit",
+  "scanCardBody": "Scan the customer's “My visit code” from the LiGETA app - it counts as a verified visit and gives their review the Verified visit badge.",
+  "scanCardButton": "Scan",
   "qrModalTitle": "Table Review QR Code",
   "qrModalBody": "Print this on a table-tent or sticker. A customer scans it with their phone's regular camera — no app install, no account — and can leave a rating in under a minute.",
   "shareLink": "Share Link"

@@ -27,7 +27,6 @@ const ChefManagementScreen = lazy(() => import('../screens/ChefManagementScreen'
 const ChefTableEventsScreen = lazy(() => import('../screens/ChefTableEventsScreen').then((m) => ({ default: m.ChefTableEventsScreen })));
 const CustomerReviewsScreen = lazy(() => import('../screens/CustomerReviewsScreen').then((m) => ({ default: m.CustomerReviewsScreen })));
 const ReservationsScreen = lazy(() => import('../screens/ReservationsScreen').then((m) => ({ default: m.ReservationsScreen })));
-const VisitScanScreen = lazy(() => import('../screens/VisitScanScreen').then((m) => ({ default: m.VisitScanScreen })));
 const DeepAnalyticsScreen = lazy(() => import('../screens/DeepAnalyticsScreen').then((m) => ({ default: m.DeepAnalyticsScreen })));
 const PromotionsScreen = lazy(() => import('../screens/PromotionsScreen').then((m) => ({ default: m.PromotionsScreen })));
 const AdvertisingScreen = lazy(() => import('../screens/AdvertisingScreen').then((m) => ({ default: m.AdvertisingScreen })));
@@ -43,7 +42,6 @@ const screens: Record<ScreenKey, React.ComponentType> = {
   chefTable: ChefTableEventsScreen,
   reviews: CustomerReviewsScreen,
   reservations: ReservationsScreen,
-  visitScan: VisitScanScreen,
   analytics: DeepAnalyticsScreen,
   promotions: PromotionsScreen,
   advertising: AdvertisingScreen,

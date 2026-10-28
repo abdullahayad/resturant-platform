@@ -1,5 +1,6 @@
 {
   "title": "Scan Visit",
+  "close": "Close",
   "subtitle": "Scan the customer's “My visit code” from the LiGETA app to record their visit.",
   "pointCamera": "Point the camera at the customer's code",
   "checking": "Checking…",
