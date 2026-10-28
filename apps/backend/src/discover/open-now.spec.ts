@@ -1,4 +1,5 @@
-import { baghdadClock, isOpenAt, opensAfterMidnight, type HoursRow } from './open-now';
+import { baghdadClock } from '../common/baghdadTime';
+import { isOpenAt, opensAfterMidnight, type HoursRow } from './open-now';
 
 // Baghdad is UTC+3, so 2026-10-28T09:30Z is Wednesday (3) 12:30 in Baghdad.
 const at = (iso: string) => new Date(iso);

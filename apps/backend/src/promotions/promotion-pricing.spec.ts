@@ -19,19 +19,27 @@ describe('isPromotionLiveNow', () => {
   });
 
   it('is live all day on a recurring promo with no time window, on the matching weekday', () => {
-    const friday = new Date(2026, 8, 18, 3, 0); // Sep 18 2026 is a Friday
+    const friday = new Date('2026-09-18T00:00:00Z'); // Fri Sep 18 2026, 03:00 in Baghdad
     expect(isPromotionLiveNow(recurring(), friday)).toBe(true);
   });
 
   it('is not live on a different weekday', () => {
-    const saturday = new Date(2026, 8, 19, 12, 0);
+    const saturday = new Date('2026-09-19T09:00:00Z'); // Sat 12:00 in Baghdad
     expect(isPromotionLiveNow(recurring(), saturday)).toBe(false);
   });
 
   it('respects a start/end time window on the matching weekday', () => {
     const inWindow = recurring({ startTime: '17:00', endTime: '19:00' });
-    expect(isPromotionLiveNow(inWindow, new Date(2026, 8, 18, 18, 0))).toBe(true);
-    expect(isPromotionLiveNow(inWindow, new Date(2026, 8, 18, 20, 0))).toBe(false);
+    expect(isPromotionLiveNow(inWindow, new Date('2026-09-18T15:00:00Z'))).toBe(true); // 18:00 Baghdad
+    expect(isPromotionLiveNow(inWindow, new Date('2026-09-18T17:00:00Z'))).toBe(false); // 20:00 Baghdad
+  });
+
+  it("uses Baghdad's clock, not the server's (UTC)", () => {
+    // Thursday 22:30 UTC is already Friday 01:30 in Baghdad.
+    expect(isPromotionLiveNow(recurring(), new Date('2026-09-17T22:30:00Z'))).toBe(true);
+    // An 18:00-20:00 happy hour is over at 18:30 UTC (21:30 in Baghdad).
+    const happyHour = recurring({ startTime: '18:00', endTime: '20:00' });
+    expect(isPromotionLiveNow(happyHour, new Date('2026-09-18T18:30:00Z'))).toBe(false);
   });
 
   it('checks a one-off promo against its date range instead of weekday/time', () => {

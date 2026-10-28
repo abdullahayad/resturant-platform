@@ -1,20 +1,13 @@
-// Opening-hours checks for the customer app, always in Baghdad time -
-// the server runs in UTC, and a restaurant's "09:00-23:00" means Baghdad's
-// clock, not the server's. Iraq has stayed on UTC+3 all year since it
-// dropped daylight saving in 2008, so a fixed offset is exact.
-const BAGHDAD_OFFSET_MS = 3 * 60 * 60 * 1000;
+import { baghdadClock } from '../common/baghdadTime';
+
+// Opening-hours checks for the customer app, always in Baghdad time (see
+// baghdadClock) - a restaurant's "09:00-23:00" means Baghdad's clock.
 
 export interface HoursRow {
   dayOfWeek: number; // 0 = Sunday ... 6 = Saturday
   isClosed: boolean;
   openTime: string | null; // "HH:mm"
   closeTime: string | null; // "HH:mm"
-}
-
-export function baghdadClock(now: Date): { day: number; time: string } {
-  const t = new Date(now.getTime() + BAGHDAD_OFFSET_MS);
-  const time = `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`;
-  return { day: t.getUTCDay(), time };
 }
 
 // A day whose closing time is at or before its opening time runs past

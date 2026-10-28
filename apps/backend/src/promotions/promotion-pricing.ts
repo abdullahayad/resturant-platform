@@ -1,3 +1,5 @@
+import { baghdadClock } from '../common/baghdadTime';
+
 // Whether a customer would see this promotion's discount applied right
 // now - separate from status/isActive (those just gate whether it's live
 // at all), this is the actual schedule check: a one-off date range, or a
@@ -12,12 +14,14 @@ export interface PromotionSchedule {
   endTime: string | null;
 }
 
+// Recurring days and happy-hour times are Baghdad's clock, not the
+// server's (UTC) - see baghdadClock.
 export function isPromotionLiveNow(promo: PromotionSchedule, now: Date): boolean {
   if (promo.isRecurring) {
-    if (promo.recurringDayOfWeek == null || now.getDay() !== promo.recurringDayOfWeek) return false;
+    const { day, time } = baghdadClock(now);
+    if (promo.recurringDayOfWeek == null || day !== promo.recurringDayOfWeek) return false;
     if (!promo.startTime || !promo.endTime) return true;
-    const current = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    return current >= promo.startTime && current <= promo.endTime;
+    return time >= promo.startTime && time <= promo.endTime;
   }
   if (!promo.validFrom || !promo.validUntil) return false;
   return now >= promo.validFrom && now <= promo.validUntil;
