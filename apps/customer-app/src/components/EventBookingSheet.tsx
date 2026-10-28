@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError, type EventItem } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { formatIqd, isIraqiMobile, randomId } from '../lib/format';
 import { useDateLabels } from '../lib/useDateLabels';
 import { colors, fonts } from '../theme';
@@ -24,24 +25,16 @@ const MAX_PARTY = 20;
 // Book seats for one occurrence of an event - name, phone and how many
 // people; paid at the restaurant. No account needed, the same as the
 // booking flow the partner app already receives.
-export function EventBookingSheet({
-  event,
-  onClose,
-  defaultName = '',
-  defaultPhone = '',
-}: {
-  event: EventItem;
-  onClose: () => void;
-  defaultName?: string;
-  defaultPhone?: string;
-}) {
+export function EventBookingSheet({ event, onClose }: { event: EventItem; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { dateLabel, timeLabel } = useDateLabels();
   const ar = i18n.language === 'ar';
 
-  const [name, setName] = useState(defaultName);
-  const [phone, setPhone] = useState(defaultPhone);
+  // Pre-filled for a signed-in customer.
+  const { customer } = useAuth();
+  const [name, setName] = useState(customer?.name ?? '');
+  const [phone, setPhone] = useState(customer?.phone ?? '');
   const [party, setParty] = useState(2);
   const [notes, setNotes] = useState('');
   const [remaining, setRemaining] = useState<number | null>(null);

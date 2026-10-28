@@ -26,10 +26,6 @@
     "dontMiss": "Don't miss these",
     "sponsored": "Sponsored"
   },
-  "comingSoon": {
-    "title": "Coming soon",
-    "profile": "Your account, level and the places you follow"
-  },
   "explore": {
     "search": "Search",
     "clearSearch": "Clear search",
@@ -56,7 +52,12 @@
     "emptyText": "Try another word or remove some filters.",
     "errorTitle": "Connection problem",
     "errorText": "Check your internet and pull to refresh.",
-    "clearAll": "Clear all filters"
+    "clearAll": "Clear all filters",
+    "nearMe": "Near me",
+    "locationTitle": "Location",
+    "locationText": "We need your location to sort restaurants by distance. Turn it on in the app settings.",
+    "openSettings": "Settings",
+    "locationFailed": "Couldn't find your location. Make sure GPS is on."
   },
   "days": [
     "Sunday",
@@ -149,5 +150,47 @@
     "until": "Until {{date}}",
     "liveNow": "On now",
     "wholeMenu": "On the whole menu"
+  },
+  "login": {
+    "title": "Sign in",
+    "text": "Enter your mobile number and we'll send you a 6-digit code on WhatsApp.",
+    "codeTitle": "Enter the code",
+    "codeText": "We sent a code on WhatsApp to {{phone}}",
+    "codeLabel": "Login code",
+    "send": "Send the code on WhatsApp",
+    "confirm": "Confirm",
+    "changeNumber": "Change number",
+    "resend": "Send a new code",
+    "resendIn": "New code in {{n}}s",
+    "note": "We never share your number. Restaurants only see your name when they scan your visit code.",
+    "failed": "Couldn't continue. Check your internet and try again.",
+    "wait": "Please wait a minute before asking for a new code.",
+    "unavailable": "WhatsApp sign-in is coming soon.",
+    "wrongCode": "Wrong code",
+    "expired": "This code has expired. Ask for a new one."
+  },
+  "profile": {
+    "signInTitle": "Sign in to collect your visits",
+    "signInText": "Every visit a restaurant confirms raises your level. Browsing and booking work without an account.",
+    "signIn": "Sign in with WhatsApp",
+    "addName": "Add your name",
+    "editName": "Edit name",
+    "namePlaceholder": "Your name",
+    "level": "Level {{n}}",
+    "visits": "{{n}} verified visits",
+    "toNext": "{{n}} more visits to Level {{level}}",
+    "topLevel": "You've reached the top level 🎉",
+    "visitCode": "My visit code",
+    "visitCodeText": "Ask the restaurant staff to scan it so your visit counts.",
+    "visitCodeRule": "The code changes every minute. One visit per day per restaurant.",
+    "public": "Public profile",
+    "publicText": "Lets people see your reviews and level, and follow you from Level 4.",
+    "recentVisits": "Recent visits",
+    "signOut": "Sign out",
+    "delete": "Delete account",
+    "deleteTitle": "Delete your account?",
+    "deleteText": "Your visits and level will be deleted for good and cannot be restored.",
+    "deleteConfirm": "Delete",
+    "cancel": "Cancel"
   }
 }

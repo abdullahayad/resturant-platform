@@ -1,10 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowUpDown, Check, Search, X } from 'lucide-react-native';
+import * as Location from 'expo-location';
+import { ArrowUpDown, Check, MapPin, Search, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Linking,
   Modal,
   Pressable,
   RefreshControl,
@@ -20,8 +23,9 @@ import { api, type DiscoverQuery, type DiscoverSort, type NamedRef, type Restaur
 import { colors, fonts, TAB_BAR_SPACE } from '../../src/theme';
 
 const SEARCH_DELAY_MS = 350;
-// "Nearest" joins these once the app can ask for the phone's location.
 const SORTS: DiscoverSort[] = ['recommended', 'rating', 'newest'];
+// "Nearest" only makes sense once Near me has the phone's location.
+const SORTS_NEAR: DiscoverSort[] = ['nearest', ...SORTS];
 
 interface Results {
   key: string;
@@ -45,14 +49,25 @@ export default function ExploreScreen() {
   const [cuisineIds, setCuisineIds] = useState<string[]>([]);
   const [cuisines, setCuisines] = useState<NamedRef[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
+  const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
   const [results, setResults] = useState<Results | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const listRef = useRef<FlatList<Card>>(null);
 
   const query = useMemo<DiscoverQuery>(
-    () => ({ q: q || undefined, sort, openNow, offersOnly, foodCategoryIds: cuisineIds, moodId }),
-    [q, sort, openNow, offersOnly, cuisineIds, moodId],
+    () => ({
+      q: q || undefined,
+      sort,
+      openNow,
+      offersOnly,
+      foodCategoryIds: cuisineIds,
+      moodId,
+      lat: point?.lat,
+      lng: point?.lng,
+    }),
+    [q, sort, openNow, offersOnly, cuisineIds, moodId, point],
   );
   // Results belong to the filters they were fetched for; while the
   // filters have moved on, the screen shows the loading state instead.
@@ -121,6 +136,34 @@ export default function ExploreScreen() {
     }
   };
 
+  // Asks for the location only when the customer taps Near me, and only
+  // while the app is open (no background location, see app.json).
+  const toggleNearMe = async () => {
+    if (point) {
+      setPoint(null);
+      if (sort === 'nearest') setSort('recommended');
+      return;
+    }
+    setLocating(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(t('explore.locationTitle'), t('explore.locationText'), [
+          { text: t('profile.cancel'), style: 'cancel' },
+          { text: t('explore.openSettings'), onPress: () => Linking.openSettings() },
+        ]);
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setPoint({ lat: position.coords.latitude, lng: position.coords.longitude });
+      setSort('nearest');
+    } catch {
+      Alert.alert(t('explore.locationTitle'), t('explore.locationFailed'));
+    } finally {
+      setLocating(false);
+    }
+  };
+
   const name = (x: NamedRef) => (i18n.language === 'ar' ? x.nameAr : x.nameEn);
   const toggleCuisine = (id: string) =>
     setCuisineIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -179,6 +222,22 @@ export default function ExploreScreen() {
           <ArrowUpDown size={14} color={colors.blue} strokeWidth={2.4} />
           <AppText weight="semibold" style={[styles.chipText, { color: colors.blue }]}>
             {t(`explore.sort.${sort}`)}
+          </AppText>
+        </Pressable>
+        <Pressable
+          style={[styles.chip, !!point && styles.chipActive]}
+          onPress={toggleNearMe}
+          disabled={locating}
+          accessibilityRole="button"
+          accessibilityState={{ selected: !!point }}
+        >
+          {locating ? (
+            <ActivityIndicator size="small" color={colors.orange} />
+          ) : (
+            <MapPin size={14} color={point ? colors.orangeDark : colors.text} strokeWidth={2.4} />
+          )}
+          <AppText weight="semibold" style={[styles.chipText, !!point && styles.chipTextActive]}>
+            {t('explore.nearMe')}
           </AppText>
         </Pressable>
         {chip(t('explore.openNow'), openNow, () => setOpenNow((v) => !v), 'open')}
@@ -255,7 +314,7 @@ export default function ExploreScreen() {
           <AppText weight="bold" style={styles.sheetTitle}>
             {t('explore.sortBy')}
           </AppText>
-          {SORTS.map((s) => (
+          {(point ? SORTS_NEAR : SORTS).map((s) => (
             <Pressable
               key={s}
               style={styles.sortRow}

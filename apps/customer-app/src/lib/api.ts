@@ -283,6 +283,24 @@ export interface ReservationInput {
   notes?: string;
 }
 
+// The signed-in customer, as /customers/me returns it.
+export interface Customer {
+  id: string;
+  phone: string;
+  name: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  visitCount: number;
+  level: number;
+  nextLevelAt: number | null;
+}
+
+export interface MyVisit {
+  id: string;
+  visitDate: string;
+  restaurant: { id: string; nameEn: string; nameAr: string; logoUrl: string | null };
+}
+
 function toQueryString(query: object): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query) as [string, unknown][]) {
@@ -313,6 +331,16 @@ export const api = {
     ),
   reserve: (restaurantId: string, eventId: string, input: ReservationInput) =>
     request<{ id: string; status: string }>('POST', `/restaurants/${restaurantId}/events/${eventId}/reservations`, input),
+  // Account (WhatsApp code login).
+  requestCode: (phone: string) =>
+    request<{ sent: boolean; resendInSeconds: number }>('POST', '/customer-auth/request-code', { phone }),
+  verifyCode: (phone: string, code: string) =>
+    request<{ token: string; customer: Customer }>('POST', '/customer-auth/verify', { phone, code }),
+  me: () => get<Customer>('/customers/me'),
+  updateMe: (data: { name?: string; isPublic?: boolean }) => request<Customer>('PATCH', '/customers/me', data),
+  visitCode: () => get<{ code: string; expiresInSeconds: number }>('/customers/me/visit-code'),
+  myVisits: (page = 1) => get<Paginated<MyVisit>>('/customers/me/visits' + toQueryString({ page })),
+  deleteMe: () => request<{ deleted: boolean }>('DELETE', '/customers/me'),
   // Filter chips.
   foodCategories: () => get<NamedRef[]>('/master-data/food-categories'),
   eventTypes: () => get<EventType[]>('/master-data/event-types'),

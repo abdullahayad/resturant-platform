@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import '../src/i18n';
+import { AuthProvider } from '../src/lib/auth';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -35,12 +36,13 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <>
+    <AuthProvider>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="restaurant/[id]" />
+        <Stack.Screen name="login" options={{ presentation: 'modal' }} />
       </Stack>
-    </>
+    </AuthProvider>
   );
 }
