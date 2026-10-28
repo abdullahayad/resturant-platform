@@ -517,6 +517,7 @@ model Restaurant {
   adminSupportSessions AdminSupportSession[]
   activityLogs      RestaurantActivityLog[]
   verificationDocuments VerificationDocument[]
+  customerVisits    CustomerVisit[]
 
   @@index([status])
   @@index([publishStatus])
@@ -1272,4 +1273,66 @@ model FeatureFlagOverride {
   @@index([districtId])
   @@index([provinceId])
   @@map("feature_flag_overrides")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Customers (customer app) - sign in with a 6-digit code sent on WhatsApp.
+// Browsing never needs an account; only visits, levels (and later
+// favourites and reviews) do.
+// ────────────────────────────────────────────────────────────────────────────
+
+model Customer {
+  id       String  @id @default(uuid())
+  // Normalized local form (07XXXXXXXXX, see common/phone.ts) - the login.
+  phone    String  @unique
+  name     String?
+  // Off by default. Only a public profile can ever be followed by other
+  // customers (and only once it reaches the top levels).
+  isPublic Boolean @default(false)
+  // Bumped to sign the customer out everywhere - every token carries the
+  // value it was issued with and CustomerAuthGuard re-checks it.
+  tokenVersion Int @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  visits CustomerVisit[]
+
+  @@map("customers")
+}
+
+// One WhatsApp login code. Only a hash is stored, never the code itself;
+// each code expires after a few minutes and allows a handful of attempts.
+model CustomerLoginCode {
+  id        String    @id @default(uuid())
+  phone     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@map("customer_login_codes")
+}
+
+// A verified visit: restaurant staff scanned the customer's "My visit
+// code" in the partner app. Counted at most once per customer, per
+// restaurant, per Baghdad day - the unique index enforces it even if two
+// staff scan at the same moment. Visit counts drive customer levels.
+model CustomerVisit {
+  id               String   @id @default(uuid())
+  customerId       String
+  restaurantId     String
+  visitDate        String // Baghdad calendar day, "YYYY-MM-DD"
+  // Which staff login scanned it (null = the owner's own login).
+  scannedByStaffId String?
+  createdAt        DateTime @default(now())
+
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, restaurantId, visitDate])
+  @@index([restaurantId, createdAt])
+  @@index([customerId, createdAt])
+  @@map("customer_visits")
 }
