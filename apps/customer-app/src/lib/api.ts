@@ -28,6 +28,84 @@ export interface Mood {
   foodsAr: string | null;
 }
 
+export interface NamedRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+}
+
+export type RestaurantClass = 'LUXURY' | 'UPSCALE' | 'MODERATE' | 'BUDGET';
+
+// One Explore/search/Home card - the full page comes from the restaurant
+// page endpoint. Numbers are already rounded by the server.
+export interface RestaurantCard {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  logoUrl: string | null;
+  coverPhotoUrl: string | null;
+  class: RestaurantClass | null;
+  isVerified: boolean;
+  isFeatured: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  distanceKm: number | null;
+  rating: number | null;
+  reviewCount: number;
+  priceFrom: number | null;
+  hasOffer: boolean;
+  isOpenNow: boolean | null;
+  province: NamedRef | null;
+  district: NamedRef | null;
+  chain: NamedRef | null;
+  businessTypes: NamedRef[];
+  foodCategories: NamedRef[];
+}
+
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export type DiscoverSort = 'recommended' | 'rating' | 'nearest' | 'newest';
+
+export interface DiscoverQuery {
+  q?: string;
+  provinceId?: string;
+  districtId?: string;
+  moodId?: string;
+  businessTypeIds?: string[];
+  foodCategoryIds?: string[];
+  facilityIds?: string[];
+  classes?: RestaurantClass[];
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  openNow?: boolean;
+  offersOnly?: boolean;
+  sort?: DiscoverSort;
+  page?: number;
+}
+
+function toQueryString(query: DiscoverQuery): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === '' || value === false) continue;
+    if (Array.isArray(value)) {
+      if (value.length) params.set(key, value.join(','));
+    } else {
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
 export const api = {
   moods: () => get<Mood[]>('/moods'),
+  restaurants: (query: DiscoverQuery = {}) =>
+    get<Paginated<RestaurantCard>>('/discover/restaurants' + toQueryString(query)),
+  featured: () => get<RestaurantCard[]>('/discover/featured'),
 };
