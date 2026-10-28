@@ -21,4 +21,9 @@ export class DiscoverEventsQueryDto extends PageQueryDto {
   @IsOptional()
   @IsUUID()
   eventTypeId?: string;
+
+  // One restaurant's events, for its own page.
+  @IsOptional()
+  @IsUUID()
+  restaurantId?: string;
 }

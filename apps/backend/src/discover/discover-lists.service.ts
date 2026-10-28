@@ -163,13 +163,14 @@ export class DiscoverListsService {
 
   // Upcoming events across every live restaurant, each placed on its next
   // date (or on the chosen date). Dates and times are Baghdad's.
-  async events(query: { date?: string; eventTypeId?: string; page?: number }, now = new Date()) {
+  async events(query: { date?: string; eventTypeId?: string; restaurantId?: string; page?: number }, now = new Date()) {
     const today = baghdadClock(now);
     const rows = await this.prisma.db.restaurantEvent.findMany({
       where: {
         isActive: true,
         moderationStatus: { not: 'HIDDEN' },
         eventTypeId: query.eventTypeId,
+        restaurantId: query.restaurantId,
         restaurant: LIVE_RESTAURANT,
         // A one-off event stays listed for the whole of its day.
         OR: [{ isRecurring: true }, { isRecurring: false, eventDate: { gte: startOfBaghdadDay(today.date) } }],
