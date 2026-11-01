@@ -135,6 +135,24 @@ export interface Chain {
 export type MoodGroup = 'CLASSIC' | 'PEOPLE' | 'PLACE' | 'TIME' | 'FOOD' | 'SEASONAL'
 export type RestaurantClassValue = 'LUXURY' | 'UPSCALE' | 'MODERATE' | 'BUDGET'
 
+// The 🌿 Healthy tag - requested from the partner app, approved here.
+export type HealthyStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface HealthyRestaurant {
+  id: string
+  codeNumber: string
+  nameEn: string
+  nameAr: string
+  logoUrl: string | null
+  healthyStatus: HealthyStatus
+  healthyRequestedAt: string | null
+  healthyRequestNote: string | null
+  healthyRejectionReason: string | null
+  healthyReviewedAt: string | null
+  district: { nameEn: string; nameAr: string } | null
+  dishes: { id: string; nameEn: string; nameAr: string; price: string; photoUrl: string | null }[]
+}
+
 // A "What's the mood today?" tile on the customer app's Home screen - see
 // the Mood model in the backend's schema.prisma for how matching works.
 export interface Mood {
@@ -699,6 +717,10 @@ export const api = {
   updateChain: (id: string, payload: { nameEn: string; nameAr: string }) =>
     send<Chain>('PATCH', `/chains/${id}`, payload),
   deleteChain: (id: string) => send<{ id: string }>('DELETE', `/chains/${id}`),
+
+  healthy: (status?: Exclude<HealthyStatus, 'NONE'>) => get<HealthyRestaurant[]>(`/admin/healthy${qsFrom({ status })}`),
+  setHealthy: (restaurantId: string, isHealthy: boolean, reason?: string) =>
+    send<unknown>('PATCH', `/admin/healthy/${restaurantId}`, { isHealthy, reason }),
 
   moods: () => get<Mood[]>('/moods/admin'),
   createMood: (payload: MoodPayload) => send<Mood>('POST', '/moods/admin', payload),

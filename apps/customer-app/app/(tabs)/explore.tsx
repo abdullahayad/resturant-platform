@@ -38,8 +38,11 @@ interface Results {
 export default function ExploreScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ moodId?: string; moodName?: string }>();
+  const params = useLocalSearchParams<{ moodId?: string; moodName?: string; healthy?: string }>();
   const moodId = params.moodId || undefined;
+  // Healthy mode lives in the route (?healthy=1), like the mood, so Home's
+  // "healthy restaurants" link and the chip drive the same filter.
+  const healthyOnly = params.healthy === '1';
 
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
@@ -62,12 +65,13 @@ export default function ExploreScreen() {
       sort,
       openNow,
       offersOnly,
+      healthyOnly,
       foodCategoryIds: cuisineIds,
       moodId,
       lat: point?.lat,
       lng: point?.lng,
     }),
-    [q, sort, openNow, offersOnly, cuisineIds, moodId, point],
+    [q, sort, openNow, offersOnly, healthyOnly, cuisineIds, moodId, point],
   );
   // Results belong to the filters they were fetched for; while the
   // filters have moved on, the screen shows the loading state instead.
@@ -168,7 +172,8 @@ export default function ExploreScreen() {
   const toggleCuisine = (id: string) =>
     setCuisineIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   const clearMood = () => router.setParams({ moodId: '', moodName: '' });
-  const hasFilters = !!moodId || openNow || offersOnly || cuisineIds.length > 0 || !!q;
+  const setHealthy = (on: boolean) => router.setParams({ healthy: on ? '1' : '' });
+  const hasFilters = !!moodId || healthyOnly || openNow || offersOnly || cuisineIds.length > 0 || !!q;
   const clearAll = () => {
     setText('');
     setQ('');
@@ -176,6 +181,7 @@ export default function ExploreScreen() {
     setOffersOnly(false);
     setCuisineIds([]);
     if (moodId) clearMood();
+    if (healthyOnly) setHealthy(false);
   };
 
   const chip = (label: string, active: boolean, onPress: () => void, keyName: string) => (
@@ -241,6 +247,7 @@ export default function ExploreScreen() {
           </AppText>
         </Pressable>
         {chip(t('explore.openNow'), openNow, () => setOpenNow((v) => !v), 'open')}
+        {chip(t('explore.healthy'), healthyOnly, () => setHealthy(!healthyOnly), 'healthy')}
         {chip(t('explore.offersOnly'), offersOnly, () => setOffersOnly((v) => !v), 'offers')}
         {cuisines.map((c) => chip(name(c), cuisineIds.includes(c.id), () => toggleCuisine(c.id), c.id))}
       </ScrollView>

@@ -10,6 +10,7 @@ import { ChipSelect } from '../components/ChipSelect';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { BulkPriceUpdateModal } from '../components/BulkPriceUpdateModal';
+import { HealthyTagCard } from '../components/HealthyTagCard';
 import { UtensilsCrossed } from 'lucide-react-native';
 import { radii, cardShadow } from '../theme/tokens';
 import { useAuth } from '../lib/AuthContext';
@@ -20,7 +21,7 @@ import { usePaginatedList } from '../hooks/usePaginatedList';
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth';
 import { api, type Dish, type MasterDataItem } from '../lib/api';
 
-const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as string | null, photoUrl: '', isMostOrdered: false };
+const emptyForm = { nameEn: '', nameAr: '', price: '', categoryId: null as string | null, photoUrl: '', isMostOrdered: false, isHealthy: false };
 
 const CARD_WIDTH = 220;
 const CARD_GAP = 12;
@@ -77,6 +78,7 @@ export function MenuManagementScreen() {
       categoryId: dish.menuCategory?.id ?? null,
       photoUrl: dish.photoUrl ?? '',
       isMostOrdered: dish.isMostOrdered,
+      isHealthy: dish.isHealthy,
     });
   };
 
@@ -133,6 +135,7 @@ export function MenuManagementScreen() {
         menuCategoryId: form.categoryId ?? undefined,
         photoUrl: form.photoUrl || undefined,
         isMostOrdered: form.isMostOrdered,
+        isHealthy: form.isHealthy,
       };
       if (editingId) {
         const updated = await api.updateDish(token, editingId, payload);
@@ -177,6 +180,7 @@ export function MenuManagementScreen() {
           {dish.menuCategory ? localizedName(dish.menuCategory, language) : t('uncategorized')} · {Number(dish.price).toLocaleString()} IQD
         </Text>
         {dish.isMostOrdered && <Text style={styles.badge}>{t('mostOrdered')}</Text>}
+        {dish.isHealthy && <Text style={[styles.badge, styles.healthyBadge]}>{t('healthyDish')}</Text>}
         <View style={styles.dishActions}>
           <Pressable onPress={() => startEdit(dish)}>
             <Text style={styles.link}>{t('edit')}</Text>
@@ -224,6 +228,8 @@ export function MenuManagementScreen() {
           </View>
           {loadError && <Text style={styles.error}>{loadError}</Text>}
 
+          <HealthyTagCard refreshKey={dishes.filter((d) => d.isHealthy).map((d) => d.id).join(',')} />
+
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>{editingId ? t('editDish') : t('addDish')}</Text>
 
@@ -270,6 +276,18 @@ export function MenuManagementScreen() {
                 value={form.isMostOrdered}
                 onValueChange={(v) => setForm((f) => ({ ...f, isMostOrdered: v }))}
                 trackColor={{ true: colors.primary, false: colors.secondary }}
+              />
+            </View>
+
+            <View style={styles.switchRow}>
+              <View style={styles.flex1}>
+                <Text style={styles.fieldLabel}>{t('healthyDish')}</Text>
+                <Text style={styles.switchHint}>{t('healthyDishHint')}</Text>
+              </View>
+              <Switch
+                value={form.isHealthy}
+                onValueChange={(v) => setForm((f) => ({ ...f, isHealthy: v }))}
+                trackColor={{ true: colors.success, false: colors.secondary }}
               />
             </View>
 
@@ -326,7 +344,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   photoPreview: { width: 64, height: 64, borderRadius: 10, backgroundColor: colors.secondary },
   photoPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  switchHint: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
   button: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' },
   primaryButton: { backgroundColor: colors.primary },
   primaryButtonText: { color: colors.primaryForeground, fontWeight: '700', fontSize: 14 },
@@ -361,6 +380,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   dishName: { color: colors.foreground, fontSize: 14, fontWeight: '600' },
   dishMeta: { color: colors.mutedForeground, fontSize: 12 },
   badge: { color: colors.primary, fontSize: 11, fontWeight: '700' },
+  healthyBadge: { color: colors.success },
   dishActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   link: { color: colors.mutedForeground, fontSize: 13 },
   destructiveLink: { color: colors.destructive },

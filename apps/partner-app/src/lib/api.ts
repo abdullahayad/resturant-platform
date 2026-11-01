@@ -199,7 +199,20 @@ export interface Dish {
   price: string;
   photoUrl: string | null;
   isMostOrdered: boolean;
+  isHealthy: boolean;
   menuCategory: MasterDataItem | null;
+}
+
+// The 🌿 Healthy tag: asked for here, approved by LiGETA in the admin portal.
+export type HealthyStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface HealthyTagStatus {
+  healthyStatus: HealthyStatus;
+  healthyRequestedAt: string | null;
+  healthyRequestNote: string | null;
+  healthyRejectionReason: string | null;
+  healthyReviewedAt: string | null;
+  healthyDishCount: number;
 }
 
 export interface DishPayload {
@@ -209,6 +222,7 @@ export interface DishPayload {
   menuCategoryId?: string;
   photoUrl?: string;
   isMostOrdered?: boolean;
+  isHealthy?: boolean;
 }
 
 export type PriceAdjustmentType = 'PERCENTAGE' | 'FIXED_AMOUNT';
@@ -801,6 +815,9 @@ export const api = {
     send<Dish>('POST', '/restaurants/me/dishes', token, payload),
   updateDish: (token: string, id: string, payload: Partial<DishPayload>) =>
     send<Dish>('PATCH', `/restaurants/me/dishes/${id}`, token, payload),
+  healthyStatus: (token: string) => get<HealthyTagStatus>('/restaurants/me/healthy', token),
+  requestHealthyTag: (token: string, note?: string) =>
+    send<HealthyTagStatus>('POST', '/restaurants/me/healthy-request', token, { note }),
   deleteDish: (token: string, id: string) =>
     send<{ id: string }>('DELETE', `/restaurants/me/dishes/${id}`, token),
   bulkUpdateDishPrices: (token: string, payload: BulkUpdateDishPricesPayload) =>

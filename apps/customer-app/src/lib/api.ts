@@ -89,6 +89,8 @@ export interface RestaurantCard {
   coverPhotoUrl: string | null;
   class: RestaurantClass | null;
   isVerified: boolean;
+  // The LiGETA-approved 🌿 Healthy tag.
+  isHealthy: boolean;
   isFeatured: boolean;
   latitude: number | null;
   longitude: number | null;
@@ -112,6 +114,7 @@ export interface RestaurantMini {
   nameAr: string;
   logoUrl: string | null;
   coverPhotoUrl: string | null;
+  isHealthy: boolean;
   district: NamedRef | null;
 }
 
@@ -138,6 +141,7 @@ export interface DiscoverQuery {
   radiusKm?: number;
   openNow?: boolean;
   offersOnly?: boolean;
+  healthyOnly?: boolean;
   sort?: DiscoverSort;
   page?: number;
 }
@@ -157,6 +161,7 @@ export interface MenuDish {
   discountedPrice: string | null;
   photoUrl: string | null;
   isMostOrdered: boolean;
+  isHealthy: boolean;
   menuCategory: (NamedRef & { sortOrder: number }) | null;
 }
 
@@ -198,6 +203,7 @@ export interface RestaurantPage {
   longitude: string | null;
   isVerified: boolean;
   isFeatured: boolean;
+  isHealthy: boolean;
   province: Named | null;
   district: Named | null;
   chain: Named | null;
@@ -241,6 +247,7 @@ export interface BudgetDish {
   price: number;
   discountedPrice: number | null;
   photoUrl: string | null;
+  isHealthy: boolean;
   menuCategory: NamedRef | null;
   restaurant: RestaurantMini;
 }
@@ -324,6 +331,8 @@ export const api = {
   offers: (page = 1) => get<Paginated<Offer>>('/discover/offers' + toQueryString({ page })),
   budgetDishes: (page = 1, maxPrice?: number) =>
     get<Paginated<BudgetDish>>('/discover/budget-dishes' + toQueryString({ page, maxPrice })),
+  // The Home "healthy dishes" row (same card shape as the 5,000-or-less dishes).
+  healthyDishes: (page = 1) => get<Paginated<BudgetDish>>('/discover/healthy-dishes' + toQueryString({ page })),
   events: (query: EventsQuery = {}) => get<Paginated<EventItem>>('/discover/events' + toQueryString(query)),
   eventAvailability: (restaurantId: string, eventId: string, date: string) =>
     get<{ capacity: number | null; reserved: number; remaining: number | null }>(

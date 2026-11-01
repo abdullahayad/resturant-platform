@@ -40,5 +40,26 @@
     "apply_other": "Apply to {{count}} Dishes",
     "applyFailed": "Could not update prices",
     "loadFailed": "Could not load your dishes"
+  },
+  "healthyDish": "🌿 Healthy dish",
+  "healthyDishHint": "Salads, grilled, low-calorie... Shows in the customer app's healthy dishes row.",
+  "healthy": {
+    "title": "🌿 Healthy tag",
+    "status": {
+      "NONE": "Not requested",
+      "PENDING": "Waiting for review",
+      "APPROVED": "Approved",
+      "REJECTED": "Not approved"
+    },
+    "body": "Mark your healthy dishes below, then ask LiGETA for the Healthy tag. Tagged restaurants appear in the customer app's Healthy mode.",
+    "pendingBody": "LiGETA is reviewing your request.",
+    "approvedBody": "Your restaurant shows in the customer app's Healthy mode with the 🌿 badge.",
+    "dishCount_one": "{{count}} dish marked healthy",
+    "dishCount_other": "{{count}} dishes marked healthy",
+    "reason": "Reason: {{reason}}",
+    "notePlaceholder": "Anything LiGETA should know? (optional)",
+    "needDish": "Mark at least one dish as healthy first.",
+    "request": "Ask for the Healthy tag",
+    "failed": "Could not send the request"
   }
 }

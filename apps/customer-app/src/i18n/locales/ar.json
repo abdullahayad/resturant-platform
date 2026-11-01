@@ -24,7 +24,9 @@
       "SEASONAL": "موسمي"
     },
     "dontMiss": "لا تفوّتها",
-    "sponsored": "إعلان"
+    "sponsored": "إعلان",
+    "healthyDishes": "🌿 أكلات صحية",
+    "healthyRestaurants": "مطاعم صحية"
   },
   "explore": {
     "search": "بحث",
@@ -57,7 +59,8 @@
     "locationTitle": "الموقع",
     "locationText": "نحتاج موقعك حتى نرتب المطاعم الأقرب لك. فعّله من إعدادات التطبيق.",
     "openSettings": "الإعدادات",
-    "locationFailed": "ما گدرنا نعرف موقعك. تأكد إن الـ GPS شغّال."
+    "locationFailed": "ما گدرنا نعرف موقعك. تأكد إن الـ GPS شغّال.",
+    "healthy": "🌿 صحي"
   },
   "days": [
     "الأحد",
@@ -192,5 +195,8 @@
     "deleteText": "راح تنحذف زياراتك ومستواك نهائياً وما نگدر نرجعها.",
     "deleteConfirm": "احذف",
     "cancel": "إلغاء"
+  },
+  "healthy": {
+    "tag": "🌿 صحي"
   }
 }

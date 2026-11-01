@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
-import { api, type Mood, type MoodGroup, type RestaurantCard } from '../../src/lib/api';
+import { api, type BudgetDish, type Mood, type MoodGroup, type RestaurantCard } from '../../src/lib/api';
+import { formatIqd } from '../../src/lib/format';
 import { colors, TAB_BAR_SPACE } from '../../src/theme';
 
 // Home shows 9 moods; the 10th tile opens all of them (matches the admin
@@ -22,6 +23,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [allOpen, setAllOpen] = useState(false);
   const [featured, setFeatured] = useState<RestaurantCard[]>([]);
+  const [healthy, setHealthy] = useState<BudgetDish[]>([]);
 
   // Pull-to-refresh only; the first load happens in the effect below.
   const load = useCallback(async () => {
@@ -29,6 +31,7 @@ export default function HomeScreen() {
       setMoods(await api.moods());
       setFailed(false);
       setFeatured(await api.featured());
+      setHealthy((await api.healthyDishes()).items);
     } catch {
       setFailed(true);
     }
@@ -48,6 +51,12 @@ export default function HomeScreen() {
       .featured()
       .then((f) => {
         if (!cancelled) setFeatured(f);
+      })
+      .catch(() => {});
+    api
+      .healthyDishes()
+      .then((h) => {
+        if (!cancelled) setHealthy(h.items);
       })
       .catch(() => {});
     return () => {
@@ -137,6 +146,55 @@ export default function HomeScreen() {
               </Pressable>
             )}
           </View>
+        )}
+
+        {healthy.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <AppText weight="bold" style={[styles.sectionTitle, styles.sectionTitleInline]}>
+                {t('home.healthyDishes')}
+              </AppText>
+              <Pressable
+                onPress={() => router.push({ pathname: '/explore', params: { healthy: '1' } })}
+                hitSlop={8}
+                accessibilityRole="link"
+              >
+                <AppText weight="semibold" style={styles.sectionLink}>
+                  {t('home.healthyRestaurants')}
+                </AppText>
+              </Pressable>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
+              {healthy.map((d) => (
+                <Pressable
+                  key={d.id}
+                  style={styles.healthyCard}
+                  onPress={() => router.push({ pathname: '/restaurant/[id]', params: { id: d.restaurant.id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel={i18n.language === 'ar' ? d.nameAr : d.nameEn}
+                >
+                  {d.photoUrl ? (
+                    <Image source={{ uri: d.photoUrl }} style={styles.healthyPhoto} resizeMode="cover" />
+                  ) : (
+                    <View style={[styles.healthyPhoto, styles.healthyNoPhoto]}>
+                      <AppText style={styles.healthyLeaf}>🌿</AppText>
+                    </View>
+                  )}
+                  <View style={styles.featuredBody}>
+                    <AppText weight="bold" style={styles.healthyName} numberOfLines={1}>
+                      {i18n.language === 'ar' ? d.nameAr : d.nameEn}
+                    </AppText>
+                    <AppText style={styles.featuredMetaText} numberOfLines={1}>
+                      {i18n.language === 'ar' ? d.restaurant.nameAr : d.restaurant.nameEn}
+                    </AppText>
+                    <AppText weight="bold" style={styles.healthyPrice}>
+                      {formatIqd(d.discountedPrice ?? d.price)} IQD
+                    </AppText>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </>
         )}
 
         {featured.length > 0 && (
@@ -248,6 +306,22 @@ const styles = StyleSheet.create({
   skeleton: { backgroundColor: colors.surface },
   error: { marginHorizontal: 16, fontSize: 14, color: colors.muted },
   featuredRow: { paddingHorizontal: 16, gap: 12 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginEnd: 16 },
+  sectionTitleInline: { flexShrink: 1 },
+  sectionLink: { fontSize: 13.5, color: colors.green },
+  healthyCard: {
+    width: 160,
+    borderRadius: 18,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  healthyPhoto: { width: '100%', height: 110, backgroundColor: colors.surface },
+  healthyNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.greenTint },
+  healthyLeaf: { fontSize: 34, lineHeight: 42 },
+  healthyName: { fontSize: 14 },
+  healthyPrice: { fontSize: 13.5, color: colors.green, marginTop: 2 },
   featured: { width: 230, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   featuredPhoto: { width: '100%', height: 130, backgroundColor: colors.surface },
   featuredNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.peach },

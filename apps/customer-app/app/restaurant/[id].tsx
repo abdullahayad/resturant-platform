@@ -145,6 +145,13 @@ export default function RestaurantScreen() {
                   {name(page)}
                 </AppText>
                 {page.isVerified && <BadgeCheck size={20} color={colors.blue} />}
+                {page.isHealthy && (
+                  <View style={styles.healthyPill}>
+                    <AppText weight="bold" style={styles.healthyPillText}>
+                      {t('healthy.tag')}
+                    </AppText>
+                  </View>
+                )}
               </View>
               <AppText style={styles.muted} numberOfLines={2}>
                 {page.foodCategories.map((f) => name(f.foodCategory)).join(' · ')}
@@ -438,6 +445,7 @@ function DishRow({ dish, name, onPhoto }: { dish: MenuDish; name: string; onPhot
       <View style={{ flex: 1, gap: 3 }}>
         <AppText weight="semibold" style={styles.dishName}>
           {name}
+          {dish.isHealthy ? ' 🌿' : ''}
         </AppText>
         <View style={styles.priceRow}>
           {dish.discountedPrice != null ? (
@@ -551,6 +559,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   dishName: { fontSize: 15 },
+  healthyPill: { backgroundColor: colors.greenTint, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  healthyPillText: { color: colors.green, fontSize: 11.5 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   price: { fontSize: 14 },
   oldPrice: { fontSize: 12.5, color: colors.muted, textDecorationLine: 'line-through' },

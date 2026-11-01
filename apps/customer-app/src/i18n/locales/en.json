@@ -24,7 +24,9 @@
       "SEASONAL": "Seasonal"
     },
     "dontMiss": "Don't miss these",
-    "sponsored": "Sponsored"
+    "sponsored": "Sponsored",
+    "healthyDishes": "🌿 Healthy dishes",
+    "healthyRestaurants": "Healthy restaurants"
   },
   "explore": {
     "search": "Search",
@@ -57,7 +59,8 @@
     "locationTitle": "Location",
     "locationText": "We need your location to sort restaurants by distance. Turn it on in the app settings.",
     "openSettings": "Settings",
-    "locationFailed": "Couldn't find your location. Make sure GPS is on."
+    "locationFailed": "Couldn't find your location. Make sure GPS is on.",
+    "healthy": "🌿 Healthy"
   },
   "days": [
     "Sunday",
@@ -192,5 +195,8 @@
     "deleteText": "Your visits and level will be deleted for good and cannot be restored.",
     "deleteConfirm": "Delete",
     "cancel": "Cancel"
+  },
+  "healthy": {
+    "tag": "🌿 Healthy"
   }
 }

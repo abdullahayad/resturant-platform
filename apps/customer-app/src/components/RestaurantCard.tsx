@@ -44,6 +44,13 @@ export function RestaurantCard({ restaurant: r, onPress }: { restaurant: Card; o
               </AppText>
             </View>
           )}
+          {r.isHealthy && (
+            <View style={[styles.tag, { backgroundColor: colors.green }]}>
+              <AppText weight="bold" style={styles.tagText}>
+                {t('healthy.tag')}
+              </AppText>
+            </View>
+          )}
         </View>
       </View>
 
