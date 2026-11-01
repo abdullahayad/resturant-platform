@@ -107,6 +107,12 @@ export class DiscoverQueryDto extends PageQueryDto {
   @IsBoolean()
   offersOnly?: boolean;
 
+  // Healthy mode - only restaurants with the approved 🌿 Healthy tag.
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  healthyOnly?: boolean;
+
   @IsOptional()
   @IsIn(DISCOVER_SORTS)
   sort?: DiscoverSort;

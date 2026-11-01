@@ -18,6 +18,7 @@ const restaurantMiniSelect = {
   nameEn: true,
   nameAr: true,
   logoUrl: true,
+  healthyStatus: true,
   district: { select: { id: true, nameEn: true, nameAr: true } },
   galleryPhotos: {
     where: { moderationStatus: { not: 'HIDDEN' }, album: { in: ['FOOD', 'AMBIENCE'] } },
@@ -35,11 +36,12 @@ export interface RestaurantMini {
   nameAr: string;
   logoUrl: string | null;
   coverPhotoUrl: string | null;
+  isHealthy: boolean;
   district: { id: string; nameEn: string; nameAr: string } | null;
 }
 
-function toMini({ galleryPhotos, ...r }: RestaurantMiniRow): RestaurantMini {
-  return { ...r, coverPhotoUrl: galleryPhotos[0]?.url ?? null };
+function toMini({ galleryPhotos, healthyStatus, ...r }: RestaurantMiniRow): RestaurantMini {
+  return { ...r, coverPhotoUrl: galleryPhotos[0]?.url ?? null, isHealthy: healthyStatus === 'APPROVED' };
 }
 
 const visibleDish = { isActive: true, moderationStatus: { not: 'HIDDEN' } } satisfies Prisma.DishWhereInput;
@@ -125,11 +127,24 @@ export class DiscoverListsService {
   // "بـ5 آلاف وأقل": dishes listed at or under the price, cheapest first,
   // with today's discount applied when one is running.
   async budgetDishes(maxPrice = DEFAULT_BUDGET_PRICE, pageParam: number | undefined, now = new Date()) {
-    const where = {
-      ...visibleDish,
-      price: { lte: maxPrice },
-      restaurant: LIVE_RESTAURANT,
-    } satisfies Prisma.DishWhereInput;
+    return this.dishList({ price: { lte: maxPrice } }, [{ price: 'asc' }, { id: 'asc' }], pageParam, now);
+  }
+
+  // The Home "healthy dishes" row: dishes restaurants marked healthy,
+  // newest first.
+  async healthyDishes(pageParam: number | undefined, now = new Date()) {
+    return this.dishList({ isHealthy: true }, [{ createdAt: 'desc' }, { id: 'asc' }], pageParam, now);
+  }
+
+  // Visible dishes of live restaurants, with today's discount applied when
+  // one is running.
+  private async dishList(
+    filter: Prisma.DishWhereInput,
+    orderBy: Prisma.DishOrderByWithRelationInput[],
+    pageParam: number | undefined,
+    now: Date,
+  ) {
+    const where = { ...visibleDish, ...filter, restaurant: LIVE_RESTAURANT } satisfies Prisma.DishWhereInput;
     const { page, skip, take } = pageOffset(pageParam);
     const [rows, total] = await Promise.all([
       this.prisma.db.dish.findMany({
@@ -140,10 +155,11 @@ export class DiscoverListsService {
           nameAr: true,
           price: true,
           photoUrl: true,
+          isHealthy: true,
           menuCategory: { select: { id: true, nameEn: true, nameAr: true } },
           restaurant: { select: restaurantMiniSelect },
         },
-        orderBy: [{ price: 'asc' }, { id: 'asc' }],
+        orderBy,
         skip,
         take,
       }),

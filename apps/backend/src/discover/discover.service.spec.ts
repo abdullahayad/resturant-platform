@@ -78,14 +78,28 @@ describe('DiscoverService', () => {
     );
   });
 
-  it('returns nothing for a switched-off mood, or a Healthy mood before the Healthy tag exists', async () => {
+  it('returns nothing for a switched-off mood', async () => {
     prisma.db.mood.findFirst.mockResolvedValueOnce(null);
     await expect(service.search({ moodId: 'off' }, now)).resolves.toMatchObject({ items: [], total: 0 });
-
-    prisma.db.mood.findFirst.mockResolvedValueOnce({ healthyOnly: true });
-    await expect(service.search({ moodId: 'healthy' }, now)).resolves.toMatchObject({ items: [], total: 0 });
-
     expect(prisma.db.restaurant.findMany).not.toHaveBeenCalled();
+  });
+
+  it('limits Healthy mode and Healthy moods to restaurants with the approved tag', async () => {
+    await service.search({ healthyOnly: true }, now);
+    expect(firstWhere()).toContainEqual({ healthyStatus: 'APPROVED' });
+
+    prisma.db.restaurant.findMany.mockClear();
+    prisma.db.mood.findFirst.mockResolvedValueOnce({
+      healthyOnly: true,
+      openAfterMidnight: false,
+      businessTypeIds: [],
+      foodCategoryIds: [],
+      facilityIds: [],
+      eventTypeIds: [],
+      classes: [],
+    });
+    await service.search({ moodId: 'healthy' }, now);
+    expect(firstWhere()).toContainEqual({ healthyStatus: 'APPROVED' });
   });
 
   it('keeps only restaurants open right now in Baghdad when openNow is set', async () => {

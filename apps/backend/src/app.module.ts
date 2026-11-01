@@ -38,6 +38,7 @@ import { ChainsModule } from './chains/chains.module';
 import { MoodsModule } from './moods/moods.module';
 import { DiscoverModule } from './discover/discover.module';
 import { CustomersModule } from './customers/customers.module';
+import { HealthyModule } from './healthy/healthy.module';
 import { AdminActivityModule } from './admin-activity/admin-activity.module';
 
 @Module({
@@ -76,6 +77,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     MoodsModule,
     DiscoverModule,
     CustomersModule,
+    HealthyModule,
     AdminActivityModule,
   ],
   controllers: [AppController, LegalController, SupportSessionPageController, ReviewPageController],

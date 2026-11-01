@@ -36,6 +36,11 @@ export class DiscoverController {
     return this.lists.budgetDishes(query.maxPrice, query.page);
   }
 
+  @Get('healthy-dishes')
+  healthyDishes(@Query() query: PageQueryDto) {
+    return this.lists.healthyDishes(query.page);
+  }
+
   @Get('events')
   events(@Query() query: DiscoverEventsQueryDto) {
     return this.lists.events(query);

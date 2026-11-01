@@ -27,6 +27,7 @@ const previewSelect = {
   crewCount: true,
   crewPhotoUrl: true,
   isVerified: true,
+  healthyStatus: true,
   province: { select: { nameEn: true, nameAr: true } },
   district: { select: { nameEn: true, nameAr: true } },
   chain: { select: { nameEn: true, nameAr: true } },
@@ -75,7 +76,7 @@ export class PreviewService {
     ]);
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
-    const { reviews, dishes, ...rest } = restaurant;
+    const { reviews, dishes, healthyStatus, ...rest } = restaurant;
     const totalReviews = reviews.length;
     const overallAverage = totalReviews ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews : null;
 
@@ -93,6 +94,8 @@ export class PreviewService {
       events,
       overallAverage: overallAverage != null ? Number(overallAverage.toFixed(1)) : null,
       totalReviews,
+      // Only the approved tag counts - a pending or rejected request is never shown.
+      isHealthy: healthyStatus === 'APPROVED',
     };
   }
 
@@ -118,7 +121,7 @@ export class PreviewService {
       this.featured.isFeatured(restaurantId),
     ]);
 
-    const { reviews, dishes, status: _status, publishStatus: _publishStatus, ...rest } = restaurant;
+    const { reviews, dishes, healthyStatus, status: _status, publishStatus: _publishStatus, ...rest } = restaurant;
     const totalReviews = reviews.length;
     const overallAverage = totalReviews ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews : null;
 
@@ -134,6 +137,7 @@ export class PreviewService {
       overallAverage: overallAverage != null ? Number(overallAverage.toFixed(1)) : null,
       totalReviews,
       isFeatured,
+      isHealthy: healthyStatus === 'APPROVED',
       reviews: reviewsPage.items,
     };
   }

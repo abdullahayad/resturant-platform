@@ -23,6 +23,7 @@ const cardSelect = {
   nameAr: true,
   logoUrl: true,
   class: true,
+  healthyStatus: true,
   isVerified: true,
   latitude: true,
   longitude: true,
@@ -79,6 +80,8 @@ export interface RestaurantCard {
   coverPhotoUrl: string | null;
   class: string | null;
   isVerified: boolean;
+  // The admin-approved 🌿 Healthy tag.
+  isHealthy: boolean;
   isFeatured: boolean;
   latitude: number | null;
   longitude: number | null;
@@ -196,6 +199,8 @@ export class DiscoverService {
       and.push({ facilities: { some: { facilityId } } });
     }
     if (query.classes?.length) and.push({ class: { in: query.classes } });
+    // Healthy mode: only restaurants whose Healthy tag an admin approved.
+    if (query.healthyOnly) and.push({ healthyStatus: 'APPROVED' });
 
     const q = query.q?.trim();
     if (q) {
@@ -223,9 +228,8 @@ export class DiscoverService {
           ],
         },
       });
-      // The Healthy tag isn't built yet, so no restaurant can qualify -
-      // better an empty Healthy mood than one full of non-healthy places.
-      if (!mood || mood.healthyOnly) return null;
+      if (!mood) return null;
+      if (mood.healthyOnly) and.push({ healthyStatus: 'APPROVED' });
 
       // A mood's rules: any value within a rule, every rule together
       // (e.g. "a grill OR a kebab place" AND "luxury OR upscale"). A rule
@@ -350,6 +354,7 @@ export class DiscoverService {
           coverPhotoUrl: r.galleryPhotos[0]?.url ?? null,
           class: r.class,
           isVerified: r.isVerified,
+          isHealthy: r.healthyStatus === 'APPROVED',
           isFeatured: row.isFeatured,
           latitude: r.latitude != null ? Number(r.latitude) : null,
           longitude: r.longitude != null ? Number(r.longitude) : null,

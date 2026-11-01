@@ -111,6 +111,15 @@ enum ModerationStatus {
 // approval). NOT_SUBMITTED is the initial state since Restaurant rows exist
 // before submission, unlike Promotion/Featured which are only created
 // already PENDING.
+// The 🌿 Healthy tag (customer app's Healthy mode) - requested by the
+// restaurant, approved by a LiGETA admin, never self-granted.
+enum HealthyStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum PublishStatus {
   NOT_SUBMITTED
   PENDING
@@ -487,6 +496,14 @@ model Restaurant {
   // resubmission, so a repeat decline shows as unacknowledged again.
   publishDeclineAcknowledgedAt DateTime?
 
+  // Healthy tag - see HealthyStatus. Only APPROVED shows in the customer
+  // app. A new request clears the previous rejection reason.
+  healthyStatus          HealthyStatus @default(NONE)
+  healthyRequestedAt     DateTime?
+  healthyRequestNote     String?
+  healthyRejectionReason String?
+  healthyReviewedAt      DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -521,6 +538,7 @@ model Restaurant {
 
   @@index([status])
   @@index([publishStatus])
+  @@index([healthyStatus])
   @@index([provinceId])
   @@index([districtId])
   @@index([chainId])
@@ -590,6 +608,10 @@ model Dish {
   price          Decimal  @db.Decimal(10, 2)
   photoUrl       String?
   isMostOrdered  Boolean  @default(false)
+  // Marked by the restaurant itself (salads, grilled, low-calorie...) - feeds
+  // the customer app's "healthy dishes" row. Separate from the restaurant's
+  // admin-approved Healthy tag; an admin can still hide a dish via moderation.
+  isHealthy      Boolean  @default(false)
   isActive       Boolean  @default(true)
   moderationStatus ModerationStatus @default(VISIBLE)
   createdAt      DateTime @default(now())

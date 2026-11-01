@@ -46,6 +46,10 @@ export class CreateDishDto {
   @IsOptional()
   @IsBoolean()
   isMostOrdered?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isHealthy?: boolean;
 }
 
 export class ModerateDishDto {
@@ -111,4 +115,8 @@ export class UpdateDishDto {
   @IsOptional()
   @IsBoolean()
   isMostOrdered?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isHealthy?: boolean;
 }

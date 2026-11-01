@@ -81,14 +81,22 @@ export class DishesService {
           nameAr: before.nameAr,
           price: before.price.toString(),
           isMostOrdered: before.isMostOrdered,
+          isHealthy: before.isHealthy,
         },
         {
           nameEn: after.nameEn,
           nameAr: after.nameAr,
           price: after.price.toString(),
           isMostOrdered: after.isMostOrdered,
+          isHealthy: after.isHealthy,
         },
-        { nameEn: 'Name (EN)', nameAr: 'Name (AR)', price: 'Price', isMostOrdered: 'Most Ordered' },
+        {
+          nameEn: 'Name (EN)',
+          nameAr: 'Name (AR)',
+          price: 'Price',
+          isMostOrdered: 'Most Ordered',
+          isHealthy: 'Healthy',
+        },
       );
       if (changes.length) {
         await this.activityLog.log({
