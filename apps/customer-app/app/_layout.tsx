@@ -42,6 +42,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="restaurant/[id]" />
         <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="review/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="bookings" />
+        <Stack.Screen name="my-reviews" />
       </Stack>
     </AuthProvider>
   );

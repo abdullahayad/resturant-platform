@@ -304,6 +304,48 @@ export interface Customer {
   nextLevelAt: number | null;
 }
 
+export interface ReviewInput {
+  rating: number;
+  foodRating?: number;
+  serviceRating?: number;
+  staffRating?: number;
+  ambienceRating?: number;
+  text?: string;
+}
+
+export interface MyReview {
+  id: string;
+  rating: number;
+  text: string | null;
+  createdAt: string;
+  moderationStatus: 'VISIBLE' | 'FLAGGED' | 'HIDDEN';
+  reply: { text: string } | null;
+  restaurant: { id: string; nameEn: string; nameAr: string; logoUrl: string | null };
+}
+
+export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+
+export interface MyBooking {
+  id: string;
+  partySize: number;
+  // A calendar day (midnight UTC) for recurring events, the event's own
+  // time for one-off events.
+  reservationDate: string;
+  status: BookingStatus;
+  notes: string | null;
+  event: {
+    id: string;
+    titleEn: string;
+    titleAr: string;
+    photoUrl: string | null;
+    price: number | null;
+    isRecurring: boolean;
+    recurringTime: string | null;
+    eventType: Named & { icon: string | null };
+  };
+  restaurant: { id: string; nameEn: string; nameAr: string; logoUrl: string | null };
+}
+
 export interface MyVisit {
   id: string;
   visitDate: string;
@@ -353,6 +395,12 @@ export const api = {
   myVisits: (page = 1) => get<Paginated<MyVisit>>('/customers/me/visits' + toQueryString({ page })),
   deleteMe: () => request<{ deleted: boolean }>('DELETE', '/customers/me'),
   followedIds: () => get<string[]>('/customers/me/follows/ids'),
+  writeReview: (restaurantId: string, input: ReviewInput) =>
+    request<{ id: string }>('POST', `/customers/me/reviews/${encodeURIComponent(restaurantId)}`, input),
+  myReviews: (page = 1) => get<Paginated<MyReview>>('/customers/me/reviews' + toQueryString({ page })),
+  myBookings: (page = 1) => get<Paginated<MyBooking>>('/customers/me/bookings' + toQueryString({ page })),
+  cancelBooking: (id: string) =>
+    request<{ id: string; status: BookingStatus }>('PATCH', `/customers/me/bookings/${encodeURIComponent(id)}/cancel`),
   followedRestaurants: () =>
     get<{ id: string; nameEn: string; nameAr: string; logoUrl: string | null; district: NamedRef | null }[]>(
       '/customers/me/follows',

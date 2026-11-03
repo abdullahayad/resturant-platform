@@ -1,10 +1,11 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   BadgeCheck,
   ChevronLeft,
   ChevronRight,
   Clock,
   Heart,
+  PenLine,
   MapPin,
   MessageCircle,
   Navigation,
@@ -14,7 +15,7 @@ import {
   Utensils,
   X,
 } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -92,16 +93,35 @@ export default function RestaurantScreen() {
     }
   };
 
+  // Reloaded whenever the page comes back into view, so a review the
+  // customer just wrote shows up straight away.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      api
+        .restaurantPage(id)
+        .then((p) => {
+          if (!cancelled) setPage(p);
+        })
+        .catch(() => {
+          if (!cancelled) setFailed(true);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [id]),
+  );
+
+  const writeReview = () => {
+    if (status !== 'signedIn') {
+      router.push('/login');
+      return;
+    }
+    router.push({ pathname: '/review/[id]', params: { id, name: page ? name(page) : '' } });
+  };
+
   useEffect(() => {
     let cancelled = false;
-    api
-      .restaurantPage(id)
-      .then((p) => {
-        if (!cancelled) setPage(p);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
     api
       .events({ restaurantId: id })
       .then((e) => {
@@ -305,6 +325,14 @@ export default function RestaurantScreen() {
               </>
             ))}
 
+          {section === 'reviews' && (
+            <Pressable style={styles.writeReview} onPress={writeReview} accessibilityRole="button">
+              <PenLine size={17} color={colors.white} />
+              <AppText weight="bold" style={styles.writeReviewText}>
+                {t('review.write')}
+              </AppText>
+            </Pressable>
+          )}
           {section === 'reviews' &&
             (page.reviews.length === 0 ? (
               <AppText style={styles.emptyText}>{t('restaurant.noReviews')}</AppText>
@@ -634,6 +662,16 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -3 },
   gridItem: { width: '33.333%', padding: 3 },
   gridImage: { width: '100%', aspectRatio: 1, borderRadius: 12, backgroundColor: colors.surface },
+  writeReview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.orange,
+  },
+  writeReviewText: { color: colors.white, fontSize: 15 },
   review: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 12, gap: 6 },
   reviewTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   reviewer: { fontSize: 15 },

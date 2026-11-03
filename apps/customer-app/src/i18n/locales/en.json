@@ -198,9 +198,56 @@
     "deleteText": "Your visits and level will be deleted for good and cannot be restored.",
     "deleteConfirm": "Delete",
     "cancel": "Cancel",
-    "following": "Restaurants I follow ({{n}})"
+    "following": "Restaurants I follow ({{n}})",
+    "myBookings": "My bookings",
+    "myReviews": "My reviews"
   },
   "healthy": {
     "tag": "🌿 Healthy"
+  },
+  "review": {
+    "write": "Write a review",
+    "title": "Rate {{name}}",
+    "yourName": "Your name (shown with the review)",
+    "overall": "Overall",
+    "food": "Food",
+    "service": "Service",
+    "staff": "Staff",
+    "ambience": "Ambience",
+    "optional": "optional",
+    "text": "What did you like or not like?",
+    "send": "Send review",
+    "needRating": "Pick a star rating",
+    "needName": "Please enter your name",
+    "cooldown": "You reviewed this restaurant recently. You can review it again after 12 hours.",
+    "failed": "The review didn't go through. Check your internet and try again.",
+    "sentTitle": "Thanks for your review",
+    "sentText": "It helps others choose. If the restaurant scanned your visit code, it shows ✓ Verified visit.",
+    "done": "Done",
+    "photosSoon": "Adding photos is coming in the next update."
+  },
+  "bookings": {
+    "title": "My bookings",
+    "empty": "No bookings yet",
+    "emptyText": "Book seats at an event from the Events tab and they will show here.",
+    "guests": "{{n}} guests",
+    "status": {
+      "PENDING": "Waiting for the restaurant",
+      "CONFIRMED": "Confirmed",
+      "CANCELLED": "Cancelled",
+      "COMPLETED": "Done"
+    },
+    "cancel": "Cancel booking",
+    "cancelTitle": "Cancel this booking?",
+    "cancelText": "We'll let the restaurant know.",
+    "keep": "No, keep it",
+    "cancelFailed": "Couldn't cancel the booking."
+  },
+  "myReviews": {
+    "title": "My reviews",
+    "empty": "No reviews yet",
+    "emptyText": "Open any restaurant and write a review from its Reviews tab.",
+    "hidden": "Hidden by LiGETA",
+    "reply": "Reply from the restaurant"
   }
 }

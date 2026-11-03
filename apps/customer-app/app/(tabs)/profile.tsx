@@ -1,5 +1,16 @@
 import { router, useFocusEffect } from 'expo-router';
-import { ChevronLeft, ChevronRight, Eye, LogOut, Pencil, QrCode, Trash2, User } from 'lucide-react-native';
+import {
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  LogOut,
+  MessageSquareText,
+  Pencil,
+  QrCode,
+  Trash2,
+  User,
+} from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -270,6 +281,24 @@ export default function ProfileScreen() {
             </View>
           </>
         )}
+
+        <View style={styles.card}>
+          <Pressable style={styles.settingRow} onPress={() => router.push('/bookings')} accessibilityRole="link">
+            <CalendarCheck size={20} color={colors.text} />
+            <AppText weight="semibold" style={[styles.settingTitle, { flex: 1 }]}>
+              {t('profile.myBookings')}
+            </AppText>
+            <Chevron size={18} color={colors.mutedIcon} />
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable style={styles.settingRow} onPress={() => router.push('/my-reviews')} accessibilityRole="link">
+            <MessageSquareText size={20} color={colors.text} />
+            <AppText weight="semibold" style={[styles.settingTitle, { flex: 1 }]}>
+              {t('profile.myReviews')}
+            </AppText>
+            <Chevron size={18} color={colors.mutedIcon} />
+          </Pressable>
+        </View>
 
         <View style={[styles.card, { marginTop: 18 }]}>
           <Pressable style={styles.settingRow} onPress={signOut} accessibilityRole="button">
