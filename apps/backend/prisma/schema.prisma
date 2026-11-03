@@ -150,6 +150,7 @@ model FoodCategory {
   id        String   @id @default(uuid())
   nameEn    String
   nameAr    String
+  icon      String? // emoji shown on the customer app's cuisine row
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
@@ -1389,4 +1390,40 @@ model CustomerFollow {
   @@id([customerId, restaurantId])
   @@index([restaurantId])
   @@map("customer_follows")
+}
+
+// What tapping a Home banner opens in the customer app.
+enum HomeBannerLink {
+  NONE
+  RESTAURANT
+  MOOD
+  HEALTHY
+  OFFERS
+  EVENTS
+}
+
+// A banner at the top of the customer app's Home (Ramadan, Eid, a new
+// feature, a partner campaign) - managed in Admin > App > Home Layout.
+// Only switched-on banners inside their date window are shown.
+model HomeBanner {
+  id         String         @id @default(uuid())
+  titleEn    String
+  titleAr    String
+  subtitleEn String?
+  subtitleAr String?
+  imageUrl   String?
+  // Background colour behind the text when there's no image, e.g. "#C2540A".
+  color      String?
+  linkType   HomeBannerLink @default(NONE)
+  // The restaurant or mood id for RESTAURANT / MOOD links.
+  linkValue  String?
+  startsAt   DateTime?
+  endsAt     DateTime?
+  isActive   Boolean        @default(false)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("home_banners")
 }

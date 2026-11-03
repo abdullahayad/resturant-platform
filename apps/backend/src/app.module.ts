@@ -39,6 +39,7 @@ import { MoodsModule } from './moods/moods.module';
 import { DiscoverModule } from './discover/discover.module';
 import { CustomersModule } from './customers/customers.module';
 import { HealthyModule } from './healthy/healthy.module';
+import { HomeBannersModule } from './home-banners/home-banners.module';
 import { AdminActivityModule } from './admin-activity/admin-activity.module';
 
 @Module({
@@ -78,6 +79,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     DiscoverModule,
     CustomersModule,
     HealthyModule,
+    HomeBannersModule,
     AdminActivityModule,
   ],
   controllers: [AppController, LegalController, SupportSessionPageController, ReviewPageController],

@@ -41,6 +41,16 @@ export class DiscoverController {
     return this.lists.healthyDishes(query.page);
   }
 
+  @Get('cuisines')
+  cuisines() {
+    return this.lists.cuisines();
+  }
+
+  @Get('chefs')
+  chefs() {
+    return this.lists.chefs();
+  }
+
   @Get('events')
   events(@Query() query: DiscoverEventsQueryDto) {
     return this.lists.events(query);

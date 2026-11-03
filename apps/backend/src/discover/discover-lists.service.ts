@@ -229,6 +229,60 @@ export class DiscoverListsService {
     return pageOf(items, query.page);
   }
 
+  // Home's cuisine row: every active cuisine that at least one live
+  // restaurant serves, most-served first, each with a real photo (the
+  // cover of a live restaurant serving it) so no one has to upload one.
+  async cuisines() {
+    const categories = await this.prisma.db.foodCategory.findMany({
+      where: { isActive: true, restaurants: { some: { restaurant: LIVE_RESTAURANT } } },
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        nameEn: true,
+        nameAr: true,
+        icon: true,
+        _count: { select: { restaurants: { where: { restaurant: LIVE_RESTAURANT } } } },
+        restaurants: {
+          where: {
+            restaurant: {
+              ...LIVE_RESTAURANT,
+              galleryPhotos: { some: { moderationStatus: { not: 'HIDDEN' }, album: { in: ['FOOD', 'AMBIENCE'] } } },
+            },
+          },
+          take: 1,
+          select: { restaurant: { select: { galleryPhotos: restaurantMiniSelect.galleryPhotos } } },
+        },
+      },
+    });
+    return categories
+      .map(({ _count, restaurants, ...c }) => ({
+        ...c,
+        restaurantCount: _count.restaurants,
+        photoUrl: restaurants[0]?.restaurant.galleryPhotos[0]?.url ?? null,
+      }))
+      .sort((a, b) => b.restaurantCount - a.restaurantCount);
+  }
+
+  // Home's chefs row ("شيفات ليكيته"): chef profiles of live restaurants,
+  // the ones with a photo first.
+  async chefs(limit = 20) {
+    const rows = await this.prisma.db.chefProfile.findMany({
+      where: { restaurant: LIVE_RESTAURANT },
+      orderBy: [{ photoUrl: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        photoUrl: true,
+        speciality: true,
+        yearsExperience: true,
+        restaurant: { select: restaurantMiniSelect },
+      },
+    });
+    return rows.map(({ restaurant, ...c }) => ({ ...c, restaurant: toMini(restaurant) }));
+  }
+
   private async livePromotions(restaurantIds: string[], now: Date): Promise<Map<string, PromotionForPricing[]>> {
     const map = new Map<string, PromotionForPricing[]>();
     if (!restaurantIds.length) return map;
