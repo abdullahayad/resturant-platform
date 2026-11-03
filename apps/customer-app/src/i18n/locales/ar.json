@@ -135,7 +135,10 @@
     "signature": "أطباقه المميزة",
     "call": "اتصال",
     "whatsapp": "واتساب",
-    "directions": "الطريق"
+    "directions": "الطريق",
+    "follow": "تابع",
+    "following": "تتابعه",
+    "verifiedVisit": "✓ زيارة مؤكدة"
   },
   "offers": {
     "tabs": {
@@ -194,7 +197,8 @@
     "deleteTitle": "تحذف حسابك؟",
     "deleteText": "راح تنحذف زياراتك ومستواك نهائياً وما نگدر نرجعها.",
     "deleteConfirm": "احذف",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "following": "مطاعم أتابعها ({{n}})"
   },
   "healthy": {
     "tag": "🌿 صحي"

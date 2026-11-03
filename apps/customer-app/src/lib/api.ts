@@ -179,6 +179,8 @@ export interface Review {
   text: string | null;
   createdAt: string;
   reply: { text: string } | null;
+  // A LiGETA customer whose visit this restaurant scanned around then.
+  verifiedVisit?: boolean;
   photos: { id: string; url: string }[];
 }
 
@@ -350,6 +352,15 @@ export const api = {
   visitCode: () => get<{ code: string; expiresInSeconds: number }>('/customers/me/visit-code'),
   myVisits: (page = 1) => get<Paginated<MyVisit>>('/customers/me/visits' + toQueryString({ page })),
   deleteMe: () => request<{ deleted: boolean }>('DELETE', '/customers/me'),
+  followedIds: () => get<string[]>('/customers/me/follows/ids'),
+  followedRestaurants: () =>
+    get<{ id: string; nameEn: string; nameAr: string; logoUrl: string | null; district: NamedRef | null }[]>(
+      '/customers/me/follows',
+    ),
+  follow: (restaurantId: string) =>
+    request<{ following: boolean }>('POST', `/customers/me/follows/${encodeURIComponent(restaurantId)}`),
+  unfollow: (restaurantId: string) =>
+    request<{ following: boolean }>('DELETE', `/customers/me/follows/${encodeURIComponent(restaurantId)}`),
   // Filter chips.
   foodCategories: () => get<NamedRef[]>('/master-data/food-categories'),
   eventTypes: () => get<EventType[]>('/master-data/event-types'),

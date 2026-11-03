@@ -16,6 +16,7 @@ import { api, type Review, type ReviewSummary } from '../lib/api';
 import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
 import { ReviewQrModal } from '../components/ReviewQrModal';
 import { VisitScanModal } from '../components/VisitScanModal';
+import { CustomersCard } from '../components/CustomersCard';
 import { radii, cardShadow } from '../theme/tokens';
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -33,6 +34,8 @@ export function CustomerReviewsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  // Bumped when the scanner closes, so the visits card shows the new visit.
+  const [customersRefresh, setCustomersRefresh] = useState(0);
   const [scanVisible, setScanVisible] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
@@ -135,6 +138,7 @@ export function CustomerReviewsScreen() {
         <Text style={styles.reviewerName}>{review.reviewerName}</Text>
         <StarRating value={review.rating} size={13} />
       </View>
+      {review.verifiedVisit && <Text style={styles.verifiedBadge}>{t('verifiedVisit')}</Text>}
       <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
       {review.moderationStatus !== 'VISIBLE' && (
         <Text style={styles.moderationBadge}>{review.moderationStatus === 'HIDDEN' ? t('hiddenByAdmin') : t('flagged')}</Text>
@@ -241,6 +245,8 @@ export function CustomerReviewsScreen() {
             </View>
           )}
 
+          <CustomersCard refreshKey={customersRefresh} />
+
           {loadError && <Text style={styles.error}>{loadError}</Text>}
 
           {summary && (
@@ -337,7 +343,14 @@ export function CustomerReviewsScreen() {
       ListEmptyComponent={loading ? <LoadingState /> : !loadError ? <EmptyState icon={Star} message={t('noReviewsMatchFilter')} /> : null}
     />
     {qrModalVisible && <ReviewQrModal restaurantId={restaurant.id} onClose={() => setQrModalVisible(false)} />}
-    {scanVisible && <VisitScanModal onClose={() => setScanVisible(false)} />}
+    {scanVisible && (
+      <VisitScanModal
+        onClose={() => {
+          setScanVisible(false);
+          setCustomersRefresh((n) => n + 1);
+        }}
+      />
+    )}
     </>
   );
 }
@@ -486,6 +499,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   reviewerName: { color: colors.foreground, fontWeight: '600', fontSize: 14 },
+  verifiedBadge: { alignSelf: 'flex-start', color: colors.success, fontSize: 12, fontWeight: '700', marginTop: 2 },
   reviewDate: { color: colors.mutedForeground, fontSize: 11 },
   reviewText: { color: colors.foreground, fontSize: 13, marginTop: 4 },
   reviewPhotoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },

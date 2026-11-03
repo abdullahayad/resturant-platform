@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Heart,
   MapPin,
   MessageCircle,
   Navigation,
@@ -33,6 +34,7 @@ import { EventBookingSheet } from '../../src/components/EventBookingSheet';
 import { EventCard } from '../../src/components/EventCard';
 import { api, type EventItem, type MenuDish, type Named, type RestaurantPage } from '../../src/lib/api';
 import { baghdadNow, formatIqd, isOpenNow, toWhatsAppNumber } from '../../src/lib/format';
+import { useAuth } from '../../src/lib/auth';
 import { useDateLabels } from '../../src/lib/useDateLabels';
 import { colors } from '../../src/theme';
 
@@ -57,6 +59,38 @@ export default function RestaurantScreen() {
   const [section, setSection] = useState<Section>('menu');
   const [viewer, setViewer] = useState<string | null>(null);
   const [booking, setBooking] = useState<EventItem | null>(null);
+  const { status } = useAuth();
+  const [following, setFollowing] = useState(false);
+
+  useEffect(() => {
+    if (status !== 'signedIn') return;
+    let cancelled = false;
+    api
+      .followedIds()
+      .then((ids) => {
+        if (!cancelled) setFollowing(ids.includes(id));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [id, status]);
+
+  // Follow needs an account (the restaurant counts followers, and later
+  // sends them its offers) - signed-out customers are taken to sign in.
+  const toggleFollow = async () => {
+    if (status !== 'signedIn') {
+      router.push('/login');
+      return;
+    }
+    const next = !following;
+    setFollowing(next);
+    try {
+      await (next ? api.follow(id) : api.unfollow(id));
+    } catch {
+      setFollowing(!next);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -193,6 +227,18 @@ export default function RestaurantScreen() {
             </View>
           )}
 
+          <Pressable
+            style={[styles.follow, following && styles.following]}
+            onPress={toggleFollow}
+            accessibilityRole="button"
+            accessibilityState={{ selected: following }}
+          >
+            <Heart size={17} color={following ? colors.white : colors.orangeDark} fill={following ? colors.white : 'transparent'} />
+            <AppText weight="bold" style={[styles.followText, following && { color: colors.white }]}>
+              {following ? t('restaurant.following') : t('restaurant.follow')}
+            </AppText>
+          </Pressable>
+
           {events.length > 0 && (
             <View style={styles.block}>
               <AppText weight="bold" style={styles.blockTitle}>
@@ -271,6 +317,11 @@ export default function RestaurantScreen() {
                     </AppText>
                     <AppText style={styles.stars}>{'★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)}</AppText>
                   </View>
+                  {r.verifiedVisit && (
+                    <AppText weight="semibold" style={styles.verified}>
+                      {t('restaurant.verifiedVisit')}
+                    </AppText>
+                  )}
                   {!!r.text && <AppText style={styles.reviewText}>{r.text}</AppText>}
                   {r.photos.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reviewPhotos}>
@@ -534,6 +585,21 @@ const styles = StyleSheet.create({
   fact: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   factText: { fontSize: 13.5, color: colors.muted },
   block: { marginTop: 10, gap: 10 },
+  follow: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: colors.orange,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  following: { backgroundColor: colors.orange },
+  followText: { fontSize: 14, color: colors.orangeDark },
+  verified: { fontSize: 12.5, color: colors.green },
   blockTitle: { fontSize: 18 },
   tabs: {
     flexDirection: 'row',

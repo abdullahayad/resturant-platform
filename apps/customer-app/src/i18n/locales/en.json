@@ -135,7 +135,10 @@
     "signature": "Signature dishes",
     "call": "Call",
     "whatsapp": "WhatsApp",
-    "directions": "Directions"
+    "directions": "Directions",
+    "follow": "Follow",
+    "following": "Following",
+    "verifiedVisit": "✓ Verified visit"
   },
   "offers": {
     "tabs": {
@@ -194,7 +197,8 @@
     "deleteTitle": "Delete your account?",
     "deleteText": "Your visits and level will be deleted for good and cannot be restored.",
     "deleteConfirm": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "following": "Restaurants I follow ({{n}})"
   },
   "healthy": {
     "tag": "🌿 Healthy"

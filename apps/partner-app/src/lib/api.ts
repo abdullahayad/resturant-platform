@@ -265,6 +265,28 @@ export interface Review {
   moderationStatus: 'VISIBLE' | 'FLAGGED' | 'HIDDEN';
   reply: { id: string; text: string; createdAt: string } | null;
   photos: { id: string; url: string; moderationStatus: 'VISIBLE' | 'FLAGGED' | 'HIDDEN' }[];
+  // The reviewer is a LiGETA customer whose visit code you scanned around then.
+  verifiedVisit?: boolean;
+}
+
+// Your customers in the customer app: verified visits (scanned visit codes)
+// and followers.
+export interface CustomersSummary {
+  visitsToday: number;
+  visitsThisWeek: number;
+  totalVisits: number;
+  uniqueCustomers: number;
+  returningCustomers: number;
+  followers: number;
+}
+
+export interface CustomerVisitItem {
+  id: string;
+  visitDate: string;
+  createdAt: string;
+  customerName: string;
+  level: number;
+  visitsHere: number;
 }
 
 export interface ReviewCategoryScore {
@@ -815,6 +837,9 @@ export const api = {
     send<Dish>('POST', '/restaurants/me/dishes', token, payload),
   updateDish: (token: string, id: string, payload: Partial<DishPayload>) =>
     send<Dish>('PATCH', `/restaurants/me/dishes/${id}`, token, payload),
+  customersSummary: (token: string) => get<CustomersSummary>('/restaurants/me/customers/summary', token),
+  customerVisits: (token: string, page?: number) =>
+    get<Paginated<CustomerVisitItem>>(`/restaurants/me/customers/visits${qsFrom({ page })}`, token),
   healthyStatus: (token: string) => get<HealthyTagStatus>('/restaurants/me/healthy', token),
   requestHealthyTag: (token: string, note?: string) =>
     send<HealthyTagStatus>('POST', '/restaurants/me/healthy-request', token, { note }),

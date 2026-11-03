@@ -35,6 +35,7 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [visits, setVisits] = useState<MyVisit[]>([]);
+  const [followed, setFollowed] = useState<Awaited<ReturnType<typeof api.followedRestaurants>>>([]);
   const ar = i18n.language === 'ar';
   const Chevron = I18nManager.isRTL ? ChevronLeft : ChevronRight;
 
@@ -49,6 +50,12 @@ export default function ProfileScreen() {
         .myVisits()
         .then((v) => {
           if (!cancelled) setVisits(v.items.slice(0, 5));
+        })
+        .catch(() => {});
+      api
+        .followedRestaurants()
+        .then((f) => {
+          if (!cancelled) setFollowed(f);
         })
         .catch(() => {});
       return () => {
@@ -203,6 +210,37 @@ export default function ProfileScreen() {
             />
           </View>
         </View>
+
+        {followed.length > 0 && (
+          <>
+            <AppText weight="bold" style={styles.sectionTitle}>
+              {t('profile.following', { n: followed.length })}
+            </AppText>
+            <View style={styles.card}>
+              {followed.map((r) => (
+                <Pressable
+                  key={r.id}
+                  style={styles.visitRow}
+                  onPress={() => router.push({ pathname: '/restaurant/[id]', params: { id: r.id } })}
+                  accessibilityRole="link"
+                >
+                  {r.logoUrl ? (
+                    <Image source={{ uri: r.logoUrl }} style={styles.visitLogo} />
+                  ) : (
+                    <View style={[styles.visitLogo, styles.visitLogoEmpty]} />
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <AppText weight="semibold">{ar ? r.nameAr : r.nameEn}</AppText>
+                    {r.district && (
+                      <AppText style={styles.settingText}>{ar ? r.district.nameAr : r.district.nameEn}</AppText>
+                    )}
+                  </View>
+                  <Chevron size={18} color={colors.mutedIcon} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
 
         {visits.length > 0 && (
           <>

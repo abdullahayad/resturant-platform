@@ -28,5 +28,22 @@
   "scanCardButton": "Scan",
   "qrModalTitle": "Table Review QR Code",
   "qrModalBody": "Print this on a table-tent or sticker. A customer scans it with their phone's regular camera — no app install, no account — and can leave a rating in under a minute.",
-  "shareLink": "Share Link"
+  "shareLink": "Share Link",
+  "verifiedVisit": "✓ Verified visit",
+  "customers": {
+    "title": "Your customers",
+    "body": "Visits you scanned and people following you in the LiGETA app.",
+    "today": "Today",
+    "thisWeek": "Last 7 days",
+    "totalVisits": "Total visits",
+    "customers": "Customers",
+    "returning": "Came back",
+    "followers": "Followers",
+    "recent": "Recent visits",
+    "none": "No scanned visits yet. Scan a customer's visit code to start.",
+    "seeAll": "See all",
+    "allVisits": "All visits",
+    "close": "Close",
+    "levelVisits": "Level {{level}} · visit {{count}} here"
+  }
 }
