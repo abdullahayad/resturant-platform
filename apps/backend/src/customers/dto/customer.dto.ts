@@ -1,4 +1,6 @@
+import { OmitType } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { CreateReviewDto } from '../../reviews/dto/review.dto';
 
 export class RequestCodeDto {
   @IsString()
@@ -25,6 +27,10 @@ export class UpdateCustomerDto {
   @IsBoolean()
   isPublic?: boolean;
 }
+
+// A review written in the customer app - the name and phone come from the
+// signed-in account instead of the form.
+export class CustomerReviewDto extends OmitType(CreateReviewDto, ['reviewerName', 'reviewerPhone'] as const) {}
 
 export class ScanVisitDto {
   @IsString()

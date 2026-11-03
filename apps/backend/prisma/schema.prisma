@@ -776,7 +776,13 @@ model Review {
   // it back to show a reviewer's phone number to anyone.
   reviewerPhoneHash String?
 
+  // Set when the review was written in the customer app while signed in
+  // (null for reviews from the public review page). Kept as null - the
+  // review stays - if the customer deletes their account.
+  customerId String?
+
   restaurant Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer   Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   reply      ReviewReply?
   // Photos the customer attached when posting this review — stored as
   // GalleryPhoto rows tagged album: REVIEW, so they also show up in the
@@ -786,6 +792,7 @@ model Review {
   @@index([restaurantId])
   @@index([moderationStatus])
   @@index([restaurantId, reviewerPhoneHash, createdAt])
+  @@index([customerId])
   @@map("reviews")
 }
 
@@ -1325,6 +1332,7 @@ model Customer {
 
   visits  CustomerVisit[]
   follows CustomerFollow[]
+  reviews Review[]
 
   @@index([phoneHash])
   @@map("customers")

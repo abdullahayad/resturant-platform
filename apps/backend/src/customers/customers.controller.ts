@@ -15,9 +15,10 @@ import { Throttle } from '@nestjs/throttler';
 import { CustomerAuthService } from './customer-auth.service';
 import { CustomersService } from './customers.service';
 import { FollowsService } from './follows.service';
+import { CustomerActivityService } from './customer-activity.service';
 import { RestaurantCustomersService } from './restaurant-customers.service';
 import { CustomerAuthGuard, type CustomerRequest } from './customer-auth.guard';
-import { RequestCodeDto, ScanVisitDto, UpdateCustomerDto, VerifyCodeDto } from './dto/customer.dto';
+import { CustomerReviewDto, RequestCodeDto, ScanVisitDto, UpdateCustomerDto, VerifyCodeDto } from './dto/customer.dto';
 import { PageQueryDto } from '../common/pagination';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
@@ -48,6 +49,7 @@ export class CustomerMeController {
   constructor(
     private readonly customers: CustomersService,
     private readonly follows: FollowsService,
+    private readonly activity: CustomerActivityService,
   ) {}
 
   @Get()
@@ -93,6 +95,31 @@ export class CustomerMeController {
   @Delete('follows/:restaurantId')
   unfollow(@Req() req: CustomerRequest, @Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
     return this.follows.unfollow(req.customer.id, restaurantId);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('reviews/:restaurantId')
+  writeReview(
+    @Req() req: CustomerRequest,
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() dto: CustomerReviewDto,
+  ) {
+    return this.activity.writeReview(req.customer.id, restaurantId, dto);
+  }
+
+  @Get('reviews')
+  myReviews(@Req() req: CustomerRequest, @Query() query: PageQueryDto) {
+    return this.activity.myReviews(req.customer.id, query.page);
+  }
+
+  @Get('bookings')
+  myBookings(@Req() req: CustomerRequest, @Query() query: PageQueryDto) {
+    return this.activity.myBookings(req.customer.id, query.page);
+  }
+
+  @Patch('bookings/:id/cancel')
+  cancelBooking(@Req() req: CustomerRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.activity.cancelBooking(req.customer.id, id);
   }
 }
 

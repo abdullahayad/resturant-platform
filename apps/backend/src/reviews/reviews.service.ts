@@ -19,7 +19,9 @@ const withReplyAndPhotos = {
 // would otherwise ride along on every one of these responses. This is the
 // one and only place that column is allowed to be excluded from, applied to
 // every read path below - never select or include it directly instead.
-const omitPhoneHash = { reviewerPhoneHash: true } as const;
+// customerId is left out the same way: it's an internal account id, and
+// reviews are shown publicly.
+const omitPhoneHash = { reviewerPhoneHash: true, customerId: true } as const;
 
 // How many AI reply-suggestion calls a restaurant can make in one day -
 // this is the app's first paid external API call, so it's capped to keep a
@@ -44,7 +46,8 @@ export class ReviewsService {
     private readonly activityLog: RestaurantActivityLogService,
   ) {}
 
-  async createForRestaurant(restaurantId: string, dto: CreateReviewDto) {
+  // customerId: set when a signed-in customer writes it in the customer app.
+  async createForRestaurant(restaurantId: string, dto: CreateReviewDto, customerId?: string) {
     const restaurant = await this.prisma.db.restaurant.findUnique({
       where: { id: restaurantId },
       select: { status: true, notifyNewReview: true },
@@ -74,6 +77,7 @@ export class ReviewsService {
         restaurantId,
         reviewerName: dto.reviewerName,
         reviewerPhoneHash,
+        customerId,
         rating: dto.rating,
         foodRating: dto.foodRating,
         serviceRating: dto.serviceRating,
