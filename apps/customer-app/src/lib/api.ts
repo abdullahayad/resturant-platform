@@ -66,6 +66,57 @@ export interface Mood {
   foodsAr: string | null;
 }
 
+export interface District {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+}
+
+export interface Province {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  // Districts directly under the province (provinces without zones).
+  districts: District[];
+  // Baghdad: districts grouped under Rusafa / Karkh.
+  zones: { id: string; nameEn: string; nameAr: string; districts: District[] }[];
+}
+
+export type HomeBannerLink = 'NONE' | 'RESTAURANT' | 'MOOD' | 'HEALTHY' | 'OFFERS' | 'EVENTS';
+
+// A Home banner, managed in Admin > App > Home Layout.
+export interface HomeBanner {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  subtitleEn: string | null;
+  subtitleAr: string | null;
+  imageUrl: string | null;
+  color: string | null;
+  linkType: HomeBannerLink;
+  linkValue: string | null;
+}
+
+// Home's cuisine row - only cuisines some live restaurant serves.
+export interface Cuisine {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  icon: string | null;
+  photoUrl: string | null;
+  restaurantCount: number;
+}
+
+export interface Chef {
+  id: string;
+  name: string;
+  role: 'HEAD_CHEF' | 'SOUS_CHEF';
+  photoUrl: string | null;
+  speciality: string | null;
+  yearsExperience: number | null;
+  restaurant: RestaurantMini;
+}
+
 export interface NamedRef {
   id: string;
   nameEn: string;
@@ -412,4 +463,9 @@ export const api = {
   // Filter chips.
   foodCategories: () => get<NamedRef[]>('/master-data/food-categories'),
   eventTypes: () => get<EventType[]>('/master-data/event-types'),
+  provinces: () => get<Province[]>('/master-data/provinces'),
+  // Home.
+  homeBanners: () => get<HomeBanner[]>('/home/banners'),
+  cuisines: () => get<Cuisine[]>('/discover/cuisines'),
+  chefs: () => get<Chef[]>('/discover/chefs'),
 };

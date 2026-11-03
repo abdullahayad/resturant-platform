@@ -7,7 +7,6 @@
     "profile": "Profile"
   },
   "home": {
-    "city": "Baghdad",
     "chooseArea": "Choose your area",
     "searchHint": "Restaurant, dish or area...",
     "moodTitle": "What's the mood today?",
@@ -26,7 +25,10 @@
     "dontMiss": "Don't miss these",
     "sponsored": "Sponsored",
     "healthyDishes": "🌿 Healthy dishes",
-    "healthyRestaurants": "Healthy restaurants"
+    "healthyRestaurants": "Healthy restaurants",
+    "everywhere": "All of Iraq",
+    "allAreas": "All areas",
+    "chefs": "👨‍🍳 LiGETA chefs"
   },
   "explore": {
     "search": "Search",
@@ -200,7 +202,8 @@
     "cancel": "Cancel",
     "following": "Restaurants I follow ({{n}})",
     "myBookings": "My bookings",
-    "myReviews": "My reviews"
+    "myReviews": "My reviews",
+    "language": "Language"
   },
   "healthy": {
     "tag": "🌿 Healthy"
@@ -249,5 +252,12 @@
     "emptyText": "Open any restaurant and write a review from its Reviews tab.",
     "hidden": "Hidden by LiGETA",
     "reply": "Reply from the restaurant"
+  },
+  "area": {
+    "title": "Choose your area",
+    "everywhere": "All of Iraq",
+    "allOf": "All of {{name}}",
+    "changeProvince": "Another province",
+    "clear": "Clear area"
   }
 }

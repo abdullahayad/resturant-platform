@@ -30,6 +30,7 @@ import { AppText } from '../../src/components/AppText';
 import { VisitCodeSheet } from '../../src/components/VisitCodeSheet';
 import { api, type MyVisit } from '../../src/lib/api';
 import { useAuth } from '../../src/lib/auth';
+import { chooseLanguage, type Language } from '../../src/i18n';
 import { useDateLabels } from '../../src/lib/useDateLabels';
 import { colors, fonts, TAB_BAR_SPACE } from '../../src/theme';
 
@@ -104,6 +105,7 @@ export default function ProfileScreen() {
               </AppText>
             </Pressable>
           </View>
+          <LanguageSwitch />
         </ScrollView>
       </SafeAreaView>
     );
@@ -300,6 +302,8 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
+        <LanguageSwitch />
+
         <View style={[styles.card, { marginTop: 18 }]}>
           <Pressable style={styles.settingRow} onPress={signOut} accessibilityRole="button">
             <LogOut size={20} color={colors.text} />
@@ -322,7 +326,54 @@ export default function ProfileScreen() {
   );
 }
 
+// العربية / English - works signed in or not. Switching between Arabic
+// (right-to-left) and English restarts the app into the new layout.
+function LanguageSwitch() {
+  const { t, i18n } = useTranslation();
+  const current = i18n.language as Language;
+  const options: { lang: Language; label: string }[] = [
+    { lang: 'ar', label: 'العربية' },
+    { lang: 'en', label: 'English' },
+  ];
+  return (
+    <View style={[styles.card, styles.languageCard]}>
+      <AppText weight="semibold" style={styles.settingTitle}>
+        {t('profile.language')}
+      </AppText>
+      <View style={styles.languageOptions}>
+        {options.map((o) => (
+          <Pressable
+            key={o.lang}
+            style={[styles.languageOption, current === o.lang && styles.languageOptionActive]}
+            onPress={() => current !== o.lang && chooseLanguage(o.lang)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: current === o.lang }}
+          >
+            <AppText weight="bold" style={[styles.languageText, current === o.lang && styles.languageTextActive]}>
+              {o.label}
+            </AppText>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  languageCard: { padding: 14, gap: 10 },
+  languageOptions: { flexDirection: 'row', gap: 8 },
+  languageOption: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  languageOptionActive: { borderColor: colors.orange, backgroundColor: colors.peach },
+  languageText: { fontSize: 15, color: colors.muted },
+  languageTextActive: { color: colors.orangeDark },
   safe: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   scroll: { paddingHorizontal: 16, paddingTop: 8 },

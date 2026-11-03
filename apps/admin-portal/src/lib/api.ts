@@ -153,6 +153,28 @@ export interface HealthyRestaurant {
   dishes: { id: string; nameEn: string; nameAr: string; price: string; photoUrl: string | null }[]
 }
 
+// A banner at the top of the customer app's Home - see HomeBanner in the
+// backend's schema.prisma.
+export type HomeBannerLink = 'NONE' | 'RESTAURANT' | 'MOOD' | 'HEALTHY' | 'OFFERS' | 'EVENTS'
+
+export interface HomeBanner {
+  id: string
+  titleEn: string
+  titleAr: string
+  subtitleEn: string | null
+  subtitleAr: string | null
+  imageUrl: string | null
+  color: string | null
+  linkType: HomeBannerLink
+  linkValue: string | null
+  startsAt: string | null
+  endsAt: string | null
+  isActive: boolean
+  sortOrder: number
+}
+
+export type HomeBannerPayload = Omit<HomeBanner, 'id'>
+
 // A "What's the mood today?" tile on the customer app's Home screen - see
 // the Mood model in the backend's schema.prisma for how matching works.
 export interface Mood {
@@ -721,6 +743,25 @@ export const api = {
   healthy: (status?: Exclude<HealthyStatus, 'NONE'>) => get<HealthyRestaurant[]>(`/admin/healthy${qsFrom({ status })}`),
   setHealthy: (restaurantId: string, isHealthy: boolean, reason?: string) =>
     send<unknown>('PATCH', `/admin/healthy/${restaurantId}`, { isHealthy, reason }),
+
+  homeBanners: () => get<HomeBanner[]>('/home/banners/admin'),
+  createHomeBanner: (payload: HomeBannerPayload) => send<HomeBanner>('POST', '/home/banners/admin', payload),
+  updateHomeBanner: (id: string, payload: HomeBannerPayload) =>
+    send<HomeBanner>('PATCH', `/home/banners/admin/${id}`, payload),
+  deleteHomeBanner: (id: string) => send<{ id: string }>('DELETE', `/home/banners/admin/${id}`),
+  // An image for the admin's own content (banners), stored with every
+  // other upload. Multipart, so it skips send()'s JSON body.
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(`${API_BASE_URL}/uploads`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: csrfHeaders(),
+      body,
+    })
+    return handle<{ url: string }>(res)
+  },
 
   moods: () => get<Mood[]>('/moods/admin'),
   createMood: (payload: MoodPayload) => send<Mood>('POST', '/moods/admin', payload),

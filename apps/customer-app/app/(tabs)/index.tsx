@@ -2,10 +2,21 @@ import { router } from 'expo-router';
 import { ChevronDown, MapPin, Search, Star, Utensils } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
-import { api, type BudgetDish, type Mood, type MoodGroup, type RestaurantCard } from '../../src/lib/api';
+import { AreaSheet } from '../../src/components/AreaSheet';
+import {
+  api,
+  type BudgetDish,
+  type Chef,
+  type Cuisine,
+  type HomeBanner,
+  type Mood,
+  type MoodGroup,
+  type RestaurantCard,
+} from '../../src/lib/api';
+import { useArea } from '../../src/lib/area';
 import { formatIqd } from '../../src/lib/format';
 import { colors, TAB_BAR_SPACE } from '../../src/theme';
 
@@ -24,6 +35,13 @@ export default function HomeScreen() {
   const [allOpen, setAllOpen] = useState(false);
   const [featured, setFeatured] = useState<RestaurantCard[]>([]);
   const [healthy, setHealthy] = useState<BudgetDish[]>([]);
+  const [banners, setBanners] = useState<HomeBanner[]>([]);
+  const [cuisines, setCuisines] = useState<Cuisine[]>([]);
+  const [chefs, setChefs] = useState<Chef[]>([]);
+  const [areaOpen, setAreaOpen] = useState(false);
+  const { area } = useArea();
+  const { width } = useWindowDimensions();
+  const bannerWidth = width - 32;
 
   // Pull-to-refresh only; the first load happens in the effect below.
   const load = useCallback(async () => {
@@ -32,6 +50,9 @@ export default function HomeScreen() {
       setFailed(false);
       setFeatured(await api.featured());
       setHealthy((await api.healthyDishes()).items);
+      setBanners(await api.homeBanners());
+      setCuisines(await api.cuisines());
+      setChefs(await api.chefs());
     } catch {
       setFailed(true);
     }
@@ -59,6 +80,16 @@ export default function HomeScreen() {
         if (!cancelled) setHealthy(h.items);
       })
       .catch(() => {});
+    // Each Home row loads on its own - one failing never blanks the others.
+    const keep = <T,>(request: Promise<T>, set: (value: T) => void) =>
+      request
+        .then((value) => {
+          if (!cancelled) set(value);
+        })
+        .catch(() => {});
+    keep(api.homeBanners(), setBanners);
+    keep(api.cuisines(), setCuisines);
+    keep(api.chefs(), setChefs);
     return () => {
       cancelled = true;
     };
@@ -71,6 +102,35 @@ export default function HomeScreen() {
   };
 
   const name = (m: Mood) => (i18n.language === 'ar' ? m.nameAr : m.nameEn);
+  const ar = i18n.language === 'ar';
+  const areaTitle = area
+    ? ar
+      ? (area.districtNameAr ?? area.provinceNameAr)
+      : (area.districtNameEn ?? area.provinceNameEn)
+    : t('home.everywhere');
+  const areaSubtitle = area
+    ? area.districtId
+      ? ar
+        ? area.provinceNameAr
+        : area.provinceNameEn
+      : t('home.allAreas')
+    : t('home.chooseArea');
+
+  // Where a banner leads, as set in Admin > Home Layout.
+  const openBanner = (b: HomeBanner) => {
+    if (b.linkType === 'RESTAURANT' && b.linkValue) {
+      router.push({ pathname: '/restaurant/[id]', params: { id: b.linkValue } });
+    } else if (b.linkType === 'MOOD' && b.linkValue) {
+      const mood = list.find((m) => m.id === b.linkValue);
+      router.push({ pathname: '/explore', params: { moodId: b.linkValue, moodName: mood ? name(mood) : '' } });
+    } else if (b.linkType === 'HEALTHY') {
+      router.push({ pathname: '/explore', params: { healthy: '1' } });
+    } else if (b.linkType === 'OFFERS') {
+      router.push('/offers');
+    } else if (b.linkType === 'EVENTS') {
+      router.push('/events');
+    }
+  };
   const list = moods ?? [];
   const showMore = list.length > HOME_MOOD_COUNT + 1;
   const homeMoods = showMore ? list.slice(0, HOME_MOOD_COUNT) : list;
@@ -102,15 +162,20 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.orange} />}
       >
         <View style={styles.header}>
-          <Pressable style={styles.location} accessibilityRole="button" accessibilityLabel={t('home.chooseArea')}>
+          <Pressable
+            style={styles.location}
+            onPress={() => setAreaOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.chooseArea')}
+          >
             <View style={styles.row}>
               <MapPin size={20} color={colors.orange} fill={colors.orange} stroke={colors.peach} />
               <AppText weight="bold" style={styles.city}>
-                {t('home.city')}
+                {areaTitle}
               </AppText>
               <ChevronDown size={16} color={colors.text} />
             </View>
-            <AppText style={styles.area}>{t('home.chooseArea')}</AppText>
+            <AppText style={styles.area}>{areaSubtitle}</AppText>
           </Pressable>
 
           <Pressable style={styles.search} onPress={() => router.push('/explore')} accessibilityRole="search">
@@ -118,6 +183,63 @@ export default function HomeScreen() {
             <AppText style={styles.searchHint}>{t('home.searchHint')}</AppText>
           </Pressable>
         </View>
+
+        {banners.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={bannerWidth + 10}
+            decelerationRate="fast"
+            contentContainerStyle={styles.bannerRow}
+          >
+            {banners.map((b) => (
+              <Pressable
+                key={b.id}
+                style={[styles.banner, { width: bannerWidth, backgroundColor: b.color ?? colors.orange }]}
+                onPress={() => openBanner(b)}
+                disabled={b.linkType === 'NONE'}
+                accessibilityRole={b.linkType === 'NONE' ? 'text' : 'button'}
+              >
+                {b.imageUrl && <Image source={{ uri: b.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+                {b.imageUrl && <View style={styles.bannerShade} />}
+                <AppText weight="bold" style={styles.bannerTitle} numberOfLines={2}>
+                  {ar ? b.titleAr : b.titleEn}
+                </AppText>
+                {!!(ar ? b.subtitleAr : b.subtitleEn) && (
+                  <AppText style={styles.bannerSubtitle} numberOfLines={2}>
+                    {ar ? b.subtitleAr : b.subtitleEn}
+                  </AppText>
+                )}
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
+        {cuisines.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cuisineRow}>
+            {cuisines.map((c) => (
+              <Pressable
+                key={c.id}
+                style={styles.cuisine}
+                onPress={() => router.push({ pathname: '/explore', params: { cuisines: c.id } })}
+                accessibilityRole="button"
+                accessibilityLabel={ar ? c.nameAr : c.nameEn}
+              >
+                {c.photoUrl ? (
+                  <Image source={{ uri: c.photoUrl }} style={styles.cuisinePhoto} />
+                ) : (
+                  <View style={[styles.cuisinePhoto, styles.cuisineNoPhoto]}>
+                    <AppText style={styles.cuisineIcon}>{c.icon ?? '🍽️'}</AppText>
+                  </View>
+                )}
+                <AppText weight="semibold" style={styles.cuisineName} numberOfLines={1}>
+                  {c.icon && c.photoUrl ? `${c.icon} ` : ''}
+                  {ar ? c.nameAr : c.nameEn}
+                </AppText>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
 
         <AppText weight="bold" style={styles.sectionTitle}>
           {t('home.moodTitle')}
@@ -249,7 +371,42 @@ export default function HomeScreen() {
             </ScrollView>
           </>
         )}
+
+        {chefs.length > 0 && (
+          <>
+            <AppText weight="bold" style={styles.sectionTitle}>
+              {t('home.chefs')}
+            </AppText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
+              {chefs.map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={styles.chef}
+                  onPress={() => router.push({ pathname: '/restaurant/[id]', params: { id: c.restaurant.id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel={c.name}
+                >
+                  {c.photoUrl ? (
+                    <Image source={{ uri: c.photoUrl }} style={styles.chefPhoto} />
+                  ) : (
+                    <View style={[styles.chefPhoto, styles.chefNoPhoto]}>
+                      <AppText style={styles.cuisineIcon}>👨‍🍳</AppText>
+                    </View>
+                  )}
+                  <AppText weight="bold" style={styles.chefName} numberOfLines={1}>
+                    {c.name}
+                  </AppText>
+                  <AppText style={styles.chefPlace} numberOfLines={1}>
+                    {ar ? c.restaurant.nameAr : c.restaurant.nameEn}
+                  </AppText>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </>
+        )}
       </ScrollView>
+
+      {areaOpen && <AreaSheet onClose={() => setAreaOpen(false)} />}
 
       <Modal visible={allOpen} transparent animationType="slide" onRequestClose={() => setAllOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setAllOpen(false)} accessibilityLabel={t('home.close')} />
@@ -296,6 +453,22 @@ const styles = StyleSheet.create({
   },
   searchHint: { fontSize: 15, color: colors.mutedIcon },
   sectionTitle: { fontSize: 21, marginTop: 26, marginBottom: 14, marginHorizontal: 16 },
+  bannerRow: { paddingHorizontal: 16, gap: 10, paddingTop: 18 },
+  banner: { height: 150, borderRadius: 22, overflow: 'hidden', justifyContent: 'flex-end', padding: 16 },
+  bannerShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.35)' },
+  bannerTitle: { color: colors.white, fontSize: 21 },
+  bannerSubtitle: { color: colors.white, fontSize: 13.5, opacity: 0.92, marginTop: 2 },
+  cuisineRow: { paddingHorizontal: 16, gap: 14, paddingTop: 20 },
+  cuisine: { width: 76, alignItems: 'center', gap: 6 },
+  cuisinePhoto: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surface },
+  cuisineNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.peach },
+  cuisineIcon: { fontSize: 32, lineHeight: 40 },
+  cuisineName: { fontSize: 12, textAlign: 'center' },
+  chef: { width: 96, alignItems: 'center', gap: 4 },
+  chefPhoto: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.surface },
+  chefNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.peach },
+  chefName: { fontSize: 13, textAlign: 'center' },
+  chefPlace: { fontSize: 11.5, color: colors.muted, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, rowGap: 12 },
   mood: { width: '20%', alignItems: 'center', gap: 5, paddingHorizontal: 2 },
   moodIcon: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

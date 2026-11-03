@@ -7,7 +7,6 @@
     "profile": "حسابي"
   },
   "home": {
-    "city": "بغداد",
     "chooseArea": "اختر منطقتك",
     "searchHint": "مطعم، أكلة، أو منطقة...",
     "moodTitle": "شنو المزاج اليوم؟",
@@ -26,7 +25,10 @@
     "dontMiss": "لا تفوّتها",
     "sponsored": "إعلان",
     "healthyDishes": "🌿 أكلات صحية",
-    "healthyRestaurants": "مطاعم صحية"
+    "healthyRestaurants": "مطاعم صحية",
+    "everywhere": "كل العراق",
+    "allAreas": "كل المناطق",
+    "chefs": "👨‍🍳 شيفات ليكيته"
   },
   "explore": {
     "search": "بحث",
@@ -200,7 +202,8 @@
     "cancel": "إلغاء",
     "following": "مطاعم أتابعها ({{n}})",
     "myBookings": "حجوزاتي",
-    "myReviews": "تقييماتي"
+    "myReviews": "تقييماتي",
+    "language": "اللغة"
   },
   "healthy": {
     "tag": "🌿 صحي"
@@ -249,5 +252,12 @@
     "emptyText": "افتح أي مطعم واكتب تقييمك من تبويب التقييمات.",
     "hidden": "مخفي من الإدارة",
     "reply": "رد المطعم"
+  },
+  "area": {
+    "title": "اختر منطقتك",
+    "everywhere": "كل العراق",
+    "allOf": "كل {{name}}",
+    "changeProvince": "محافظة ثانية",
+    "clear": "إلغاء المنطقة"
   }
 }

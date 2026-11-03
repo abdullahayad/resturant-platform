@@ -8,8 +8,9 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import '../src/i18n';
+import { useEffect, useState } from 'react';
+import { loadSavedLanguage } from '../src/i18n';
+import { AreaProvider } from '../src/lib/area';
 import { AuthProvider } from '../src/lib/auth';
 
 export {
@@ -27,16 +28,24 @@ export default function RootLayout() {
     IBMPlexSansArabic_700Bold,
   });
 
+  // The language picked in Profile, applied before anything shows.
+  const [languageReady, setLanguageReady] = useState(false);
   useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
+    loadSavedLanguage().finally(() => setLanguageReady(true));
+  }, []);
+
+  const ready = (loaded || !!error) && languageReady;
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
 
   // If the font fails to load, carry on with the system font rather than
   // leaving the customer on a blank screen.
-  if (!loaded && !error) return null;
+  if (!ready) return null;
 
   return (
     <AuthProvider>
+      <AreaProvider>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -46,6 +55,7 @@ export default function RootLayout() {
         <Stack.Screen name="bookings" />
         <Stack.Screen name="my-reviews" />
       </Stack>
+      </AreaProvider>
     </AuthProvider>
   );
 }

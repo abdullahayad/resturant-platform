@@ -5,7 +5,7 @@ import type { MasterDataKind } from '@/lib/api'
 
 const tabs: { key: MasterDataKind; label: string; showIcon?: boolean }[] = [
   { key: 'business-types', label: 'Business Types' },
-  { key: 'food-categories', label: 'Food Categories' },
+  { key: 'food-categories', label: 'Food Categories', showIcon: true },
   { key: 'menu-categories', label: 'Menu Categories' },
   { key: 'facilities', label: 'Facilities & Amenities', showIcon: true },
   { key: 'event-types', label: 'Event Types', showIcon: true },

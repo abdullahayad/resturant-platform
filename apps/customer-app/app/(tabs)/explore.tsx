@@ -20,6 +20,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppText } from '../../src/components/AppText';
 import { RestaurantCard } from '../../src/components/RestaurantCard';
 import { api, type DiscoverQuery, type DiscoverSort, type NamedRef, type RestaurantCard as Card } from '../../src/lib/api';
+import { useArea } from '../../src/lib/area';
 import { colors, fonts, TAB_BAR_SPACE } from '../../src/theme';
 
 const SEARCH_DELAY_MS = 350;
@@ -38,18 +39,22 @@ interface Results {
 export default function ExploreScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ moodId?: string; moodName?: string; healthy?: string }>();
+  const params = useLocalSearchParams<{ moodId?: string; moodName?: string; healthy?: string; cuisines?: string }>();
   const moodId = params.moodId || undefined;
   // Healthy mode lives in the route (?healthy=1), like the mood, so Home's
   // "healthy restaurants" link and the chip drive the same filter.
   const healthyOnly = params.healthy === '1';
+  // Cuisine chips live in the route too, so Home's cuisine row can open
+  // Explore with one already picked.
+  const cuisineIds = useMemo(() => (params.cuisines ? params.cuisines.split(',') : []), [params.cuisines]);
+  // The area chosen on Home.
+  const { area, setArea } = useArea();
 
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<DiscoverSort>('recommended');
   const [openNow, setOpenNow] = useState(false);
   const [offersOnly, setOffersOnly] = useState(false);
-  const [cuisineIds, setCuisineIds] = useState<string[]>([]);
   const [cuisines, setCuisines] = useState<NamedRef[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
   const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
@@ -67,11 +72,13 @@ export default function ExploreScreen() {
       offersOnly,
       healthyOnly,
       foodCategoryIds: cuisineIds,
+      provinceId: area && !area.districtId ? area.provinceId : undefined,
+      districtId: area?.districtId,
       moodId,
       lat: point?.lat,
       lng: point?.lng,
     }),
-    [q, sort, openNow, offersOnly, healthyOnly, cuisineIds, moodId, point],
+    [q, sort, openNow, offersOnly, healthyOnly, cuisineIds, moodId, point, area],
   );
   // Results belong to the filters they were fetched for; while the
   // filters have moved on, the screen shows the loading state instead.
@@ -170,7 +177,9 @@ export default function ExploreScreen() {
 
   const name = (x: NamedRef) => (i18n.language === 'ar' ? x.nameAr : x.nameEn);
   const toggleCuisine = (id: string) =>
-    setCuisineIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+    router.setParams({
+      cuisines: (cuisineIds.includes(id) ? cuisineIds.filter((x) => x !== id) : [...cuisineIds, id]).join(','),
+    });
   const clearMood = () => router.setParams({ moodId: '', moodName: '' });
   const setHealthy = (on: boolean) => router.setParams({ healthy: on ? '1' : '' });
   const hasFilters = !!moodId || healthyOnly || openNow || offersOnly || cuisineIds.length > 0 || !!q;
@@ -179,7 +188,7 @@ export default function ExploreScreen() {
     setQ('');
     setOpenNow(false);
     setOffersOnly(false);
-    setCuisineIds([]);
+    if (cuisineIds.length) router.setParams({ cuisines: '' });
     if (moodId) clearMood();
     if (healthyOnly) setHealthy(false);
   };
@@ -252,8 +261,18 @@ export default function ExploreScreen() {
         {cuisines.map((c) => chip(name(c), cuisineIds.includes(c.id), () => toggleCuisine(c.id), c.id))}
       </ScrollView>
 
-      {(!!moodId || current) && (
+      {(!!moodId || !!area || current) && (
         <View style={styles.summary}>
+          {area && (
+            <Pressable style={styles.moodChip} onPress={() => setArea(null)} accessibilityLabel={t('area.clear')}>
+              <AppText weight="semibold" style={styles.moodChipText}>
+                {i18n.language === 'ar'
+                  ? (area.districtNameAr ?? area.provinceNameAr)
+                  : (area.districtNameEn ?? area.provinceNameEn)}
+              </AppText>
+              <X size={14} color={colors.white} strokeWidth={2.6} />
+            </Pressable>
+          )}
           {!!moodId && (
             <Pressable style={styles.moodChip} onPress={clearMood} accessibilityLabel={t('explore.clearMood')}>
               <AppText weight="semibold" style={styles.moodChipText}>
