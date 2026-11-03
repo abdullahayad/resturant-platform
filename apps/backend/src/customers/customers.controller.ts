@@ -1,11 +1,26 @@
-import { Body, Controller, Delete, Get, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CustomerAuthService } from './customer-auth.service';
 import { CustomersService } from './customers.service';
+import { FollowsService } from './follows.service';
+import { RestaurantCustomersService } from './restaurant-customers.service';
 import { CustomerAuthGuard, type CustomerRequest } from './customer-auth.guard';
 import { RequestCodeDto, ScanVisitDto, UpdateCustomerDto, VerifyCodeDto } from './dto/customer.dto';
 import { PageQueryDto } from '../common/pagination';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
+import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
 // Customer-app sign in: a 6-digit code on WhatsApp. Tight per-IP limits on
@@ -30,7 +45,10 @@ export class CustomerAuthController {
 @UseGuards(CustomerAuthGuard)
 @Controller('customers/me')
 export class CustomerMeController {
-  constructor(private readonly customers: CustomersService) {}
+  constructor(
+    private readonly customers: CustomersService,
+    private readonly follows: FollowsService,
+  ) {}
 
   @Get()
   profile(@Req() req: CustomerRequest) {
@@ -55,6 +73,44 @@ export class CustomerMeController {
   @Delete()
   remove(@Req() req: CustomerRequest) {
     return this.customers.remove(req.customer.id);
+  }
+
+  @Get('follows')
+  followedRestaurants(@Req() req: CustomerRequest) {
+    return this.follows.list(req.customer.id);
+  }
+
+  @Get('follows/ids')
+  followedIds(@Req() req: CustomerRequest) {
+    return this.follows.ids(req.customer.id);
+  }
+
+  @Post('follows/:restaurantId')
+  follow(@Req() req: CustomerRequest, @Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.follows.follow(req.customer.id, restaurantId);
+  }
+
+  @Delete('follows/:restaurantId')
+  unfollow(@Req() req: CustomerRequest, @Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.follows.unfollow(req.customer.id, restaurantId);
+  }
+}
+
+// Partner app: the restaurant's own verified visits and followers. Owner
+// and managers only - it lists customers by name.
+@UseGuards(ManagerOrOwnerGuard)
+@Controller('restaurants/me')
+export class RestaurantCustomersController {
+  constructor(private readonly restaurantCustomers: RestaurantCustomersService) {}
+
+  @Get('customers/summary')
+  summary(@Req() req: { user: PartnerJwtPayload }) {
+    return this.restaurantCustomers.summary(req.user.sub);
+  }
+
+  @Get('customers/visits')
+  visits(@Req() req: { user: PartnerJwtPayload }, @Query() query: PageQueryDto) {
+    return this.restaurantCustomers.visits(req.user.sub, query.page);
   }
 }
 

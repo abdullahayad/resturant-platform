@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { randomInt } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizePhone } from '../common/phone';
+import { hashReviewerPhone } from '../common/reviewerPhoneHash';
 import { customerTokenSecret, hashLoginCode, safeEqual } from './customer-secrets';
 import { WhatsAppSenderService } from './whatsapp-sender.service';
 import { CustomersService } from './customers.service';
@@ -110,10 +111,13 @@ export class CustomerAuthService {
       if (consumed.count === 0) throw new BadRequestException('This code has expired. Ask for a new one.');
     }
 
+    // phoneHash links this account to reviews left with the same number
+    // ("verified visit"); refreshed every sign-in so older accounts get it too.
+    const phoneHash = hashReviewerPhone(phone);
     const customer = await this.prisma.db.customer.upsert({
       where: { phone },
-      create: { phone },
-      update: {},
+      create: { phone, phoneHash },
+      update: { phoneHash },
       select: { id: true, tokenVersion: true },
     });
     const payload: CustomerJwtPayload = { sub: customer.id, type: 'customer', tokenVersion: customer.tokenVersion };

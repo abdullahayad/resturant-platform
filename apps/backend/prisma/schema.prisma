@@ -535,6 +535,7 @@ model Restaurant {
   activityLogs      RestaurantActivityLog[]
   verificationDocuments VerificationDocument[]
   customerVisits    CustomerVisit[]
+  followers         CustomerFollow[]
 
   @@index([status])
   @@index([publishStatus])
@@ -1307,6 +1308,11 @@ model Customer {
   id       String  @id @default(uuid())
   // Normalized local form (07XXXXXXXXX, see common/phone.ts) - the login.
   phone    String  @unique
+  // The same one-way hash reviews store for their reviewer's phone (see
+  // common/reviewerPhoneHash.ts) - lets a review be matched to this
+  // customer's scanned visits ("verified visit") without ever comparing or
+  // exposing raw numbers. Set at every sign-in.
+  phoneHash String?
   name     String?
   // Off by default. Only a public profile can ever be followed by other
   // customers (and only once it reaches the top levels).
@@ -1317,8 +1323,10 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  visits CustomerVisit[]
+  visits  CustomerVisit[]
+  follows CustomerFollow[]
 
+  @@index([phoneHash])
   @@map("customers")
 }
 
@@ -1357,4 +1365,20 @@ model CustomerVisit {
   @@index([restaurantId, createdAt])
   @@index([customerId, createdAt])
   @@map("customer_visits")
+}
+
+// A customer following a restaurant (the Follow button on its page). The
+// restaurant sees how many followers it has; followers will later get its
+// new offers and events as notifications.
+model CustomerFollow {
+  customerId   String
+  restaurantId String
+  createdAt    DateTime @default(now())
+
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, restaurantId])
+  @@index([restaurantId])
+  @@map("customer_follows")
 }

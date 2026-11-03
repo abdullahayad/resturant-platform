@@ -28,6 +28,10 @@ const DAILY_SUGGESTION_CAP = 30;
 
 const REVIEW_PHONE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const VERIFIED_VISIT_BEFORE_MS = 60 * DAY_MS;
+const VERIFIED_VISIT_AFTER_MS = DAY_MS;
+
 @Injectable()
 export class ReviewsService {
   private readonly logger = new Logger(ReviewsService.name);
@@ -126,7 +130,41 @@ export class ReviewsService {
       }),
       this.prisma.db.review.count({ where }),
     ]);
-    return { items, total, page, pageSize: take };
+    const verified = await this.verifiedVisitReviewIds(
+      restaurantId,
+      items.map((r) => r.id),
+    );
+    return { items: items.map((r) => ({ ...r, verifiedVisit: verified.has(r.id) })), total, page, pageSize: take };
+  }
+
+  // "Verified visit": the reviewer's phone belongs to a customer-app account
+  // whose visit code this restaurant scanned in the weeks around the review.
+  // Matched on the one-way phone hash both sides store - the phone hash
+  // itself is only read here and never returned.
+  private async verifiedVisitReviewIds(restaurantId: string, reviewIds: string[]): Promise<Set<string>> {
+    if (!reviewIds.length) return new Set();
+    const reviews = await this.prisma.db.review.findMany({
+      where: { id: { in: reviewIds }, reviewerPhoneHash: { not: null } },
+      select: { id: true, reviewerPhoneHash: true, createdAt: true },
+    });
+    if (!reviews.length) return new Set();
+    const customers = await this.prisma.db.customer.findMany({
+      where: { phoneHash: { in: reviews.map((r) => r.reviewerPhoneHash!) } },
+      select: { phoneHash: true, visits: { where: { restaurantId }, select: { createdAt: true } } },
+    });
+    const visitsByHash = new Map(customers.map((c) => [c.phoneHash, c.visits.map((v) => v.createdAt.getTime())]));
+    return new Set(
+      reviews
+        .filter((r) => {
+          const reviewed = r.createdAt.getTime();
+          // A visit up to 60 days before the review, or the day after
+          // (people sometimes review at the table, then get scanned).
+          return (visitsByHash.get(r.reviewerPhoneHash) ?? []).some(
+            (v) => v >= reviewed - VERIFIED_VISIT_BEFORE_MS && v <= reviewed + VERIFIED_VISIT_AFTER_MS,
+          );
+        })
+        .map((r) => r.id),
+    );
   }
 
   // Lightweight count for the sidebar's "new reviews" badge - see the

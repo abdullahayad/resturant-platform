@@ -7,6 +7,7 @@ import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 import { levelFor } from './customer-levels';
 import { makeVisitCode, readVisitCode } from './customer-secrets';
+import { customerLabel } from './restaurant-customers.service';
 
 // The feature flag that switches visit scanning on per restaurant (Admin >
 // Feature Flags) - the partner app hides the Scan card without it, and the
@@ -107,9 +108,7 @@ export class CustomersService {
 
     const visitCount = await this.prisma.db.customerVisit.count({ where: { customerId } });
     return {
-      // Staff see the customer's name, or only the last digits of the
-      // number if they never set one - never the full phone number.
-      customerName: customer.name ?? `•••• ${customer.phone.slice(-4)}`,
+      customerName: customerLabel(customer),
       level: levelFor(visitCount).level,
       visitCount,
       alreadyToday,
