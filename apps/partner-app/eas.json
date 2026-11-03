@@ -26,6 +26,13 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "./credentials/AuthKey_GMWW92628B.p8",
+        "ascApiKeyIssuerId": "bcd8f14d-895c-4d3e-9445-c88ac1ed388e",
+        "ascApiKeyId": "GMWW92628B",
+        "ascAppId": "6830226826"
+      }
+    }
   }
 }
