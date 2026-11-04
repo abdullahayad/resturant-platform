@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -118,8 +118,11 @@ export class CustomerAuthService {
       where: { phone },
       create: { phone, phoneHash },
       update: { phoneHash },
-      select: { id: true, tokenVersion: true },
+      select: { id: true, tokenVersion: true, blockedAt: true },
     });
+    // Checked only after a valid code, so the block isn't revealed to
+    // someone who doesn't own the number.
+    if (customer.blockedAt) throw new ForbiddenException('This account is blocked');
     const payload: CustomerJwtPayload = { sub: customer.id, type: 'customer', tokenVersion: customer.tokenVersion };
     const token = await this.jwt.signAsync(payload, { secret: customerTokenSecret(), expiresIn: TOKEN_LIFETIME });
     return { token, customer: await this.customers.profile(customer.id) };

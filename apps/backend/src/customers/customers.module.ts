@@ -4,6 +4,9 @@ import { FeatureFlagsModule } from '../feature-flags/feature-flags.module';
 import { ReviewsModule } from '../reviews/reviews.module';
 import { PushModule } from '../push/push.module';
 import { CustomerActivityService } from './customer-activity.service';
+import { CustomerSupportService } from './customer-support.service';
+import { AdminCustomersService } from './admin-customers.service';
+import { AdminCustomerSupportController, AdminCustomersController } from './admin-customers.controller';
 import {
   CustomerAuthController,
   CustomerMeController,
@@ -19,12 +22,21 @@ import { WhatsAppSenderService } from './whatsapp-sender.service';
 
 @Module({
   imports: [AuthModule, FeatureFlagsModule, ReviewsModule, PushModule],
-  controllers: [CustomerAuthController, CustomerMeController, VisitsController, RestaurantCustomersController],
+  controllers: [
+    CustomerAuthController,
+    CustomerMeController,
+    VisitsController,
+    RestaurantCustomersController,
+    AdminCustomersController,
+    AdminCustomerSupportController,
+  ],
   providers: [
     CustomerAuthService,
     CustomersService,
     FollowsService,
     CustomerActivityService,
+    CustomerSupportService,
+    AdminCustomersService,
     RestaurantCustomersService,
     CustomerAuthGuard,
     WhatsAppSenderService,

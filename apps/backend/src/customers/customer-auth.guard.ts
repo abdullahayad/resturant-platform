@@ -35,11 +35,13 @@ export class CustomerAuthGuard implements CanActivate {
 
     const customer = await this.prisma.db.customer.findUnique({
       where: { id: payload.sub },
-      select: { tokenVersion: true },
+      select: { tokenVersion: true, blockedAt: true },
     });
     if (!customer || customer.tokenVersion !== payload.tokenVersion) {
       throw new UnauthorizedException('Please sign in again');
     }
+    // 401 (not 403) so the app signs a blocked customer out straight away.
+    if (customer.blockedAt) throw new UnauthorizedException('This account is blocked');
     request.customer = { id: payload.sub };
     return true;
   }

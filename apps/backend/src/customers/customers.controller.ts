@@ -16,9 +16,18 @@ import { CustomerAuthService } from './customer-auth.service';
 import { CustomersService } from './customers.service';
 import { FollowsService } from './follows.service';
 import { CustomerActivityService } from './customer-activity.service';
+import { CustomerSupportService } from './customer-support.service';
 import { RestaurantCustomersService } from './restaurant-customers.service';
 import { CustomerAuthGuard, type CustomerRequest } from './customer-auth.guard';
-import { CustomerReviewDto, RequestCodeDto, ScanVisitDto, UpdateCustomerDto, VerifyCodeDto } from './dto/customer.dto';
+import {
+  CustomerReviewDto,
+  OpenSupportTicketDto,
+  RequestCodeDto,
+  ScanVisitDto,
+  SupportMessageDto,
+  UpdateCustomerDto,
+  VerifyCodeDto,
+} from './dto/customer.dto';
 import { PageQueryDto } from '../common/pagination';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
@@ -50,6 +59,7 @@ export class CustomerMeController {
     private readonly customers: CustomersService,
     private readonly follows: FollowsService,
     private readonly activity: CustomerActivityService,
+    private readonly support: CustomerSupportService,
   ) {}
 
   @Get()
@@ -120,6 +130,27 @@ export class CustomerMeController {
   @Patch('bookings/:id/cancel')
   cancelBooking(@Req() req: CustomerRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.activity.cancelBooking(req.customer.id, id);
+  }
+
+  @Get('support')
+  supportTickets(@Req() req: CustomerRequest) {
+    return this.support.myTickets(req.customer.id);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('support')
+  openSupportTicket(@Req() req: CustomerRequest, @Body() dto: OpenSupportTicketDto) {
+    return this.support.open(req.customer.id, dto.topic, dto.text, dto.restaurantId);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('support/:id/messages')
+  replySupportTicket(
+    @Req() req: CustomerRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SupportMessageDto,
+  ) {
+    return this.support.customerReply(req.customer.id, id, dto.text);
   }
 }
 

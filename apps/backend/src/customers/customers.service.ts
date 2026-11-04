@@ -87,9 +87,13 @@ export class CustomersService {
 
     const customerId = readVisitCode(code, now);
     const customer = customerId
-      ? await this.prisma.db.customer.findUnique({ where: { id: customerId }, select: { name: true, phone: true } })
+      ? await this.prisma.db.customer.findUnique({
+          where: { id: customerId },
+          select: { name: true, phone: true, blockedAt: true },
+        })
       : null;
-    if (!customerId || !customer) throw new BadRequestException('Code not recognised');
+    // A blocked account's code simply doesn't count.
+    if (!customerId || !customer || customer.blockedAt) throw new BadRequestException('Code not recognised');
 
     let alreadyToday = false;
     try {

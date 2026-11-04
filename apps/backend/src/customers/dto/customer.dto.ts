@@ -1,5 +1,6 @@
 import { OmitType } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
+import { SUPPORT_TOPICS, type SupportTopicValue } from '../customer-support.service';
 import { CreateReviewDto } from '../../reviews/dto/review.dto';
 
 export class RequestCodeDto {
@@ -31,6 +32,27 @@ export class UpdateCustomerDto {
 // A review written in the customer app - the name and phone come from the
 // signed-in account instead of the form.
 export class CustomerReviewDto extends OmitType(CreateReviewDto, ['reviewerName', 'reviewerPhone'] as const) {}
+
+export class OpenSupportTicketDto {
+  @IsIn(SUPPORT_TOPICS)
+  topic: SupportTopicValue;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2000)
+  text: string;
+
+  @IsOptional()
+  @IsUUID()
+  restaurantId?: string;
+}
+
+export class SupportMessageDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2000)
+  text: string;
+}
 
 export class ScanVisitDto {
   @IsString()

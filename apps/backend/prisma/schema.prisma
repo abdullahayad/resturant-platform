@@ -379,6 +379,8 @@ model AdminUser {
   issuedLoyaltyRewards       LoyaltyReward[]
   supportSessions            AdminSupportSession[]
   impersonatedActivityLogs   RestaurantActivityLog[]
+  blockedCustomers           Customer[]               @relation("CustomerBlockedBy")
+  customerSupportReplies     CustomerSupportMessage[]
 
   @@map("admin_users")
 }
@@ -537,6 +539,7 @@ model Restaurant {
   verificationDocuments VerificationDocument[]
   customerVisits    CustomerVisit[]
   followers         CustomerFollow[]
+  customerSupportTickets CustomerSupportTicket[]
 
   @@index([status])
   @@index([publishStatus])
@@ -1328,9 +1331,16 @@ model Customer {
   // Bumped to sign the customer out everywhere - every token carries the
   // value it was issued with and CustomerAuthGuard re-checks it.
   tokenVersion Int @default(0)
+  // Blocked by an admin (fake visits or reviews, abuse): can't sign in, and
+  // every open session stops on its next request. Cleared on unblock.
+  blockedAt     DateTime?
+  blockedReason String?
+  blockedById   String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  blockedBy      AdminUser?              @relation("CustomerBlockedBy", fields: [blockedById], references: [id], onDelete: SetNull)
+  supportTickets CustomerSupportTicket[]
   visits  CustomerVisit[]
   follows CustomerFollow[]
   reviews Review[]
@@ -1426,4 +1436,56 @@ model HomeBanner {
 
   @@index([isActive, sortOrder])
   @@map("home_banners")
+}
+
+enum CustomerSupportTopic {
+  BOOKING
+  RESTAURANT_INFO
+  LOGIN
+  ACCOUNT
+  OTHER
+}
+
+// OPEN = waiting on LiGETA, WAITING = LiGETA replied and waits on the
+// customer, CLOSED = done (a new message from the customer reopens it).
+enum CustomerSupportStatus {
+  OPEN
+  WAITING
+  CLOSED
+}
+
+// A conversation a customer starts from Help in the customer app, answered
+// from Admin > Customers > Customer Support.
+model CustomerSupportTicket {
+  id           String                @id @default(uuid())
+  customerId   String
+  topic        CustomerSupportTopic
+  status       CustomerSupportStatus @default(OPEN)
+  // The restaurant it's about, if any (wrong info, a booking problem).
+  restaurantId String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  customer   Customer                 @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant?              @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  messages   CustomerSupportMessage[]
+
+  @@index([status, updatedAt])
+  @@index([customerId])
+  @@map("customer_support_tickets")
+}
+
+model CustomerSupportMessage {
+  id          String   @id @default(uuid())
+  ticketId    String
+  text        String
+  // The admin who wrote it; null = written by the customer.
+  fromAdminId String?
+  createdAt   DateTime @default(now())
+
+  ticket    CustomerSupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromAdmin AdminUser?            @relation(fields: [fromAdminId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@map("customer_support_messages")
 }
