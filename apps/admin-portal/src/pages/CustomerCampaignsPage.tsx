@@ -8,7 +8,7 @@ export function CustomerCampaignsPage() {
     <PlaceholderPage
       title="Customer Push Campaigns"
       description="Push notifications sent to customers' phones, e.g. a new seasonal campaign or offers in their area."
-      waitingOn="the customer app and its push tokens"
+      waitingOn="push notifications in the customer app (the next app build)"
       planned={[
         {
           title: 'New campaign',

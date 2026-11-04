@@ -54,6 +54,7 @@ export default function RootLayout() {
         <Stack.Screen name="review/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="bookings" />
         <Stack.Screen name="my-reviews" />
+        <Stack.Screen name="help" />
       </Stack>
       </AreaProvider>
     </AuthProvider>

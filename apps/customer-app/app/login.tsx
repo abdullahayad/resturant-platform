@@ -33,6 +33,7 @@ export default function LoginScreen() {
   const message = (e: unknown) => {
     if (!(e instanceof ApiError)) return t('login.failed');
     if (e.status === 429) return t('login.wait');
+    if (e.status === 403) return t('login.blocked');
     if (e.status === 503) return t('login.unavailable');
     if (e.message === 'Wrong code') return t('login.wrongCode');
     if (e.message.startsWith('This code has expired')) return t('login.expired');

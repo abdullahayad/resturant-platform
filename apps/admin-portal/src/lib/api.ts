@@ -157,6 +157,122 @@ export interface HealthyRestaurant {
 // backend's schema.prisma.
 export type HomeBannerLink = 'NONE' | 'RESTAURANT' | 'MOOD' | 'HEALTHY' | 'OFFERS' | 'EVENTS'
 
+// ── Customers (customer app accounts) ──────────────────────────────────
+interface RestaurantRef {
+  id: string
+  nameEn: string
+  nameAr: string
+}
+
+export interface CustomerListItem {
+  id: string
+  phone: string
+  name: string | null
+  isPublic: boolean
+  createdAt: string
+  blockedAt: string | null
+  blockedReason: string | null
+  visitCount: number
+  reviewCount: number
+  followCount: number
+  level: number
+}
+
+export interface CustomerStats {
+  total: number
+  newThisWeek: number
+  blocked: number
+  visitedThisWeek: number
+}
+
+export type CustomerBookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+
+export interface CustomerDetail {
+  id: string
+  phone: string
+  name: string | null
+  isPublic: boolean
+  createdAt: string
+  blockedAt: string | null
+  blockedReason: string | null
+  blockedBy: { fullName: string } | null
+  level: number
+  nextLevelAt: number | null
+  visitCount: number
+  reviewCount: number
+  followCount: number
+  supportTicketCount: number
+  visits: { id: string; visitDate: string; createdAt: string; restaurant: RestaurantRef }[]
+  reviews: {
+    id: string
+    rating: number
+    text: string | null
+    createdAt: string
+    moderationStatus: ModerationStatus
+    restaurant: RestaurantRef
+  }[]
+  follows: { createdAt: string; restaurant: RestaurantRef }[]
+  bookings: {
+    id: string
+    partySize: number
+    reservationDate: string
+    status: CustomerBookingStatus
+    event: { titleEn: string }
+    restaurant: RestaurantRef
+  }[]
+}
+
+export interface LevelCustomer {
+  id: string
+  name: string | null
+  phone: string
+  isPublic: boolean
+  createdAt: string
+  visitCount: number
+  level: number
+  nextLevelAt: number | null
+}
+
+export interface CustomerLevels {
+  distribution: { level: number; fromVisits: number; customers: number }[]
+  topCustomers: LevelCustomer[]
+  nearNextLevel: LevelCustomer[]
+}
+
+export type SupportTopic = 'BOOKING' | 'RESTAURANT_INFO' | 'LOGIN' | 'ACCOUNT' | 'OTHER'
+export type SupportStatus = 'OPEN' | 'WAITING' | 'CLOSED'
+
+export interface SupportTicketItem {
+  id: string
+  topic: SupportTopic
+  status: SupportStatus
+  createdAt: string
+  updatedAt: string
+  customer: { id: string; name: string | null; phone: string }
+  restaurant: RestaurantRef | null
+  lastMessage: string
+  lastFromCustomer: boolean
+}
+
+export interface SupportTicketDetail {
+  id: string
+  topic: SupportTopic
+  status: SupportStatus
+  createdAt: string
+  restaurant: RestaurantRef | null
+  customer: { id: string; name: string | null; phone: string; createdAt: string; blockedAt: string | null }
+  messages: { id: string; text: string; createdAt: string; fromAdmin: { fullName: string } | null }[]
+  recentBookings: {
+    id: string
+    reservationDate: string
+    partySize: number
+    status: CustomerBookingStatus
+    event: { titleEn: string }
+    restaurant: RestaurantRef
+  }[]
+  recentVisits: { id: string; visitDate: string; restaurant: RestaurantRef }[]
+}
+
 export interface HomeBanner {
   id: string
   titleEn: string
@@ -743,6 +859,26 @@ export const api = {
   healthy: (status?: Exclude<HealthyStatus, 'NONE'>) => get<HealthyRestaurant[]>(`/admin/healthy${qsFrom({ status })}`),
   setHealthy: (restaurantId: string, isHealthy: boolean, reason?: string) =>
     send<unknown>('PATCH', `/admin/healthy/${restaurantId}`, { isHealthy, reason }),
+
+  customers: (q?: string, blocked?: boolean, page?: number) =>
+    get<Paginated<CustomerListItem>>(`/admin/customers${qsFrom({ q, blocked: blocked ? 'true' : undefined, page })}`),
+  customerStats: () => get<CustomerStats>('/admin/customers/stats'),
+  customerLevels: () => get<CustomerLevels>('/admin/customers/levels'),
+  customer: (id: string) => get<CustomerDetail>(`/admin/customers/${id}`),
+  blockCustomer: (id: string, reason: string) => send<CustomerDetail>('PATCH', `/admin/customers/${id}/block`, { reason }),
+  unblockCustomer: (id: string) => send<CustomerDetail>('PATCH', `/admin/customers/${id}/unblock`),
+  signOutCustomer: (id: string) => send<{ signedOut: boolean }>('POST', `/admin/customers/${id}/sign-out`),
+  deleteCustomer: (id: string) => send<{ deleted: boolean }>('DELETE', `/admin/customers/${id}`),
+  removeCustomerVisit: (visitId: string) => send<{ id: string }>('DELETE', `/admin/customers/visits/${visitId}`),
+  supportTickets: (status?: SupportStatus, page?: number) =>
+    get<Paginated<SupportTicketItem> & { statusCounts: Record<SupportStatus, number> }>(
+      `/admin/customer-support${qsFrom({ status, page })}`,
+    ),
+  supportTicket: (id: string) => get<SupportTicketDetail>(`/admin/customer-support/${id}`),
+  replySupportTicket: (id: string, text: string) =>
+    send<SupportTicketDetail>('POST', `/admin/customer-support/${id}/reply`, { text }),
+  setSupportTicketStatus: (id: string, status: SupportStatus) =>
+    send<SupportTicketDetail>('PATCH', `/admin/customer-support/${id}/status`, { status }),
 
   homeBanners: () => get<HomeBanner[]>('/home/banners/admin'),
   createHomeBanner: (payload: HomeBannerPayload) => send<HomeBanner>('POST', '/home/banners/admin', payload),

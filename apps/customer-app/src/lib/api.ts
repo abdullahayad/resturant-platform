@@ -397,6 +397,21 @@ export interface MyBooking {
   restaurant: { id: string; nameEn: string; nameAr: string; logoUrl: string | null };
 }
 
+export type SupportTopic = 'BOOKING' | 'RESTAURANT_INFO' | 'LOGIN' | 'ACCOUNT' | 'OTHER';
+export type SupportStatus = 'OPEN' | 'WAITING' | 'CLOSED';
+
+// A Help conversation with LiGETA.
+export interface SupportTicket {
+  id: string;
+  topic: SupportTopic;
+  status: SupportStatus;
+  createdAt: string;
+  updatedAt: string;
+  restaurant: NamedRef | null;
+  // fromAdmin null = the customer's own message.
+  messages: { id: string; text: string; createdAt: string; fromAdmin: { fullName: string } | null }[];
+}
+
 export interface MyVisit {
   id: string;
   visitDate: string;
@@ -446,6 +461,11 @@ export const api = {
   myVisits: (page = 1) => get<Paginated<MyVisit>>('/customers/me/visits' + toQueryString({ page })),
   deleteMe: () => request<{ deleted: boolean }>('DELETE', '/customers/me'),
   followedIds: () => get<string[]>('/customers/me/follows/ids'),
+  supportTickets: () => get<SupportTicket[]>('/customers/me/support'),
+  openSupportTicket: (topic: SupportTopic, text: string) =>
+    request<SupportTicket>('POST', '/customers/me/support', { topic, text }),
+  replySupportTicket: (id: string, text: string) =>
+    request<SupportTicket>('POST', `/customers/me/support/${encodeURIComponent(id)}/messages`, { text }),
   writeReview: (restaurantId: string, input: ReviewInput) =>
     request<{ id: string }>('POST', `/customers/me/reviews/${encodeURIComponent(restaurantId)}`, input),
   myReviews: (page = 1) => get<Paginated<MyReview>>('/customers/me/reviews' + toQueryString({ page })),

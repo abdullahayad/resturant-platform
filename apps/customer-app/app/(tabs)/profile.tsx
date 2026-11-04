@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  LifeBuoy,
   LogOut,
   MessageSquareText,
   Pencil,
@@ -297,6 +298,14 @@ export default function ProfileScreen() {
             <MessageSquareText size={20} color={colors.text} />
             <AppText weight="semibold" style={[styles.settingTitle, { flex: 1 }]}>
               {t('profile.myReviews')}
+            </AppText>
+            <Chevron size={18} color={colors.mutedIcon} />
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable style={styles.settingRow} onPress={() => router.push('/help')} accessibilityRole="link">
+            <LifeBuoy size={20} color={colors.text} />
+            <AppText weight="semibold" style={[styles.settingTitle, { flex: 1 }]}>
+              {t('profile.help')}
             </AppText>
             <Chevron size={18} color={colors.mutedIcon} />
           </Pressable>

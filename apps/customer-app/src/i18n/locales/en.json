@@ -175,7 +175,8 @@
     "wait": "Please wait a minute before asking for a new code.",
     "unavailable": "WhatsApp sign-in is coming soon.",
     "wrongCode": "Wrong code",
-    "expired": "This code has expired. Ask for a new one."
+    "expired": "This code has expired. Ask for a new one.",
+    "blocked": "This account is blocked. Contact us if you think this is a mistake."
   },
   "profile": {
     "signInTitle": "Sign in to collect your visits",
@@ -203,7 +204,8 @@
     "following": "Restaurants I follow ({{n}})",
     "myBookings": "My bookings",
     "myReviews": "My reviews",
-    "language": "Language"
+    "language": "Language",
+    "help": "Help"
   },
   "healthy": {
     "tag": "🌿 Healthy"
@@ -259,5 +261,31 @@
     "allOf": "All of {{name}}",
     "changeProvince": "Another province",
     "clear": "Clear area"
+  },
+  "help": {
+    "title": "Help",
+    "intro": "Tell us what went wrong and the LiGETA team will reply here.",
+    "new": "New message",
+    "topic": "What's it about?",
+    "topics": {
+      "BOOKING": "A booking problem",
+      "RESTAURANT_INFO": "Wrong restaurant info",
+      "LOGIN": "Login code",
+      "ACCOUNT": "My account",
+      "OTHER": "Something else"
+    },
+    "message": "Write your message",
+    "send": "Send",
+    "reply": "Write a reply…",
+    "empty": "No conversations yet.",
+    "you": "You",
+    "team": "LiGETA team",
+    "status": {
+      "OPEN": "Waiting for our reply",
+      "WAITING": "We replied",
+      "CLOSED": "Closed"
+    },
+    "failed": "The message didn't go through. Try again.",
+    "tooMany": "You have several open conversations - please continue in one of them."
   }
 }
