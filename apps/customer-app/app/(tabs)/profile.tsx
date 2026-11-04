@@ -29,7 +29,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
 import { VisitCodeSheet } from '../../src/components/VisitCodeSheet';
-import { api, type MyVisit } from '../../src/lib/api';
+import { api, type MyVisit, type NamedRef } from '../../src/lib/api';
 import { useAuth } from '../../src/lib/auth';
 import { chooseLanguage, type Language } from '../../src/i18n';
 import { useDateLabels } from '../../src/lib/useDateLabels';
@@ -49,6 +49,7 @@ export default function ProfileScreen() {
   const [nameDraft, setNameDraft] = useState('');
   const [visits, setVisits] = useState<MyVisit[]>([]);
   const [followed, setFollowed] = useState<Awaited<ReturnType<typeof api.followedRestaurants>>>([]);
+  const [cuisines, setCuisines] = useState<NamedRef[]>([]);
   const ar = i18n.language === 'ar';
   const Chevron = I18nManager.isRTL ? ChevronLeft : ChevronRight;
 
@@ -69,6 +70,12 @@ export default function ProfileScreen() {
         .followedRestaurants()
         .then((f) => {
           if (!cancelled) setFollowed(f);
+        })
+        .catch(() => {});
+      api
+        .foodCategories()
+        .then((c) => {
+          if (!cancelled) setCuisines(c);
         })
         .catch(() => {});
       return () => {
@@ -225,6 +232,48 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {customer.isPublic && (
+          <View style={[styles.card, styles.criticCard]}>
+            <AppText weight="bold" style={styles.settingTitle}>
+              {customer.isCritic ? t('critics.youAre', { n: customer.followerCount }) : t('critics.notYet', { n: customer.criticMinVisits })}
+            </AppText>
+            {customer.isCritic && (
+              <Pressable onPress={() => router.push({ pathname: '/critic/[id]', params: { id: customer.id } })} hitSlop={6}>
+                <AppText weight="semibold" style={styles.link}>
+                  {t('critics.seePage')}
+                </AppText>
+              </Pressable>
+            )}
+            <AppText style={styles.settingText}>{t('critics.specialtiesHint')}</AppText>
+            <View style={styles.specialties}>
+              {cuisines.map((c) => {
+                const on = customer.specialtyIds.includes(c.id);
+                const full = !on && customer.specialtyIds.length >= 3;
+                return (
+                  <Pressable
+                    key={c.id}
+                    style={[styles.specialty, on && styles.specialtyOn, full && styles.specialtyFull]}
+                    disabled={full}
+                    onPress={() =>
+                      update({
+                        specialtyIds: on
+                          ? customer.specialtyIds.filter((x) => x !== c.id)
+                          : [...customer.specialtyIds, c.id],
+                      }).catch(() => {})
+                    }
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on, disabled: full }}
+                  >
+                    <AppText weight="semibold" style={[styles.specialtyText, on && styles.specialtyTextOn]}>
+                      {ar ? c.nameAr : c.nameEn}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {followed.length > 0 && (
           <>
             <AppText weight="bold" style={styles.sectionTitle}>
@@ -370,6 +419,14 @@ function LanguageSwitch() {
 
 const styles = StyleSheet.create({
   languageCard: { padding: 14, gap: 10 },
+  criticCard: { padding: 14, gap: 8 },
+  link: { fontSize: 13.5, color: colors.blue },
+  specialties: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  specialty: { borderRadius: 999, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 6 },
+  specialtyOn: { backgroundColor: colors.blueTint, borderColor: colors.blue },
+  specialtyFull: { opacity: 0.4 },
+  specialtyText: { fontSize: 13 },
+  specialtyTextOn: { color: colors.blue },
   languageOptions: { flexDirection: 'row', gap: 8 },
   languageOption: {
     flex: 1,

@@ -28,7 +28,8 @@
     "healthyRestaurants": "Healthy restaurants",
     "everywhere": "All of Iraq",
     "allAreas": "All areas",
-    "chefs": "👨‍🍳 LiGETA chefs"
+    "chefs": "👨‍🍳 LiGETA chefs",
+    "critics": "🏅 LiGETA critics"
   },
   "explore": {
     "search": "Search",
@@ -287,5 +288,40 @@
     },
     "failed": "The message didn't go through. Try again.",
     "tooMany": "You have several open conversations - please continue in one of them."
+  },
+  "critics": {
+    "title": "Critic",
+    "badge": "Critic",
+    "star": "LiGETA Star",
+    "notFound": "This critic is not available.",
+    "reviews": "reviews",
+    "helpful": "helpful",
+    "followers": "followers",
+    "visits": "visits",
+    "theirReviews": "Their reviews",
+    "helpfulCount": "{{n}} found it helpful",
+    "helpfulButton": "Helpful ({{n}})",
+    "reviewsCount": "{{n}} reviews",
+    "youAre": "You're a critic 🏅 · {{n}} followers",
+    "notYet": "Reach Level 4 ({{n}} verified visits) so people can find and follow you as a critic.",
+    "seePage": "See your page →",
+    "specialtiesHint": "Pick up to 3 cuisines you know best:"
+  },
+  "report": {
+    "link": "Report",
+    "title": "Report this review",
+    "body": "LiGETA will look at it. The review stays up until then.",
+    "reasons": {
+      "FAKE_REVIEW": "Fake - they didn't visit",
+      "ABUSIVE": "Abusive or insulting",
+      "SPAM": "Spam or advertising",
+      "UNDISCLOSED_PAID": "Paid review, not disclosed",
+      "OTHER": "Something else"
+    },
+    "note": "Anything that helps us check (optional)",
+    "send": "Send report",
+    "failed": "The report didn't go through. Try again.",
+    "sentTitle": "Thanks for reporting",
+    "sentText": "The LiGETA team will review it."
   }
 }

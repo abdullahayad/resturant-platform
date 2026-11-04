@@ -269,6 +269,9 @@ export interface Review {
   verifiedVisit?: boolean;
 }
 
+// Why a review is reported to LiGETA (see ReportReviewModal).
+export type ReportReason = 'FAKE_REVIEW' | 'ABUSIVE' | 'SPAM' | 'UNDISCLOSED_PAID' | 'OTHER';
+
 // Your customers in the customer app: verified visits (scanned visit codes)
 // and followers.
 export interface CustomersSummary {
@@ -900,6 +903,8 @@ export const api = {
   newReviewsCount: (token: string, since: string) =>
     get<{ count: number }>(`/restaurants/me/reviews/new-count${qsFrom({ since })}`, token),
   reviewsSummary: (token: string) => get<ReviewSummary>('/restaurants/me/reviews/summary', token),
+  reportReview: (token: string, reviewId: string, reason: ReportReason, note?: string) =>
+    send<{ id: string; status: string }>('POST', `/restaurants/me/reviews/${reviewId}/report`, token, { reason, note }),
   replyToReview: (token: string, reviewId: string, text: string) =>
     send<Review>('POST', `/restaurants/me/reviews/${reviewId}/reply`, token, { text }),
   suggestReviewReply: (token: string, reviewId: string) =>

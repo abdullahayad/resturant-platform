@@ -10,6 +10,7 @@ import {
   api,
   type BudgetDish,
   type Chef,
+  type Critic,
   type Cuisine,
   type HomeBanner,
   type Mood,
@@ -38,6 +39,7 @@ export default function HomeScreen() {
   const [banners, setBanners] = useState<HomeBanner[]>([]);
   const [cuisines, setCuisines] = useState<Cuisine[]>([]);
   const [chefs, setChefs] = useState<Chef[]>([]);
+  const [critics, setCritics] = useState<Critic[]>([]);
   const [areaOpen, setAreaOpen] = useState(false);
   const { area } = useArea();
   const { width } = useWindowDimensions();
@@ -53,6 +55,7 @@ export default function HomeScreen() {
       setBanners(await api.homeBanners());
       setCuisines(await api.cuisines());
       setChefs(await api.chefs());
+      setCritics(await api.critics());
     } catch {
       setFailed(true);
     }
@@ -90,6 +93,7 @@ export default function HomeScreen() {
     keep(api.homeBanners(), setBanners);
     keep(api.cuisines(), setCuisines);
     keep(api.chefs(), setChefs);
+    keep(api.critics(), setCritics);
     return () => {
       cancelled = true;
     };
@@ -372,6 +376,40 @@ export default function HomeScreen() {
           </>
         )}
 
+        {critics.length > 0 && (
+          <>
+            <AppText weight="bold" style={styles.sectionTitle}>
+              {t('home.critics')}
+            </AppText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
+              {critics.slice(0, 15).map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={styles.critic}
+                  onPress={() => router.push({ pathname: '/critic/[id]', params: { id: c.id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel={c.name}
+                >
+                  <View style={[styles.criticAvatar, c.isStar && styles.criticStar]}>
+                    <AppText weight="bold" style={styles.criticInitial}>
+                      {c.name.charAt(0)}
+                    </AppText>
+                  </View>
+                  <AppText weight="bold" style={styles.chefName} numberOfLines={1}>
+                    {c.isStar ? '⭐ ' : ''}
+                    {c.name}
+                  </AppText>
+                  <AppText style={styles.chefPlace} numberOfLines={1}>
+                    {c.specialties[0]
+                      ? `${c.specialties[0].icon ?? ''} ${ar ? c.specialties[0].nameAr : c.specialties[0].nameEn}`.trim()
+                      : t('critics.reviewsCount', { n: c.reviewCount })}
+                  </AppText>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
         {chefs.length > 0 && (
           <>
             <AppText weight="bold" style={styles.sectionTitle}>
@@ -465,6 +503,19 @@ const styles = StyleSheet.create({
   cuisineIcon: { fontSize: 32, lineHeight: 40 },
   cuisineName: { fontSize: 12, textAlign: 'center' },
   chef: { width: 96, alignItems: 'center', gap: 4 },
+  critic: { width: 92, alignItems: 'center', gap: 4 },
+  criticAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.blueTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  criticStar: { borderColor: colors.orange },
+  criticInitial: { fontSize: 28, color: colors.blue },
   chefPhoto: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.surface },
   chefNoPhoto: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.peach },
   chefName: { fontSize: 13, textAlign: 'center' },

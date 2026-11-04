@@ -273,6 +273,49 @@ export interface SupportTicketDetail {
   recentVisits: { id: string; visitDate: string; restaurant: RestaurantRef }[]
 }
 
+export type ReportReason = 'FAKE_REVIEW' | 'ABUSIVE' | 'SPAM' | 'UNDISCLOSED_PAID' | 'OTHER'
+export type ReportStatus = 'OPEN' | 'DISMISSED' | 'ACTIONED'
+export type ReportAction = 'DISMISS' | 'HIDE_REVIEW' | 'BLOCK_CUSTOMER'
+
+export interface ReportItem {
+  id: string
+  reason: ReportReason
+  note: string | null
+  status: ReportStatus
+  resolution: string | null
+  resolvedAt: string | null
+  createdAt: string
+  resolvedBy: { fullName: string } | null
+  reporterCustomer: { id: string; name: string | null; phone: string } | null
+  reporterRestaurant: RestaurantRef | null
+  reportedCustomer: { id: string; name: string | null; phone: string; blockedAt: string | null } | null
+  review: {
+    id: string
+    reviewerName: string
+    rating: number
+    text: string | null
+    createdAt: string
+    moderationStatus: ModerationStatus
+    restaurant: RestaurantRef
+    _count: { reports: number }
+  }
+}
+
+export interface CriticAdminItem {
+  id: string
+  name: string | null
+  phone: string
+  isPublic: boolean
+  isStar: boolean
+  criticHidden: boolean
+  blockedAt: string | null
+  visitCount: number
+  reviewCount: number
+  followerCount: number
+  level: number
+  isCritic: boolean
+}
+
 export interface HomeBanner {
   id: string
   titleEn: string
@@ -870,6 +913,14 @@ export const api = {
   signOutCustomer: (id: string) => send<{ signedOut: boolean }>('POST', `/admin/customers/${id}/sign-out`),
   deleteCustomer: (id: string) => send<{ deleted: boolean }>('DELETE', `/admin/customers/${id}`),
   removeCustomerVisit: (visitId: string) => send<{ id: string }>('DELETE', `/admin/customers/visits/${visitId}`),
+  reports: (status?: ReportStatus, page?: number) =>
+    get<Paginated<ReportItem> & { statusCounts: Record<ReportStatus, number> }>(`/admin/reports${qsFrom({ status, page })}`),
+  resolveReport: (id: string, action: ReportAction, note?: string) =>
+    send<{ id: string; status: ReportStatus }>('PATCH', `/admin/reports/${id}`, { action, note }),
+  critics: () => get<CriticAdminItem[]>('/admin/customers/critics'),
+  setCustomerStar: (id: string, isStar: boolean) => send<unknown>('PATCH', `/admin/customers/${id}/star`, { isStar }),
+  setCriticHidden: (id: string, hidden: boolean) =>
+    send<unknown>('PATCH', `/admin/customers/${id}/critic-hidden`, { hidden }),
   supportTickets: (status?: SupportStatus, page?: number) =>
     get<Paginated<SupportTicketItem> & { statusCounts: Record<SupportStatus, number> }>(
       `/admin/customer-support${qsFrom({ status, page })}`,

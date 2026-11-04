@@ -55,6 +55,7 @@ export default function RootLayout() {
         <Stack.Screen name="bookings" />
         <Stack.Screen name="my-reviews" />
         <Stack.Screen name="help" />
+        <Stack.Screen name="critic/[id]" />
       </Stack>
       </AreaProvider>
     </AuthProvider>

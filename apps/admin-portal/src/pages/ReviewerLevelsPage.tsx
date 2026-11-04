@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, UnauthorizedError, type CustomerLevels, type LevelCustomer } from '@/lib/api'
+import { api, UnauthorizedError, type CriticAdminItem, type CustomerLevels, type LevelCustomer } from '@/lib/api'
+import { StatusPill } from '@/components/StatusPill'
+import { Switch } from '@/components/Switch'
 import { CustomerDrawer } from '@/components/CustomerDrawer'
 
 const levelNames = ['New taster', 'Explorer', 'Taster', 'Critic', 'LiGETA Star']
@@ -8,12 +10,30 @@ const levelNames = ['New taster', 'Explorer', 'Taster', 'Critic', 'LiGETA Star']
 // Customer levels, from verified visits only (a restaurant scanned the
 // customer's visit code - never GPS, never self-reported). The thresholds
 // live in the backend (customers/customer-levels.ts); following public
-// critics comes with critic profiles in the customer app.
+// A critic is a customer with a public profile at Level 4+, or one an
+// admin made a LiGETA Star; customers can follow critics in the app.
 export function ReviewerLevelsPage() {
   const navigate = useNavigate()
   const [data, setData] = useState<CustomerLevels | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [critics, setCritics] = useState<CriticAdminItem[] | null>(null)
+
+  const loadCritics = () => {
+    api.critics().then(setCritics).catch(() => setError('Could not load critics.'))
+  }
+  useEffect(loadCritics, [])
+
+  const toggleStar = async (c: CriticAdminItem) => {
+    await api.setCustomerStar(c.id, !c.isStar).catch(() => setError('Could not save.'))
+    loadCritics()
+  }
+
+  const toggleHidden = async (c: CriticAdminItem) => {
+    if (!c.criticHidden && !window.confirm(`Remove ${c.name ?? c.phone}'s critic status? They stay a normal customer.`)) return
+    await api.setCriticHidden(c.id, !c.criticHidden).catch(() => setError('Could not save.'))
+    loadCritics()
+  }
 
   useEffect(() => {
     api
@@ -76,10 +96,48 @@ export function ReviewerLevelsPage() {
             />
           </div>
 
-          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">Coming with critic profiles:</span> public critic pages
-            customers can follow (from Level 4, if they turn on Public profile), "helpful" votes on reviews, promoting a
-            customer to LiGETA Star, and editing these thresholds here.
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+            <div className="text-sm font-semibold">Critics</div>
+            <div className="text-xs text-muted-foreground">
+              Customers with a public profile. They show as critics (followable in the app) from Level 4, or right away
+              as a LiGETA Star. Removing the status keeps them as a normal customer - turning Public back on won't undo it.
+            </div>
+            {critics === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+            {critics?.length === 0 && <p className="text-sm text-muted-foreground">Nobody has a public profile yet.</p>}
+            {critics && critics.length > 0 && (
+              <div className="divide-y divide-border">
+                {critics.map((c) => (
+                  <div key={c.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                    <button onClick={() => setOpenId(c.id)} className="min-w-0 flex-1 text-left hover:text-primary">
+                      <div className="font-medium">{c.name ?? c.phone}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Level {c.level} · {c.visitCount} visits · {c.reviewCount} reviews · {c.followerCount} followers
+                      </div>
+                    </button>
+                    {c.isCritic ? (
+                      <StatusPill label="Critic" tone="success" />
+                    ) : c.criticHidden ? (
+                      <StatusPill label="Status removed" tone="destructive" />
+                    ) : c.blockedAt ? (
+                      <StatusPill label="Blocked" tone="destructive" />
+                    ) : (
+                      <StatusPill label={c.isPublic ? 'Not Level 4 yet' : 'Private'} tone="muted" />
+                    )}
+                    <Switch checked={c.isStar} onChange={() => toggleStar(c)} label="⭐ LiGETA Star" />
+                    <button
+                      onClick={() => toggleHidden(c)}
+                      className={
+                        c.criticHidden
+                          ? 'rounded-lg border border-border px-3 py-1 text-xs'
+                          : 'rounded-lg border border-destructive px-3 py-1 text-xs text-destructive'
+                      }
+                    >
+                      {c.criticHidden ? 'Give status back' : 'Remove critic status'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

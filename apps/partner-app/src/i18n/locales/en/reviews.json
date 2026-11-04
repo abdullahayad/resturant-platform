@@ -45,5 +45,22 @@
     "allVisits": "All visits",
     "close": "Close",
     "levelVisits": "Level {{level}} · visit {{count}} here"
+  },
+  "report": {
+    "link": "Report",
+    "title": "Report this review",
+    "body": "LiGETA will look at it. The review stays up until then.",
+    "reasons": {
+      "FAKE_REVIEW": "Fake - never visited",
+      "ABUSIVE": "Abusive or insulting",
+      "SPAM": "Spam or advertising",
+      "UNDISCLOSED_PAID": "Paid review, not disclosed",
+      "OTHER": "Something else"
+    },
+    "notePlaceholder": "Anything that helps us check (optional)",
+    "send": "Send report",
+    "sent": "Thanks - LiGETA will review it.",
+    "failed": "Could not send the report",
+    "close": "Close"
   }
 }

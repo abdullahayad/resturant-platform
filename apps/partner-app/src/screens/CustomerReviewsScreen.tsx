@@ -17,6 +17,7 @@ import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
 import { ReviewQrModal } from '../components/ReviewQrModal';
 import { VisitScanModal } from '../components/VisitScanModal';
 import { CustomersCard } from '../components/CustomersCard';
+import { ReportReviewModal } from '../components/ReportReviewModal';
 import { radii, cardShadow } from '../theme/tokens';
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -36,6 +37,7 @@ export function CustomerReviewsScreen() {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   // Bumped when the scanner closes, so the visits card shows the new visit.
   const [customersRefresh, setCustomersRefresh] = useState(0);
+  const [reportingId, setReportingId] = useState<string | null>(null);
   const [scanVisible, setScanVisible] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
@@ -139,6 +141,11 @@ export function CustomerReviewsScreen() {
         <StarRating value={review.rating} size={13} />
       </View>
       {review.verifiedVisit && <Text style={styles.verifiedBadge}>{t('verifiedVisit')}</Text>}
+      {review.moderationStatus !== 'HIDDEN' && (
+        <Pressable onPress={() => setReportingId(review.id)} hitSlop={8} style={styles.reportLink}>
+          <Text style={styles.reportLinkText}>{t('report.link')}</Text>
+        </Pressable>
+      )}
       <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
       {review.moderationStatus !== 'VISIBLE' && (
         <Text style={styles.moderationBadge}>{review.moderationStatus === 'HIDDEN' ? t('hiddenByAdmin') : t('flagged')}</Text>
@@ -343,6 +350,7 @@ export function CustomerReviewsScreen() {
       ListEmptyComponent={loading ? <LoadingState /> : !loadError ? <EmptyState icon={Star} message={t('noReviewsMatchFilter')} /> : null}
     />
     {qrModalVisible && <ReviewQrModal restaurantId={restaurant.id} onClose={() => setQrModalVisible(false)} />}
+    {reportingId && <ReportReviewModal reviewId={reportingId} onClose={() => setReportingId(null)} />}
     {scanVisible && (
       <VisitScanModal
         onClose={() => {
@@ -499,6 +507,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   reviewerName: { color: colors.foreground, fontWeight: '600', fontSize: 14 },
+  reportLink: { alignSelf: 'flex-end', marginTop: -2 },
+  reportLinkText: { fontSize: 12, color: colors.mutedForeground, textDecorationLine: 'underline' },
   verifiedBadge: { alignSelf: 'flex-start', color: colors.success, fontSize: 12, fontWeight: '700', marginTop: 2 },
   reviewDate: { color: colors.mutedForeground, fontSize: 11 },
   reviewText: { color: colors.foreground, fontSize: 13, marginTop: 4 },

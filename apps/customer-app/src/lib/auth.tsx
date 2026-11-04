@@ -14,7 +14,7 @@ interface AuthState {
   signIn: (token: string, customer: Customer) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
-  update: (data: { name?: string; isPublic?: boolean }) => Promise<void>;
+  update: (data: { name?: string; isPublic?: boolean; specialtyIds?: string[] }) => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
 

@@ -232,6 +232,9 @@ export interface Review {
   reply: { text: string } | null;
   // A LiGETA customer whose visit this restaurant scanned around then.
   verifiedVisit?: boolean;
+  helpfulCount?: number;
+  // Set when the author is a public critic - opens their critic page.
+  criticId?: string | null;
   photos: { id: string; url: string }[];
 }
 
@@ -353,6 +356,39 @@ export interface Customer {
   visitCount: number;
   level: number;
   nextLevelAt: number | null;
+  isStar: boolean;
+  specialtyIds: string[];
+  // Findable and followable by other customers right now.
+  isCritic: boolean;
+  criticMinVisits: number;
+  followerCount: number;
+}
+
+export type ReportReason = 'FAKE_REVIEW' | 'ABUSIVE' | 'SPAM' | 'UNDISCLOSED_PAID' | 'OTHER';
+
+export interface Critic {
+  id: string;
+  name: string;
+  isStar: boolean;
+  level: number;
+  visitCount: number;
+  reviewCount: number;
+  followerCount: number;
+  helpfulCount: number;
+  memberSince: string;
+  specialties: (NamedRef & { icon: string | null })[];
+}
+
+export interface CriticProfile extends Critic {
+  reviews: {
+    id: string;
+    rating: number;
+    text: string | null;
+    createdAt: string;
+    restaurant: { id: string; nameEn: string; nameAr: string; logoUrl: string | null };
+    photos: { id: string; url: string }[];
+    helpfulCount: number;
+  }[];
 }
 
 export interface ReviewInput {
@@ -456,11 +492,24 @@ export const api = {
   verifyCode: (phone: string, code: string) =>
     request<{ token: string; customer: Customer }>('POST', '/customer-auth/verify', { phone, code }),
   me: () => get<Customer>('/customers/me'),
-  updateMe: (data: { name?: string; isPublic?: boolean }) => request<Customer>('PATCH', '/customers/me', data),
+  updateMe: (data: { name?: string; isPublic?: boolean; specialtyIds?: string[] }) =>
+    request<Customer>('PATCH', '/customers/me', data),
   visitCode: () => get<{ code: string; expiresInSeconds: number }>('/customers/me/visit-code'),
   myVisits: (page = 1) => get<Paginated<MyVisit>>('/customers/me/visits' + toQueryString({ page })),
   deleteMe: () => request<{ deleted: boolean }>('DELETE', '/customers/me'),
   followedIds: () => get<string[]>('/customers/me/follows/ids'),
+  // Critics and helpful votes.
+  critics: (specialtyId?: string) => get<Critic[]>('/critics' + toQueryString({ specialtyId })),
+  critic: (id: string) => get<CriticProfile>(`/critics/${encodeURIComponent(id)}`),
+  followedCritics: () => get<string[]>('/customers/me/critics/ids'),
+  followCritic: (id: string) => request<{ following: boolean }>('POST', `/customers/me/critics/${encodeURIComponent(id)}`),
+  unfollowCritic: (id: string) =>
+    request<{ following: boolean }>('DELETE', `/customers/me/critics/${encodeURIComponent(id)}`),
+  helpfulIds: (restaurantId: string) => get<string[]>('/customers/me/helpful' + toQueryString({ restaurantId })),
+  toggleHelpful: (reviewId: string) =>
+    request<{ helpful: boolean; count: number }>('POST', `/customers/me/reviews/${encodeURIComponent(reviewId)}/helpful`),
+  reportReview: (reviewId: string, reason: ReportReason, note?: string) =>
+    request<{ id: string }>('POST', `/customers/me/reviews/${encodeURIComponent(reviewId)}/report`, { reason, note }),
   supportTickets: () => get<SupportTicket[]>('/customers/me/support'),
   openSupportTicket: (topic: SupportTopic, text: string) =>
     request<SupportTicket>('POST', '/customers/me/support', { topic, text }),

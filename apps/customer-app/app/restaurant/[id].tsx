@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Flag,
   Heart,
   PenLine,
   MapPin,
@@ -12,6 +13,7 @@ import {
   Phone,
   Share2,
   Star,
+  ThumbsUp,
   Utensils,
   X,
 } from 'lucide-react-native';
@@ -33,6 +35,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppText } from '../../src/components/AppText';
 import { EventBookingSheet } from '../../src/components/EventBookingSheet';
 import { EventCard } from '../../src/components/EventCard';
+import { ReportSheet } from '../../src/components/ReportSheet';
 import { api, type EventItem, type MenuDish, type Named, type RestaurantPage } from '../../src/lib/api';
 import { baghdadNow, formatIqd, isOpenNow, toWhatsAppNumber } from '../../src/lib/format';
 import { useAuth } from '../../src/lib/auth';
@@ -62,6 +65,10 @@ export default function RestaurantScreen() {
   const [booking, setBooking] = useState<EventItem | null>(null);
   const { status } = useAuth();
   const [following, setFollowing] = useState(false);
+  // Reviews this customer marked helpful, and live counts after a tap.
+  const [helpfulMine, setHelpfulMine] = useState<Set<string>>(new Set());
+  const [helpfulCounts, setHelpfulCounts] = useState<Record<string, number>>({});
+  const [reporting, setReporting] = useState<string | null>(null);
 
   useEffect(() => {
     if (status !== 'signedIn') return;
@@ -70,6 +77,12 @@ export default function RestaurantScreen() {
       .followedIds()
       .then((ids) => {
         if (!cancelled) setFollowing(ids.includes(id));
+      })
+      .catch(() => {});
+    api
+      .helpfulIds(id)
+      .then((ids) => {
+        if (!cancelled) setHelpfulMine(new Set(ids));
       })
       .catch(() => {});
     return () => {
@@ -111,6 +124,33 @@ export default function RestaurantScreen() {
       };
     }, [id]),
   );
+
+  const toggleHelpful = async (reviewId: string) => {
+    if (status !== 'signedIn') {
+      router.push('/login');
+      return;
+    }
+    try {
+      const res = await api.toggleHelpful(reviewId);
+      setHelpfulMine((prev) => {
+        const next = new Set(prev);
+        if (res.helpful) next.add(reviewId);
+        else next.delete(reviewId);
+        return next;
+      });
+      setHelpfulCounts((c) => ({ ...c, [reviewId]: res.count }));
+    } catch {
+      // Own review or a network hiccup - nothing to change.
+    }
+  };
+
+  const report = (reviewId: string) => {
+    if (status !== 'signedIn') {
+      router.push('/login');
+      return;
+    }
+    setReporting(reviewId);
+  };
 
   const writeReview = () => {
     if (status !== 'signedIn') {
@@ -340,9 +380,20 @@ export default function RestaurantScreen() {
               page.reviews.map((r) => (
                 <View key={r.id} style={styles.review}>
                   <View style={styles.reviewTop}>
-                    <AppText weight="bold" style={styles.reviewer}>
-                      {r.reviewerName}
-                    </AppText>
+                    {r.criticId ? (
+                      <Pressable
+                        onPress={() => router.push({ pathname: '/critic/[id]', params: { id: r.criticId! } })}
+                        accessibilityRole="link"
+                      >
+                        <AppText weight="bold" style={[styles.reviewer, styles.criticName]}>
+                          {r.reviewerName} · {t('critics.badge')}
+                        </AppText>
+                      </Pressable>
+                    ) : (
+                      <AppText weight="bold" style={styles.reviewer}>
+                        {r.reviewerName}
+                      </AppText>
+                    )}
                     <AppText style={styles.stars}>{'★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)}</AppText>
                   </View>
                   {r.verifiedVisit && (
@@ -368,6 +419,23 @@ export default function RestaurantScreen() {
                       <AppText style={styles.reviewText}>{r.reply.text}</AppText>
                     </View>
                   )}
+                  <View style={styles.reviewActions}>
+                    <Pressable
+                      style={[styles.helpfulButton, helpfulMine.has(r.id) && styles.helpfulActive]}
+                      onPress={() => toggleHelpful(r.id)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: helpfulMine.has(r.id) }}
+                    >
+                      <ThumbsUp size={14} color={helpfulMine.has(r.id) ? colors.white : colors.muted} />
+                      <AppText weight="semibold" style={[styles.helpfulText, helpfulMine.has(r.id) && { color: colors.white }]}>
+                        {t('critics.helpfulButton', { n: helpfulCounts[r.id] ?? r.helpfulCount ?? 0 })}
+                      </AppText>
+                    </Pressable>
+                    <Pressable onPress={() => report(r.id)} hitSlop={8} style={styles.reportButton} accessibilityLabel={t('report.title')}>
+                      <Flag size={13} color={colors.mutedIcon} />
+                      <AppText style={styles.reportText}>{t('report.link')}</AppText>
+                    </Pressable>
+                  </View>
                 </View>
               ))
             ))}
@@ -486,6 +554,7 @@ export default function RestaurantScreen() {
         </View>
       </Modal>
 
+      {reporting && <ReportSheet reviewId={reporting} onClose={() => setReporting(null)} />}
       {booking && <EventBookingSheet event={booking} onClose={() => setBooking(null)} />}
     </View>
   );
@@ -628,6 +697,22 @@ const styles = StyleSheet.create({
   following: { backgroundColor: colors.orange },
   followText: { fontSize: 14, color: colors.orangeDark },
   verified: { fontSize: 12.5, color: colors.green },
+  criticName: { color: colors.blue },
+  reviewActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  helpfulButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  helpfulActive: { backgroundColor: colors.blue, borderColor: colors.blue },
+  helpfulText: { fontSize: 12.5, color: colors.muted },
+  reportButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  reportText: { fontSize: 12, color: colors.mutedIcon },
   blockTitle: { fontSize: 18 },
   tabs: {
     flexDirection: 'row',
