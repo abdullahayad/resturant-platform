@@ -381,6 +381,7 @@ model AdminUser {
   impersonatedActivityLogs   RestaurantActivityLog[]
   blockedCustomers           Customer[]               @relation("CustomerBlockedBy")
   customerSupportReplies     CustomerSupportMessage[]
+  resolvedReports            Report[]
 
   @@map("admin_users")
 }
@@ -540,6 +541,7 @@ model Restaurant {
   customerVisits    CustomerVisit[]
   followers         CustomerFollow[]
   customerSupportTickets CustomerSupportTicket[]
+  reportsMade            Report[]
 
   @@index([status])
   @@index([publishStatus])
@@ -792,6 +794,8 @@ model Review {
   // GalleryPhoto rows tagged album: REVIEW, so they also show up in the
   // restaurant's own gallery and go through the same moderation flow.
   photos     GalleryPhoto[]
+  helpfulVotes ReviewHelpfulVote[]
+  reports      Report[]
 
   @@index([restaurantId])
   @@index([moderationStatus])
@@ -1336,6 +1340,14 @@ model Customer {
   blockedAt     DateTime?
   blockedReason String?
   blockedById   String?
+  // Critics: a public profile at Level 4+ (or a LiGETA Star) is a critic
+  // other customers can follow. isStar = picked by an admin; criticHidden =
+  // an admin took the critic status away (e.g. undisclosed paid reviews) -
+  // turning Public back on doesn't undo that.
+  isStar       Boolean  @default(false)
+  criticHidden Boolean  @default(false)
+  // Up to 3 cuisines the critic is known for (FoodCategory ids), chosen in Profile.
+  specialtyIds String[] @default([])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1344,6 +1356,11 @@ model Customer {
   visits  CustomerVisit[]
   follows CustomerFollow[]
   reviews Review[]
+  helpfulVotes    ReviewHelpfulVote[]
+  followsCritics  CriticFollow[]      @relation("CriticFollower")
+  criticFollowers CriticFollow[]      @relation("CriticFollowed")
+  reportsMade     Report[]            @relation("ReportByCustomer")
+  reportsAgainst  Report[]            @relation("ReportAgainstCustomer")
 
   @@index([phoneHash])
   @@map("customers")
@@ -1488,4 +1505,76 @@ model CustomerSupportMessage {
 
   @@index([ticketId, createdAt])
   @@map("customer_support_messages")
+}
+
+// A signed-in customer marking a review "helpful" - one vote per customer
+// per review. Helpful votes received help show which critics to trust.
+model ReviewHelpfulVote {
+  reviewId   String
+  customerId String
+  createdAt  DateTime @default(now())
+
+  review   Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@id([reviewId, customerId])
+  @@index([customerId])
+  @@map("review_helpful_votes")
+}
+
+// A customer following a critic (see Customer.isStar / criticHidden).
+model CriticFollow {
+  followerId String
+  criticId   String
+  createdAt  DateTime @default(now())
+
+  follower Customer @relation("CriticFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  critic   Customer @relation("CriticFollowed", fields: [criticId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, criticId])
+  @@index([criticId])
+  @@map("critic_follows")
+}
+
+enum ReportReason {
+  FAKE_REVIEW
+  ABUSIVE
+  SPAM
+  UNDISCLOSED_PAID
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+// A review reported by a customer (customer app) or by the restaurant it's
+// about (partner app), handled in Admin > Customers > Reported & Blocked.
+model Report {
+  id                   String       @id @default(uuid())
+  reviewId             String
+  reason               ReportReason
+  note                 String?
+  // Exactly one reporter: a customer or a restaurant.
+  reporterCustomerId   String?
+  reporterRestaurantId String?
+  // The review's author, when they wrote it signed in (so they can be blocked).
+  reportedCustomerId   String?
+  status               ReportStatus @default(OPEN)
+  resolution           String?
+  resolvedById         String?
+  resolvedAt           DateTime?
+  createdAt            DateTime     @default(now())
+
+  review             Review      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporterCustomer   Customer?   @relation("ReportByCustomer", fields: [reporterCustomerId], references: [id], onDelete: SetNull)
+  reporterRestaurant Restaurant? @relation(fields: [reporterRestaurantId], references: [id], onDelete: SetNull)
+  reportedCustomer   Customer?   @relation("ReportAgainstCustomer", fields: [reportedCustomerId], references: [id], onDelete: SetNull)
+  resolvedBy         AdminUser?  @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reviewId])
+  @@map("reports")
 }

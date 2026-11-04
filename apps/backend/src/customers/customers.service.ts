@@ -5,7 +5,7 @@ import { baghdadClock } from '../common/baghdadTime';
 import { pageOffset } from '../common/pagination';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
-import { levelFor } from './customer-levels';
+import { CRITIC_MIN_VISITS, isCritic, levelFor } from './customer-levels';
 import { makeVisitCode, readVisitCode } from './customer-secrets';
 import { customerLabel } from './restaurant-customers.service';
 
@@ -25,18 +25,53 @@ export class CustomersService {
     const [customer, visitCount] = await Promise.all([
       this.prisma.db.customer.findUnique({
         where: { id: customerId },
-        select: { id: true, phone: true, name: true, isPublic: true, createdAt: true },
+        select: {
+          id: true,
+          phone: true,
+          name: true,
+          isPublic: true,
+          createdAt: true,
+          isStar: true,
+          criticHidden: true,
+          blockedAt: true,
+          specialtyIds: true,
+          _count: { select: { criticFollowers: true } },
+        },
       }),
       this.prisma.db.customerVisit.count({ where: { customerId } }),
     ]);
     if (!customer) throw new NotFoundException('Account not found');
-    return { ...customer, visitCount, ...levelFor(visitCount) };
+    return {
+      id: customer.id,
+      phone: customer.phone,
+      name: customer.name,
+      isPublic: customer.isPublic,
+      createdAt: customer.createdAt,
+      isStar: customer.isStar,
+      specialtyIds: customer.specialtyIds,
+      visitCount,
+      ...levelFor(visitCount),
+      // Whether other customers can find and follow them right now.
+      isCritic: isCritic(customer, visitCount),
+      criticMinVisits: CRITIC_MIN_VISITS,
+      followerCount: customer._count.criticFollowers,
+    };
   }
 
-  async update(customerId: string, data: { name?: string; isPublic?: boolean }) {
+  async update(customerId: string, data: { name?: string; isPublic?: boolean; specialtyIds?: string[] }) {
+    if (data.specialtyIds?.length) {
+      const found = await this.prisma.db.foodCategory.count({
+        where: { id: { in: data.specialtyIds }, isActive: true },
+      });
+      if (found !== new Set(data.specialtyIds).size) throw new BadRequestException('Unknown cuisine');
+    }
     await this.prisma.db.customer.update({
       where: { id: customerId },
-      data: { name: data.name?.trim() || (data.name === undefined ? undefined : null), isPublic: data.isPublic },
+      data: {
+        name: data.name?.trim() || (data.name === undefined ? undefined : null),
+        isPublic: data.isPublic,
+        specialtyIds: data.specialtyIds ? [...new Set(data.specialtyIds)] : undefined,
+      },
     });
     return this.profile(customerId);
   }

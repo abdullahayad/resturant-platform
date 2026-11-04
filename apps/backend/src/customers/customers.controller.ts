@@ -17,11 +17,14 @@ import { CustomersService } from './customers.service';
 import { FollowsService } from './follows.service';
 import { CustomerActivityService } from './customer-activity.service';
 import { CustomerSupportService } from './customer-support.service';
+import { CriticsService } from './critics.service';
+import { ReportsService } from './reports.service';
 import { RestaurantCustomersService } from './restaurant-customers.service';
 import { CustomerAuthGuard, type CustomerRequest } from './customer-auth.guard';
 import {
   CustomerReviewDto,
   OpenSupportTicketDto,
+  ReportReviewDto,
   RequestCodeDto,
   ScanVisitDto,
   SupportMessageDto,
@@ -60,6 +63,8 @@ export class CustomerMeController {
     private readonly follows: FollowsService,
     private readonly activity: CustomerActivityService,
     private readonly support: CustomerSupportService,
+    private readonly critics: CriticsService,
+    private readonly reports: ReportsService,
   ) {}
 
   @Get()
@@ -132,6 +137,42 @@ export class CustomerMeController {
     return this.activity.cancelBooking(req.customer.id, id);
   }
 
+  @Get('critics/ids')
+  followedCritics(@Req() req: CustomerRequest) {
+    return this.critics.followedIds(req.customer.id);
+  }
+
+  @Post('critics/:criticId')
+  followCritic(@Req() req: CustomerRequest, @Param('criticId', ParseUUIDPipe) criticId: string) {
+    return this.critics.follow(req.customer.id, criticId);
+  }
+
+  @Delete('critics/:criticId')
+  unfollowCritic(@Req() req: CustomerRequest, @Param('criticId', ParseUUIDPipe) criticId: string) {
+    return this.critics.unfollow(req.customer.id, criticId);
+  }
+
+  @Get('helpful')
+  helpfulIds(@Req() req: CustomerRequest, @Query('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.critics.helpfulIds(req.customer.id, restaurantId);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Post('reviews/:reviewId/helpful')
+  toggleHelpful(@Req() req: CustomerRequest, @Param('reviewId', ParseUUIDPipe) reviewId: string) {
+    return this.critics.toggleHelpful(req.customer.id, reviewId);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('reviews/:reviewId/report')
+  reportReview(
+    @Req() req: CustomerRequest,
+    @Param('reviewId', ParseUUIDPipe) reviewId: string,
+    @Body() dto: ReportReviewDto,
+  ) {
+    return this.reports.reportByCustomer(req.customer.id, reviewId, dto.reason, dto.note);
+  }
+
   @Get('support')
   supportTickets(@Req() req: CustomerRequest) {
     return this.support.myTickets(req.customer.id);
@@ -159,7 +200,21 @@ export class CustomerMeController {
 @UseGuards(ManagerOrOwnerGuard)
 @Controller('restaurants/me')
 export class RestaurantCustomersController {
-  constructor(private readonly restaurantCustomers: RestaurantCustomersService) {}
+  constructor(
+    private readonly restaurantCustomers: RestaurantCustomersService,
+    private readonly reports: ReportsService,
+  ) {}
+
+  // A restaurant reporting a review about itself (fake, abusive, spam...).
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('reviews/:reviewId/report')
+  reportReview(
+    @Req() req: { user: PartnerJwtPayload },
+    @Param('reviewId', ParseUUIDPipe) reviewId: string,
+    @Body() dto: ReportReviewDto,
+  ) {
+    return this.reports.reportByRestaurant(req.user.sub, reviewId, dto.reason, dto.note);
+  }
 
   @Get('customers/summary')
   summary(@Req() req: { user: PartnerJwtPayload }) {
@@ -183,5 +238,21 @@ export class VisitsController {
   @Post('scan')
   scan(@Req() req: { user: PartnerJwtPayload }, @Body() dto: ScanVisitDto) {
     return this.customers.scanVisit(req.user, dto.code);
+  }
+}
+
+// Public: critics customers can find and follow.
+@Controller('critics')
+export class CriticsController {
+  constructor(private readonly critics: CriticsService) {}
+
+  @Get()
+  list(@Query('specialtyId') specialtyId?: string) {
+    return this.critics.list(specialtyId || undefined);
+  }
+
+  @Get(':id')
+  profile(@Param('id', ParseUUIDPipe) id: string, @Query() query: PageQueryDto) {
+    return this.critics.profile(id, query.page);
   }
 }

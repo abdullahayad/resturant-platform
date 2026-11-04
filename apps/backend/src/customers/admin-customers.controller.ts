@@ -18,6 +18,13 @@ import type { AdminJwtPayload } from '../auth/jwt-payload';
 import { PageQueryDto } from '../common/pagination';
 import { AdminCustomersService } from './admin-customers.service';
 import { CustomerSupportService, SUPPORT_STATUSES, type SupportStatusValue } from './customer-support.service';
+import {
+  REPORT_ACTIONS,
+  REPORT_STATUSES,
+  ReportsService,
+  type ReportActionValue,
+  type ReportStatusValue,
+} from './reports.service';
 
 class AdminCustomersQuery extends PageQueryDto {
   @IsOptional()
@@ -36,6 +43,32 @@ class BlockCustomerDto {
   @MinLength(3)
   @MaxLength(300)
   reason: string;
+}
+
+class StarDto {
+  @IsBoolean()
+  isStar: boolean;
+}
+
+class CriticHiddenDto {
+  @IsBoolean()
+  hidden: boolean;
+}
+
+class ReportListQuery extends PageQueryDto {
+  @IsOptional()
+  @IsIn(REPORT_STATUSES)
+  status?: ReportStatusValue;
+}
+
+class ResolveReportDto {
+  @IsIn(REPORT_ACTIONS)
+  action: ReportActionValue;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  note?: string;
 }
 
 class SupportListQuery extends PageQueryDto {
@@ -74,6 +107,21 @@ export class AdminCustomersController {
   @Get('levels')
   levels() {
     return this.customers.levels();
+  }
+
+  @Get('critics')
+  critics() {
+    return this.customers.critics();
+  }
+
+  @Patch(':id/star')
+  setStar(@Param('id', ParseUUIDPipe) id: string, @Body() dto: StarDto) {
+    return this.customers.setStar(id, dto.isStar);
+  }
+
+  @Patch(':id/critic-hidden')
+  setCriticHidden(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CriticHiddenDto) {
+    return this.customers.setCriticHidden(id, dto.hidden);
   }
 
   @Delete('visits/:visitId')
@@ -130,5 +178,25 @@ export class AdminCustomerSupportController {
   @Patch(':id/status')
   setStatus(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SupportStatusDto) {
     return this.support.adminSetStatus(id, dto.status);
+  }
+}
+
+@UseGuards(AdminAuthGuard)
+@Controller('admin/reports')
+export class AdminReportsController {
+  constructor(private readonly reports: ReportsService) {}
+
+  @Get()
+  list(@Query() query: ReportListQuery) {
+    return this.reports.adminList(query.status, query.page);
+  }
+
+  @Patch(':id')
+  resolve(
+    @Req() req: { user: AdminJwtPayload },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ResolveReportDto,
+  ) {
+    return this.reports.adminResolve(id, req.user.sub, dto.action, dto.note);
   }
 }

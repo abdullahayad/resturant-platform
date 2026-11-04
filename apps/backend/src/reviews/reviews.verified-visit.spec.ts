@@ -44,6 +44,34 @@ describe('ReviewsService - verified visit badge', () => {
         { id: 'recent', reviewerPhoneHash: 'h1', createdAt: reviewedAt },
         { id: 'stale', reviewerPhoneHash: 'h2', createdAt: reviewedAt },
         { id: 'stranger', reviewerPhoneHash: 'h3', createdAt: reviewedAt },
+      ])
+      // Helpful counts and authors (critic links).
+      .mockResolvedValueOnce([
+        {
+          id: 'recent',
+          _count: { helpfulVotes: 4 },
+          customer: {
+            id: 'critic-1',
+            isPublic: true,
+            criticHidden: false,
+            isStar: false,
+            blockedAt: null,
+            _count: { visits: 30 },
+          },
+        },
+        {
+          id: 'stale',
+          _count: { helpfulVotes: 0 },
+          customer: {
+            id: 'private-1',
+            isPublic: false,
+            criticHidden: false,
+            isStar: false,
+            blockedAt: null,
+            _count: { visits: 30 },
+          },
+        },
+        { id: 'stranger', _count: { helpfulVotes: 1 }, customer: null },
       ]);
     prisma.db.customer.findMany.mockResolvedValueOnce([
       { phoneHash: 'h1', visits: [{ createdAt: new Date(reviewedAt.getTime() - 3 * day) }] },
@@ -56,6 +84,13 @@ describe('ReviewsService - verified visit badge', () => {
       ['recent', true],
       ['stale', false],
       ['stranger', false],
+    ]);
+    // Helpful counts for all; a critic link only for the public critic, never
+    // the private author's account id.
+    expect(items.map((r) => [r.id, r.helpfulCount, r.criticId])).toEqual([
+      ['recent', 4, 'critic-1'],
+      ['stale', 0, null],
+      ['stranger', 1, null],
     ]);
     // Only this restaurant's visits count.
     const [{ select }] = prisma.db.customer.findMany.mock.calls[0] as [{ select: { visits: { where: object } } }];

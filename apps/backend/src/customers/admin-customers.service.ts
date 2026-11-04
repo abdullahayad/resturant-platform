@@ -4,7 +4,7 @@ import { Prisma } from '../../generated/prisma/client';
 import { addDays, baghdadClock } from '../common/baghdadTime';
 import { pageOffset } from '../common/pagination';
 import { normalizePhone } from '../common/phone';
-import { LEVEL_THRESHOLDS, levelFor } from './customer-levels';
+import { isCritic, LEVEL_THRESHOLDS, levelFor } from './customer-levels';
 import { CustomersService } from './customers.service';
 
 const restaurantMini = { select: { id: true, nameEn: true, nameAr: true } } as const;
@@ -212,6 +212,49 @@ export class AdminCustomersService {
       topCustomers: top.flatMap(shape),
       nearNextLevel: near.slice(0, 20).flatMap(shape),
     };
+  }
+
+  // Everyone with a public profile, a star, or a removed critic status -
+  // with whether they currently count as a critic.
+  async critics() {
+    const rows = await this.prisma.db.customer.findMany({
+      where: { OR: [{ isPublic: true }, { isStar: true }, { criticHidden: true }] },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        isPublic: true,
+        isStar: true,
+        criticHidden: true,
+        blockedAt: true,
+        _count: { select: { visits: true, reviews: true, criticFollowers: true } },
+      },
+    });
+    return rows
+      .map(({ _count, ...c }) => ({
+        ...c,
+        visitCount: _count.visits,
+        reviewCount: _count.reviews,
+        followerCount: _count.criticFollowers,
+        level: levelFor(_count.visits).level,
+        isCritic: isCritic(c, _count.visits),
+      }))
+      .sort((a, b) => Number(b.isCritic) - Number(a.isCritic) || b.visitCount - a.visitCount);
+  }
+
+  async setStar(id: string, isStar: boolean) {
+    await this.ensureExists(id);
+    await this.prisma.db.customer.update({ where: { id }, data: { isStar } });
+    return { id, isStar };
+  }
+
+  // Takes the critic status away (or gives it back) without blocking the
+  // account - e.g. for undisclosed paid reviews.
+  async setCriticHidden(id: string, hidden: boolean) {
+    await this.ensureExists(id);
+    await this.prisma.db.customer.update({ where: { id }, data: { criticHidden: hidden } });
+    return { id, criticHidden: hidden };
   }
 
   private async ensureExists(id: string) {

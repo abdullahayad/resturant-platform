@@ -1,5 +1,17 @@
 import { OmitType } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { REPORT_REASONS, type ReportReasonValue } from '../reports.service';
 import { SUPPORT_TOPICS, type SupportTopicValue } from '../customer-support.service';
 import { CreateReviewDto } from '../../reviews/dto/review.dto';
 
@@ -27,6 +39,23 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  // A critic's cuisines (FoodCategory ids), up to 3.
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsUUID('all', { each: true })
+  specialtyIds?: string[];
+}
+
+export class ReportReviewDto {
+  @IsIn(REPORT_REASONS)
+  reason: ReportReasonValue;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
 }
 
 // A review written in the customer app - the name and phone come from the

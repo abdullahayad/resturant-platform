@@ -6,9 +6,16 @@ import { PushModule } from '../push/push.module';
 import { CustomerActivityService } from './customer-activity.service';
 import { CustomerSupportService } from './customer-support.service';
 import { AdminCustomersService } from './admin-customers.service';
-import { AdminCustomerSupportController, AdminCustomersController } from './admin-customers.controller';
+import {
+  AdminCustomerSupportController,
+  AdminCustomersController,
+  AdminReportsController,
+} from './admin-customers.controller';
+import { CriticsService } from './critics.service';
+import { ReportsService } from './reports.service';
 import {
   CustomerAuthController,
+  CriticsController,
   CustomerMeController,
   RestaurantCustomersController,
   VisitsController,
@@ -29,6 +36,8 @@ import { WhatsAppSenderService } from './whatsapp-sender.service';
     RestaurantCustomersController,
     AdminCustomersController,
     AdminCustomerSupportController,
+    AdminReportsController,
+    CriticsController,
   ],
   providers: [
     CustomerAuthService,
@@ -37,6 +46,8 @@ import { WhatsAppSenderService } from './whatsapp-sender.service';
     CustomerActivityService,
     CustomerSupportService,
     AdminCustomersService,
+    CriticsService,
+    ReportsService,
     RestaurantCustomersService,
     CustomerAuthGuard,
     WhatsAppSenderService,

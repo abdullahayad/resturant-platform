@@ -8,6 +8,7 @@ import { pageOffset } from '../common/pagination';
 import { hashReviewerPhone } from '../common/reviewerPhoneHash';
 import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
+import { isCritic } from '../customers/customer-levels';
 
 const withReplyAndPhotos = {
   reply: true,
@@ -134,11 +135,52 @@ export class ReviewsService {
       }),
       this.prisma.db.review.count({ where }),
     ]);
-    const verified = await this.verifiedVisitReviewIds(
-      restaurantId,
-      items.map((r) => r.id),
-    );
-    return { items: items.map((r) => ({ ...r, verifiedVisit: verified.has(r.id) })), total, page, pageSize: take };
+    const ids = items.map((r) => r.id);
+    const [verified, extras] = await Promise.all([
+      this.verifiedVisitReviewIds(restaurantId, ids),
+      this.helpfulAndCritics(ids),
+    ]);
+    return {
+      items: items.map((r) => ({
+        ...r,
+        verifiedVisit: verified.has(r.id),
+        helpfulCount: extras.helpful.get(r.id) ?? 0,
+        // Set only when the author is a public critic - their critic page
+        // is public anyway; other authors' account ids never leave here.
+        criticId: extras.critics.get(r.id) ?? null,
+      })),
+      total,
+      page,
+      pageSize: take,
+    };
+  }
+
+  private async helpfulAndCritics(reviewIds: string[]) {
+    const helpful = new Map<string, number>();
+    const critics = new Map<string, string>();
+    if (!reviewIds.length) return { helpful, critics };
+    const rows = await this.prisma.db.review.findMany({
+      where: { id: { in: reviewIds } },
+      select: {
+        id: true,
+        _count: { select: { helpfulVotes: true } },
+        customer: {
+          select: {
+            id: true,
+            isPublic: true,
+            criticHidden: true,
+            isStar: true,
+            blockedAt: true,
+            _count: { select: { visits: true } },
+          },
+        },
+      },
+    });
+    for (const r of rows) {
+      helpful.set(r.id, r._count.helpfulVotes);
+      if (r.customer && isCritic(r.customer, r.customer._count.visits)) critics.set(r.id, r.customer.id);
+    }
+    return { helpful, critics };
   }
 
   // "Verified visit": the reviewer's phone belongs to a customer-app account
