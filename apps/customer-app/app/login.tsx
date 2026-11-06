@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { MessageCircle, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../src/components/AppText';
 import { api, ApiError } from '../src/lib/api';
@@ -76,7 +76,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <Pressable style={styles.close} onPress={() => router.back()} hitSlop={10} accessibilityLabel={t('home.close')}>
           <X size={24} color={colors.text} />
         </Pressable>

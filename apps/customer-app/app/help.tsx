@@ -1,11 +1,10 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Send } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -42,6 +41,21 @@ export default function HelpScreen() {
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const replyRowRef = useRef<View>(null);
+
+  // Brings the reply box up above the keyboard once it has opened.
+  const showReplyBox = () => {
+    setTimeout(() => {
+      const list = scrollRef.current?.getInnerViewNode();
+      if (!list) return;
+      replyRowRef.current?.measureLayout(
+        list,
+        (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 160), animated: true }),
+        () => {},
+      );
+    }, 300);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -115,8 +129,12 @@ export default function HelpScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScreenHeader title={t('help.title')} />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
+          keyboardShouldPersistTaps="handled"
+        >
           <AppText style={styles.muted}>{t('help.intro')}</AppText>
 
           {composing ? (
@@ -212,13 +230,14 @@ export default function HelpScreen() {
                           <AppText style={styles.bubbleText}>{m.text}</AppText>
                         </View>
                       ))}
-                      <View style={styles.replyRow}>
+                      <View ref={replyRowRef} style={styles.replyRow}>
                         <TextInput
                           value={reply}
                           onChangeText={setReply}
                           placeholder={t('help.reply')}
                           placeholderTextColor={colors.mutedIcon}
                           style={[styles.input, styles.flex]}
+                          onFocus={showReplyBox}
                           multiline
                           maxLength={2000}
                         />

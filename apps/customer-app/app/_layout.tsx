@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { loadSavedLanguage } from '../src/i18n';
 import * as Notifications from 'expo-notifications';
+import { SystemBarShade } from '../src/components/SystemBarShade';
 import { AreaProvider } from '../src/lib/area';
 import { openFromNotification } from '../src/lib/push';
 import { AuthProvider } from '../src/lib/auth';
@@ -81,6 +82,7 @@ export default function RootLayout() {
         <Stack.Screen name="notifications" />
         <Stack.Screen name="critic/[id]" />
       </Stack>
+      <SystemBarShade />
       </AreaProvider>
     </AuthProvider>
   );
