@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import type { CreatePromotionDto, ModeratePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import type { ApplyPromotionTemplateDto, CreatePromotionTemplateDto } from './dto/promotion-template.dto';
 import { pageOffset } from '../common/pagination';
@@ -18,6 +19,7 @@ export class PromotionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly activityLog: RestaurantActivityLogService,
+    private readonly customerNotifications: CustomerNotificationsService,
   ) {}
 
   async list(restaurantId: string, pageParam?: number) {
@@ -122,6 +124,10 @@ export class PromotionsService {
       summary: `Created promotion '${created.titleEn}'`,
       user,
     });
+    // Followers of this restaurant hear about the new offer.
+    this.customerNotifications
+      .followedRestaurantNews(restaurantId, 'offer', created.titleEn, created.titleAr)
+      .catch(() => {});
     return created;
   }
 

@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import type { AdminJwtPayload } from '../auth/jwt-payload';
 import { PageQueryDto } from '../common/pagination';
@@ -25,6 +25,8 @@ import {
   type ReportActionValue,
   type ReportStatusValue,
 } from './reports.service';
+import { CampaignsService } from './campaigns.service';
+import { HOME_BANNER_LINKS, type HomeBannerLinkValue } from '../home-banners/home-banners.dto';
 
 class AdminCustomersQuery extends PageQueryDto {
   @IsOptional()
@@ -43,6 +45,49 @@ class BlockCustomerDto {
   @MinLength(3)
   @MaxLength(300)
   reason: string;
+}
+
+class CampaignAudienceDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  minLevel?: number;
+
+  @IsOptional()
+  @IsUUID()
+  followersOfRestaurantId?: string;
+}
+
+class SendCampaignDto extends CampaignAudienceDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(65)
+  titleEn: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(65)
+  titleAr: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(178)
+  bodyEn: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(178)
+  bodyAr: string;
+
+  @IsOptional()
+  @IsIn(HOME_BANNER_LINKS)
+  linkType?: HomeBannerLinkValue;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  linkValue?: string;
 }
 
 class StarDto {
@@ -198,5 +243,26 @@ export class AdminReportsController {
     @Body() dto: ResolveReportDto,
   ) {
     return this.reports.adminResolve(id, req.user.sub, dto.action, dto.note);
+  }
+}
+
+@UseGuards(AdminAuthGuard)
+@Controller('admin/campaigns')
+export class AdminCampaignsController {
+  constructor(private readonly campaigns: CampaignsService) {}
+
+  @Get()
+  history(@Query() query: PageQueryDto) {
+    return this.campaigns.history(query.page);
+  }
+
+  @Post('preview')
+  preview(@Body() dto: CampaignAudienceDto) {
+    return this.campaigns.preview(dto);
+  }
+
+  @Post()
+  send(@Req() req: { user: AdminJwtPayload }, @Body() dto: SendCampaignDto) {
+    return this.campaigns.send(dto, req.user.sub);
   }
 }

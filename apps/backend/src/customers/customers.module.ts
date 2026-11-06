@@ -7,10 +7,12 @@ import { CustomerActivityService } from './customer-activity.service';
 import { CustomerSupportService } from './customer-support.service';
 import { AdminCustomersService } from './admin-customers.service';
 import {
+  AdminCampaignsController,
   AdminCustomerSupportController,
   AdminCustomersController,
   AdminReportsController,
 } from './admin-customers.controller';
+import { CampaignsService } from './campaigns.service';
 import { CriticsService } from './critics.service';
 import { ReportsService } from './reports.service';
 import {
@@ -37,6 +39,7 @@ import { WhatsAppSenderService } from './whatsapp-sender.service';
     AdminCustomersController,
     AdminCustomerSupportController,
     AdminReportsController,
+    AdminCampaignsController,
     CriticsController,
   ],
   providers: [
@@ -48,6 +51,7 @@ import { WhatsAppSenderService } from './whatsapp-sender.service';
     AdminCustomersService,
     CriticsService,
     ReportsService,
+    CampaignsService,
     RestaurantCustomersService,
     CustomerAuthGuard,
     WhatsAppSenderService,

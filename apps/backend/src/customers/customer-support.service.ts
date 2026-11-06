@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import { pageOffset } from '../common/pagination';
 
 // Mirrors prisma/schema.prisma's enums.
@@ -24,7 +25,10 @@ const restaurantMini = { select: { id: true, nameEn: true, nameAr: true } } as c
 // from Admin > Customers > Customer Support.
 @Injectable()
 export class CustomerSupportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly customerNotifications: CustomerNotificationsService,
+  ) {}
 
   // ── customer side ────────────────────────────────────────────────────
 
@@ -166,10 +170,12 @@ export class CustomerSupportService {
 
   async adminReply(ticketId: string, adminId: string, text: string) {
     await this.ensureExists(ticketId);
-    await this.prisma.db.customerSupportTicket.update({
+    const ticket = await this.prisma.db.customerSupportTicket.update({
       where: { id: ticketId },
       data: { status: 'WAITING', messages: { create: { text: text.trim(), fromAdminId: adminId } } },
+      select: { customerId: true },
     });
+    this.customerNotifications.supportReplied(ticket.customerId).catch(() => {});
     return this.adminDetail(ticketId);
   }
 

@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
+import { isCritic } from './customer-levels';
 import { ReviewsService } from '../reviews/reviews.service';
 import { pageOffset } from '../common/pagination';
 import type { CreateReviewDto } from '../reviews/dto/review.dto';
@@ -17,6 +19,7 @@ export class CustomerActivityService {
     private readonly prisma: PrismaService,
     private readonly reviews: ReviewsService,
     private readonly push: PushService,
+    private readonly customerNotifications: CustomerNotificationsService,
   ) {}
 
   // Same path as the public review page (same 12-hour limit per phone, same
@@ -29,14 +32,33 @@ export class CustomerActivityService {
   ) {
     const customer = await this.prisma.db.customer.findUnique({
       where: { id: customerId },
-      select: { name: true, phone: true },
+      select: {
+        name: true,
+        phone: true,
+        isPublic: true,
+        criticHidden: true,
+        isStar: true,
+        blockedAt: true,
+        _count: { select: { visits: true } },
+      },
     });
     if (!customer) throw new NotFoundException('Account not found');
-    return this.reviews.createForRestaurant(
+    const reviewerName = customer.name ?? FALLBACK_REVIEWER_NAME;
+    const review = await this.reviews.createForRestaurant(
       restaurantId,
-      { ...dto, reviewerName: customer.name ?? FALLBACK_REVIEWER_NAME, reviewerPhone: customer.phone },
+      { ...dto, reviewerName, reviewerPhone: customer.phone },
       customerId,
     );
+    // A critic's followers hear about their new review.
+    if (isCritic(customer, customer._count.visits)) {
+      this.prisma.db.restaurant
+        .findUnique({ where: { id: restaurantId }, select: { nameEn: true, nameAr: true } })
+        .then(
+          (r) => r && this.customerNotifications.criticReviewed(customerId, reviewerName, restaurantId, r, dto.rating),
+        )
+        .catch(() => {});
+    }
+    return review;
   }
 
   async myReviews(customerId: string, pageParam?: number) {

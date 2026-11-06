@@ -35,6 +35,8 @@ export class CustomersService {
           criticHidden: true,
           blockedAt: true,
           specialtyIds: true,
+          notifyFollowing: true,
+          notifyCampaigns: true,
           _count: { select: { criticFollowers: true } },
         },
       }),
@@ -49,6 +51,8 @@ export class CustomersService {
       createdAt: customer.createdAt,
       isStar: customer.isStar,
       specialtyIds: customer.specialtyIds,
+      notifyFollowing: customer.notifyFollowing,
+      notifyCampaigns: customer.notifyCampaigns,
       visitCount,
       ...levelFor(visitCount),
       // Whether other customers can find and follow them right now.
@@ -58,7 +62,16 @@ export class CustomersService {
     };
   }
 
-  async update(customerId: string, data: { name?: string; isPublic?: boolean; specialtyIds?: string[] }) {
+  async update(
+    customerId: string,
+    data: {
+      name?: string;
+      isPublic?: boolean;
+      specialtyIds?: string[];
+      notifyFollowing?: boolean;
+      notifyCampaigns?: boolean;
+    },
+  ) {
     if (data.specialtyIds?.length) {
       const found = await this.prisma.db.foodCategory.count({
         where: { id: { in: data.specialtyIds }, isActive: true },
@@ -71,9 +84,28 @@ export class CustomersService {
         name: data.name?.trim() || (data.name === undefined ? undefined : null),
         isPublic: data.isPublic,
         specialtyIds: data.specialtyIds ? [...new Set(data.specialtyIds)] : undefined,
+        notifyFollowing: data.notifyFollowing,
+        notifyCampaigns: data.notifyCampaigns,
       },
     });
     return this.profile(customerId);
+  }
+
+  // This phone can receive notifications for this account. A phone that
+  // signs into another account moves over to it.
+  async registerPushToken(customerId: string, token: string, language: 'ar' | 'en' = 'ar') {
+    await this.prisma.db.customerPushToken.upsert({
+      where: { token },
+      create: { token, customerId, language },
+      update: { customerId, language },
+    });
+    return { registered: true };
+  }
+
+  // On sign out, so the phone stops getting this account's notifications.
+  async removePushToken(customerId: string, token: string) {
+    await this.prisma.db.customerPushToken.deleteMany({ where: { token, customerId } });
+    return { removed: true };
   }
 
   visitCode(customerId: string) {

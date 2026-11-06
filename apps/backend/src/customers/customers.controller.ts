@@ -22,6 +22,7 @@ import { ReportsService } from './reports.service';
 import { RestaurantCustomersService } from './restaurant-customers.service';
 import { CustomerAuthGuard, type CustomerRequest } from './customer-auth.guard';
 import {
+  CustomerPushTokenDto,
   CustomerReviewDto,
   OpenSupportTicketDto,
   ReportReviewDto,
@@ -75,6 +76,16 @@ export class CustomerMeController {
   @Patch()
   update(@Req() req: CustomerRequest, @Body() dto: UpdateCustomerDto) {
     return this.customers.update(req.customer.id, dto);
+  }
+
+  @Post('push-token')
+  registerPushToken(@Req() req: CustomerRequest, @Body() dto: CustomerPushTokenDto) {
+    return this.customers.registerPushToken(req.customer.id, dto.token, dto.language);
+  }
+
+  @Delete('push-token')
+  removePushToken(@Req() req: CustomerRequest, @Body() dto: CustomerPushTokenDto) {
+    return this.customers.removePushToken(req.customer.id, dto.token);
   }
 
   @Get('visit-code')

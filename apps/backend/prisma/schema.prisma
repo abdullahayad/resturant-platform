@@ -382,6 +382,7 @@ model AdminUser {
   blockedCustomers           Customer[]               @relation("CustomerBlockedBy")
   customerSupportReplies     CustomerSupportMessage[]
   resolvedReports            Report[]
+  sentCustomerCampaigns      CustomerCampaign[]
 
   @@map("admin_users")
 }
@@ -1348,6 +1349,11 @@ model Customer {
   criticHidden Boolean  @default(false)
   // Up to 3 cuisines the critic is known for (FoodCategory ids), chosen in Profile.
   specialtyIds String[] @default([])
+  // Notification choices (Profile): news from followed restaurants and
+  // critics, and LiGETA's own campaigns. Booking and support replies always
+  // come through - they're answers to something the customer did.
+  notifyFollowing Boolean @default(true)
+  notifyCampaigns Boolean @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1360,6 +1366,8 @@ model Customer {
   followsCritics  CriticFollow[]      @relation("CriticFollower")
   criticFollowers CriticFollow[]      @relation("CriticFollowed")
   reportsMade     Report[]            @relation("ReportByCustomer")
+  pushTokens          CustomerPushToken[]
+  campaignDeliveries  CustomerCampaignDelivery[]
   reportsAgainst  Report[]            @relation("ReportAgainstCustomer")
 
   @@index([phoneHash])
@@ -1577,4 +1585,57 @@ model Report {
   @@index([status, createdAt])
   @@index([reviewId])
   @@map("reports")
+}
+
+// One customer phone that can receive push notifications (Expo push token).
+// language = the app language when the token was registered, so each
+// phone gets the text in Arabic or English.
+model CustomerPushToken {
+  token      String   @id
+  customerId String
+  language   String   @default("ar")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_push_tokens")
+}
+
+// A push campaign sent from Admin > App > Push Campaigns.
+model CustomerCampaign {
+  id        String         @id @default(uuid())
+  titleEn   String
+  titleAr   String
+  bodyEn    String
+  bodyAr    String
+  linkType  HomeBannerLink @default(NONE)
+  linkValue String?
+  // Audience: everyone who allows campaigns, narrowed by these (all optional).
+  minLevel                Int?
+  followersOfRestaurantId String?
+  recipientCount          Int      @default(0)
+  sentById                String?
+  sentAt                  DateTime @default(now())
+
+  sentBy     AdminUser?                 @relation(fields: [sentById], references: [id], onDelete: SetNull)
+  deliveries CustomerCampaignDelivery[]
+
+  @@index([sentAt])
+  @@map("customer_campaigns")
+}
+
+// Who received which campaign - enforces the weekly limit per customer.
+model CustomerCampaignDelivery {
+  campaignId String
+  customerId String
+  sentAt     DateTime @default(now())
+
+  campaign CustomerCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, customerId])
+  @@index([customerId, sentAt])
+  @@map("customer_campaign_deliveries")
 }

@@ -1,3 +1,4 @@
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PromotionsService } from './promotions.service';
@@ -40,6 +41,7 @@ describe('PromotionsService', () => {
         PromotionsService,
         { provide: PrismaService, useValue: prisma },
         { provide: RestaurantActivityLogService, useValue: activityLog },
+        { provide: CustomerNotificationsService, useValue: { followedRestaurantNews: jest.fn().mockResolvedValue(undefined), bookingStatusChanged: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

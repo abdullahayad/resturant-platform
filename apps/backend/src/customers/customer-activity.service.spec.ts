@@ -1,3 +1,4 @@
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CustomerActivityService } from './customer-activity.service';
@@ -32,7 +33,17 @@ describe('CustomerActivityService', () => {
   beforeEach(async () => {
     prisma = {
       db: {
-        customer: { findUnique: jest.fn().mockResolvedValue({ name: null, phone: '07701234567' }) },
+        customer: {
+          findUnique: jest.fn().mockResolvedValue({
+            name: null,
+            phone: '07701234567',
+            isPublic: false,
+            criticHidden: false,
+            isStar: false,
+            blockedAt: null,
+            _count: { visits: 0 },
+          }),
+        },
         chefTableBooking: {
           findMany: jest.fn().mockResolvedValue([]),
           count: jest.fn().mockResolvedValue(0),
@@ -49,6 +60,7 @@ describe('CustomerActivityService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: ReviewsService, useValue: reviews },
         { provide: PushService, useValue: push },
+        { provide: CustomerNotificationsService, useValue: { criticReviewed: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
     service = module.get(CustomerActivityService);

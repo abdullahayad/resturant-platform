@@ -1,3 +1,4 @@
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { EventsService } from './events.service';
@@ -79,6 +80,7 @@ describe('EventsService', () => {
           },
         },
         { provide: RestaurantActivityLogService, useValue: { log: jest.fn() } },
+        { provide: CustomerNotificationsService, useValue: { followedRestaurantNews: jest.fn().mockResolvedValue(undefined), bookingStatusChanged: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

@@ -46,6 +46,24 @@ export class UpdateCustomerDto {
   @ArrayMaxSize(3)
   @IsUUID('all', { each: true })
   specialtyIds?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  notifyFollowing?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyCampaigns?: boolean;
+}
+
+export class CustomerPushTokenDto {
+  // An Expo push token, e.g. "ExponentPushToken[xxxx]".
+  @Matches(/^Expo(nent)?PushToken\[[A-Za-z0-9_-]+\]$/)
+  token: string;
+
+  @IsOptional()
+  @IsIn(['ar', 'en'])
+  language?: 'ar' | 'en';
 }
 
 export class ReportReviewDto {

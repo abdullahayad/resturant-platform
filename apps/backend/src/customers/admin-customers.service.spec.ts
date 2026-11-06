@@ -1,3 +1,4 @@
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AdminCustomersService } from './admin-customers.service';
@@ -100,7 +101,7 @@ describe('CustomerSupportService', () => {
           count: jest.fn().mockResolvedValue(0),
           create: jest.fn().mockResolvedValue({ id: 't1' }),
           findFirst: jest.fn().mockResolvedValue({ id: 't1' }),
-          update: jest.fn(),
+          update: jest.fn().mockResolvedValue({ customerId: 'c1' }),
           findUnique: jest.fn().mockResolvedValue({ id: 't1', customer: { id: 'c1', phone: '0770' } }),
         },
         restaurant: { findUnique: jest.fn() },
@@ -109,7 +110,11 @@ describe('CustomerSupportService', () => {
       },
     };
     const module = await Test.createTestingModule({
-      providers: [CustomerSupportService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        CustomerSupportService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: CustomerNotificationsService, useValue: { supportReplied: jest.fn().mockResolvedValue(undefined) } },
+      ],
     }).compile();
     service = module.get(CustomerSupportService);
   });

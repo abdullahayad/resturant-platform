@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
+import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import type { CreateEventDto, ModerateEventDto, UpdateEventDto } from './dto/event.dto';
 import type { CreateReservationDto, UpdateReservationStatusDto } from './dto/reservation.dto';
@@ -56,6 +57,7 @@ export class EventsService {
     private readonly push: PushService,
     private readonly loyalty: LoyaltyService,
     private readonly activityLog: RestaurantActivityLogService,
+    private readonly customerNotifications: CustomerNotificationsService,
   ) {}
 
   async list(restaurantId: string) {
@@ -148,6 +150,9 @@ export class EventsService {
       summary: `Created event '${event.titleEn}'`,
       user,
     });
+    this.customerNotifications
+      .followedRestaurantNews(restaurantId, 'event', event.titleEn, event.titleAr)
+      .catch(() => {});
     return event;
   }
 
@@ -415,7 +420,13 @@ export class EventsService {
     dto: UpdateReservationStatusDto,
     user: PartnerJwtPayload,
   ) {
-    const booking = await this.prisma.db.chefTableBooking.findUnique({ where: { id } });
+    const booking = await this.prisma.db.chefTableBooking.findUnique({
+      where: { id },
+      include: {
+        event: { select: { titleEn: true, titleAr: true } },
+        restaurant: { select: { nameEn: true, nameAr: true } },
+      },
+    });
     if (!booking || booking.restaurantId !== restaurantId) throw new NotFoundException('Reservation not found');
     const updated = await this.prisma.db.chefTableBooking.update({
       where: { id },
@@ -431,6 +442,16 @@ export class EventsService {
         changes: [{ field: 'Status', from: booking.status, to: updated.status }],
         user,
       });
+      // The customer hears that their booking was confirmed or cancelled.
+      this.customerNotifications
+        .bookingStatusChanged({
+          guestPhoneNormalized: booking.guestPhoneNormalized,
+          status: updated.status,
+          eventTitleEn: booking.event.titleEn,
+          eventTitleAr: booking.event.titleAr,
+          restaurant: booking.restaurant,
+        })
+        .catch(() => {});
     }
     return updated;
   }
