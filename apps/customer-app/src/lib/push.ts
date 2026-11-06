@@ -62,4 +62,5 @@ export function openFromNotification(data: Record<string, unknown> | undefined) 
   else if (screen === 'events') router.push('/events');
   else if (screen === 'bookings') router.push('/bookings');
   else if (screen === 'help') router.push('/help');
+  else router.push('/notifications');
 }

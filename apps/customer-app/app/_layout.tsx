@@ -45,12 +45,20 @@ export default function RootLayout() {
   // what started the app.
   useEffect(() => {
     if (!ready) return;
+    // Both paths can report the same tap, and the last one is remembered
+    // across launches - so each tap is handled once, then cleared.
+    let handled: string | null = null;
+    const open = (response: Notifications.NotificationResponse) => {
+      const id = response.notification.request.identifier;
+      if (id === handled) return;
+      handled = id;
+      openFromNotification(response.notification.request.content.data);
+      Notifications.clearLastNotificationResponseAsync().catch(() => {});
+    };
     Notifications.getLastNotificationResponseAsync()
-      .then((last) => last && openFromNotification(last.notification.request.content.data))
+      .then((last) => last && open(last))
       .catch(() => {});
-    const sub = Notifications.addNotificationResponseReceivedListener((response) =>
-      openFromNotification(response.notification.request.content.data),
-    );
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
     return () => sub.remove();
   }, [ready]);
 
@@ -70,6 +78,7 @@ export default function RootLayout() {
         <Stack.Screen name="bookings" />
         <Stack.Screen name="my-reviews" />
         <Stack.Screen name="help" />
+        <Stack.Screen name="notifications" />
         <Stack.Screen name="critic/[id]" />
       </Stack>
       </AreaProvider>

@@ -330,5 +330,10 @@
     "failed": "The report didn't go through. Try again.",
     "sentTitle": "Thanks for reporting",
     "sentText": "The LiGETA team will review it."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "emptyText": "Messages from LiGETA and news from who you follow will show here."
   }
 }

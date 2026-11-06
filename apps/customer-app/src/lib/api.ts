@@ -452,6 +452,18 @@ export interface SupportTicket {
   messages: { id: string; text: string; createdAt: string; fromAdmin: { fullName: string } | null }[];
 }
 
+// One message in the notifications inbox (the bell on Home).
+export interface InboxNotification {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  bodyEn: string;
+  bodyAr: string;
+  data: { screen?: string; id?: string } | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 export interface MyVisit {
   id: string;
   visitDate: string;
@@ -508,6 +520,9 @@ export const api = {
   myVisits: (page = 1) => get<Paginated<MyVisit>>('/customers/me/visits' + toQueryString({ page })),
   deleteMe: () => request<{ deleted: boolean }>('DELETE', '/customers/me'),
   followedIds: () => get<string[]>('/customers/me/follows/ids'),
+  notifications: (page = 1) => get<Paginated<InboxNotification>>('/customers/me/notifications' + toQueryString({ page })),
+  unreadNotifications: () => get<{ count: number }>('/customers/me/notifications/unread-count'),
+  markNotificationsRead: () => request<{ count: number }>('POST', '/customers/me/notifications/read'),
   registerPushToken: (token: string, language: 'ar' | 'en') =>
     request<{ registered: boolean }>('POST', '/customers/me/push-token', { token, language }),
   removePushToken: (token: string) => request<{ removed: boolean }>('DELETE', '/customers/me/push-token', { token }),

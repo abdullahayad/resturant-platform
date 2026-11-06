@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { ChevronDown, MapPin, Search, Star, Utensils } from 'lucide-react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { Bell, ChevronDown, MapPin, Search, Star, Utensils } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -18,6 +18,7 @@ import {
   type RestaurantCard,
 } from '../../src/lib/api';
 import { useArea } from '../../src/lib/area';
+import { useAuth } from '../../src/lib/auth';
 import { formatIqd } from '../../src/lib/format';
 import { colors, TAB_BAR_SPACE } from '../../src/theme';
 
@@ -42,6 +43,25 @@ export default function HomeScreen() {
   const [critics, setCritics] = useState<Critic[]>([]);
   const [areaOpen, setAreaOpen] = useState(false);
   const { area } = useArea();
+  const { status } = useAuth();
+  const [unread, setUnread] = useState(0);
+
+  // The bell's count, fresh each time Home comes back into view.
+  useFocusEffect(
+    useCallback(() => {
+      if (status !== 'signedIn') return;
+      let cancelled = false;
+      api
+        .unreadNotifications()
+        .then((r) => {
+          if (!cancelled) setUnread(r.count);
+        })
+        .catch(() => {});
+      return () => {
+        cancelled = true;
+      };
+    }, [status]),
+  );
   const { width } = useWindowDimensions();
   const bannerWidth = width - 32;
 
@@ -166,6 +186,7 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.orange} />}
       >
         <View style={styles.header}>
+          <View style={styles.headerTop}>
           <Pressable
             style={styles.location}
             onPress={() => setAreaOpen(true)}
@@ -181,6 +202,24 @@ export default function HomeScreen() {
             </View>
             <AppText style={styles.area}>{areaSubtitle}</AppText>
           </Pressable>
+          {status === 'signedIn' && (
+            <Pressable
+              style={styles.bell}
+              onPress={() => router.push('/notifications')}
+              accessibilityRole="button"
+              accessibilityLabel={t('notifications.title')}
+            >
+              <Bell size={22} color={colors.text} />
+              {unread > 0 && (
+                <View style={styles.bellBadge}>
+                  <AppText weight="bold" style={styles.bellBadgeText}>
+                    {unread > 9 ? '9+' : unread}
+                  </AppText>
+                </View>
+              )}
+            </Pressable>
+          )}
+          </View>
 
           <Pressable style={styles.search} onPress={() => router.push('/explore')} accessibilityRole="search">
             <Search size={20} color={colors.orange} strokeWidth={2.2} />
@@ -477,7 +516,22 @@ const styles = StyleSheet.create({
   scroll: { backgroundColor: colors.background, flexGrow: 1 },
   header: { backgroundColor: colors.peach, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18, gap: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  location: { alignSelf: 'flex-start', minHeight: 44 },
+  location: { alignSelf: 'flex-start', minHeight: 44, flexShrink: 1 },
+  headerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  bell: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  bellBadge: {
+    position: 'absolute',
+    top: -2,
+    end: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: colors.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellBadgeText: { color: colors.white, fontSize: 10.5, lineHeight: 14 },
   city: { fontSize: 20 },
   area: { fontSize: 13, color: colors.muted, paddingStart: 25 },
   search: {
