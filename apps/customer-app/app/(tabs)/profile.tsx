@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import {
   CalendarCheck,
   ChevronLeft,
+  Bell,
   ChevronRight,
   Eye,
   LifeBuoy,
@@ -226,6 +227,40 @@ export default function ProfileScreen() {
             <Switch
               value={customer.isPublic}
               onValueChange={(v) => update({ isPublic: v }).catch(() => {})}
+              trackColor={{ true: colors.orange, false: colors.border }}
+              thumbColor={colors.white}
+            />
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.settingRow}>
+            <Bell size={20} color={colors.text} />
+            <View style={{ flex: 1 }}>
+              <AppText weight="semibold" style={styles.settingTitle}>
+                {t('profile.notifyFollowing')}
+              </AppText>
+              <AppText style={styles.settingText}>{t('profile.notifyFollowingText')}</AppText>
+            </View>
+            <Switch
+              value={customer.notifyFollowing}
+              onValueChange={(v) => update({ notifyFollowing: v }).catch(() => {})}
+              trackColor={{ true: colors.orange, false: colors.border }}
+              thumbColor={colors.white}
+            />
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.settingRow}>
+            <Bell size={20} color={colors.text} />
+            <View style={{ flex: 1 }}>
+              <AppText weight="semibold" style={styles.settingTitle}>
+                {t('profile.notifyCampaigns')}
+              </AppText>
+              <AppText style={styles.settingText}>{t('profile.notifyCampaignsText')}</AppText>
+            </View>
+            <Switch
+              value={customer.notifyCampaigns}
+              onValueChange={(v) => update({ notifyCampaigns: v }).catch(() => {})}
               trackColor={{ true: colors.orange, false: colors.border }}
               thumbColor={colors.white}
             />

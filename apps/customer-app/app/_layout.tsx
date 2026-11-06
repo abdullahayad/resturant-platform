@@ -10,7 +10,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { loadSavedLanguage } from '../src/i18n';
+import * as Notifications from 'expo-notifications';
 import { AreaProvider } from '../src/lib/area';
+import { openFromNotification } from '../src/lib/push';
 import { AuthProvider } from '../src/lib/auth';
 
 export {
@@ -37,6 +39,19 @@ export default function RootLayout() {
   const ready = (loaded || !!error) && languageReady;
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  // A tapped notification opens what it's about - also when the tap is
+  // what started the app.
+  useEffect(() => {
+    if (!ready) return;
+    Notifications.getLastNotificationResponseAsync()
+      .then((last) => last && openFromNotification(last.notification.request.content.data))
+      .catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener((response) =>
+      openFromNotification(response.notification.request.content.data),
+    );
+    return () => sub.remove();
   }, [ready]);
 
   // If the font fails to load, carry on with the system font rather than

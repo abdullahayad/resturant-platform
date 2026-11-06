@@ -206,7 +206,11 @@
     "myBookings": "My bookings",
     "myReviews": "My reviews",
     "language": "Language",
-    "help": "Help"
+    "help": "Help",
+    "notifyFollowing": "News from who I follow",
+    "notifyFollowingText": "Offers and events from restaurants you follow, and new reviews from critics you follow.",
+    "notifyCampaigns": "LiGETA offers",
+    "notifyCampaignsText": "Seasonal campaigns and specials - at most twice a week."
   },
   "healthy": {
     "tag": "🌿 Healthy"
@@ -230,7 +234,10 @@
     "sentTitle": "Thanks for your review",
     "sentText": "It helps others choose. If the restaurant scanned your visit code, it shows ✓ Verified visit.",
     "done": "Done",
-    "photosSoon": "Adding photos is coming in the next update."
+    "photos": "Photos (up to 4, optional)",
+    "addPhotos": "Add photos",
+    "removePhoto": "Remove photo",
+    "photoFailed": "A photo didn't upload - remove it and try again."
   },
   "bookings": {
     "title": "My bookings",

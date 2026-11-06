@@ -1,9 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle2, Star, X } from 'lucide-react-native';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
+import { CheckCircle2, ImagePlus, Star, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -19,6 +22,10 @@ import { useAuth } from '../../src/lib/auth';
 import { colors, fonts } from '../../src/theme';
 
 type Category = 'foodRating' | 'serviceRating' | 'staffRating' | 'ambienceRating';
+const MAX_PHOTOS = 4;
+// Long edge in pixels - plenty for a phone screen, small enough to upload fast.
+const PHOTO_MAX_EDGE = 1600;
+
 const CATEGORIES: { key: Category; label: string }[] = [
   { key: 'foodRating', label: 'review.food' },
   { key: 'serviceRating', label: 'review.service' },
@@ -41,6 +48,39 @@ export default function WriteReviewScreen() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Picked photos: the phone's own copy (shown at once) and, once
+  // uploaded, its link.
+  const [photos, setPhotos] = useState<{ uri: string; url?: string; failed?: boolean }[]>([]);
+
+  const addPhotos = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PHOTOS - photos.length,
+      quality: 0.9,
+    });
+    if (result.canceled) return;
+    for (const asset of result.assets.slice(0, MAX_PHOTOS - photos.length)) {
+      setPhotos((list) => [...list, { uri: asset.uri }]);
+      try {
+        const longest = Math.max(asset.width, asset.height);
+        const resized =
+          longest > PHOTO_MAX_EDGE
+            ? await ImageManipulator.manipulateAsync(
+                asset.uri,
+                [{ resize: asset.width >= asset.height ? { width: PHOTO_MAX_EDGE } : { height: PHOTO_MAX_EDGE } }],
+                { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+              )
+            : await ImageManipulator.manipulateAsync(asset.uri, [], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG });
+        const url = await api.uploadReviewPhoto(id, resized.uri);
+        setPhotos((list) => list.map((p) => (p.uri === asset.uri ? { ...p, url } : p)));
+      } catch {
+        setPhotos((list) => list.map((p) => (p.uri === asset.uri ? { ...p, failed: true } : p)));
+      }
+    }
+  };
+
+  const uploading = photos.some((p) => !p.url && !p.failed);
 
   const submit = async () => {
     if (!name.trim()) return setError(t('review.needName'));
@@ -49,7 +89,8 @@ export default function WriteReviewScreen() {
     setSending(true);
     try {
       if (name.trim() !== (customer?.name ?? '')) await update({ name: name.trim() });
-      const input: ReviewInput = { rating, ...scores, text: text.trim() || undefined };
+      const photoUrls = photos.flatMap((p) => (p.url ? [p.url] : []));
+      const input: ReviewInput = { rating, ...scores, text: text.trim() || undefined, photoUrls: photoUrls.length ? photoUrls : undefined };
       await api.writeReview(id, input);
       setSent(true);
     } catch (e) {
@@ -126,13 +167,37 @@ export default function WriteReviewScreen() {
           </AppText>
           <TextInput value={name} onChangeText={setName} style={styles.input} maxLength={60} autoComplete="name" />
 
-          <AppText style={styles.note}>{t('review.photosSoon')}</AppText>
+          <AppText weight="semibold" style={styles.label}>
+            {t('review.photos')}
+          </AppText>
+          <View style={styles.photoRow}>
+            {photos.map((p) => (
+              <View key={p.uri} style={styles.photoWrap}>
+                <Image source={{ uri: p.uri }} style={[styles.photo, (!p.url || p.failed) && styles.photoPending]} />
+                {!p.url && !p.failed && <ActivityIndicator style={styles.photoSpinner} color={colors.white} />}
+                <Pressable
+                  style={styles.photoRemove}
+                  onPress={() => setPhotos((list) => list.filter((x) => x.uri !== p.uri))}
+                  hitSlop={6}
+                  accessibilityLabel={t('review.removePhoto')}
+                >
+                  <X size={14} color={colors.white} />
+                </Pressable>
+              </View>
+            ))}
+            {photos.length < MAX_PHOTOS && (
+              <Pressable style={[styles.photo, styles.addPhoto]} onPress={addPhotos} accessibilityRole="button" accessibilityLabel={t('review.addPhotos')}>
+                <ImagePlus size={24} color={colors.orange} />
+              </Pressable>
+            )}
+          </View>
+          {photos.some((p) => p.failed) && <AppText style={styles.error}>{t('review.photoFailed')}</AppText>}
           {!!error && <AppText style={styles.error}>{error}</AppText>}
 
           <Pressable
-            style={[styles.primary, sending && styles.disabled]}
+            style={[styles.primary, (sending || uploading) && styles.disabled]}
             onPress={submit}
-            disabled={sending}
+            disabled={sending || uploading}
             accessibilityRole="button"
           >
             {sending ? (
@@ -193,7 +258,23 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   textArea: { minHeight: 110, paddingTop: 12, textAlignVertical: 'top' },
-  note: { fontSize: 12.5, color: colors.mutedIcon, marginTop: 6 },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  photoWrap: { position: 'relative' },
+  photo: { width: 74, height: 74, borderRadius: 14, backgroundColor: colors.surface },
+  photoPending: { opacity: 0.5 },
+  photoSpinner: { position: 'absolute', top: 27, left: 27 },
+  photoRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(31,22,64,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPhoto: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.orange, backgroundColor: colors.peach },
   error: { fontSize: 13.5, color: colors.red },
   primary: {
     marginTop: 12,

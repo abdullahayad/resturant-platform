@@ -362,6 +362,8 @@ export interface Customer {
   isCritic: boolean;
   criticMinVisits: number;
   followerCount: number;
+  notifyFollowing: boolean;
+  notifyCampaigns: boolean;
 }
 
 export type ReportReason = 'FAKE_REVIEW' | 'ABUSIVE' | 'SPAM' | 'UNDISCLOSED_PAID' | 'OTHER';
@@ -398,6 +400,8 @@ export interface ReviewInput {
   staffRating?: number;
   ambienceRating?: number;
   text?: string;
+  // Uploaded first with uploadReviewPhoto (up to 4).
+  photoUrls?: string[];
 }
 
 export interface MyReview {
@@ -492,12 +496,33 @@ export const api = {
   verifyCode: (phone: string, code: string) =>
     request<{ token: string; customer: Customer }>('POST', '/customer-auth/verify', { phone, code }),
   me: () => get<Customer>('/customers/me'),
-  updateMe: (data: { name?: string; isPublic?: boolean; specialtyIds?: string[] }) =>
+  updateMe: (data: {
+    name?: string;
+    isPublic?: boolean;
+    specialtyIds?: string[];
+    notifyFollowing?: boolean;
+    notifyCampaigns?: boolean;
+  }) =>
     request<Customer>('PATCH', '/customers/me', data),
   visitCode: () => get<{ code: string; expiresInSeconds: number }>('/customers/me/visit-code'),
   myVisits: (page = 1) => get<Paginated<MyVisit>>('/customers/me/visits' + toQueryString({ page })),
   deleteMe: () => request<{ deleted: boolean }>('DELETE', '/customers/me'),
   followedIds: () => get<string[]>('/customers/me/follows/ids'),
+  registerPushToken: (token: string, language: 'ar' | 'en') =>
+    request<{ registered: boolean }>('POST', '/customers/me/push-token', { token, language }),
+  removePushToken: (token: string) => request<{ removed: boolean }>('DELETE', '/customers/me/push-token', { token }),
+  // A review photo, uploaded before the review is sent (same public upload
+  // the restaurant's review page uses). Multipart, so not through request().
+  uploadReviewPhoto: async (restaurantId: string, uri: string): Promise<string> => {
+    const body = new FormData();
+    body.append('file', { uri, name: 'review.jpg', type: 'image/jpeg' } as unknown as Blob);
+    const res = await fetch(`${API_BASE_URL}/restaurants/${encodeURIComponent(restaurantId)}/reviews/photo-upload`, {
+      method: 'POST',
+      body,
+    });
+    if (!res.ok) throw new ApiError(res.status, 'Photo upload failed');
+    return ((await res.json()) as { url: string }).url;
+  },
   // Critics and helpful votes.
   critics: (specialtyId?: string) => get<Critic[]>('/critics' + toQueryString({ specialtyId })),
   critic: (id: string) => get<CriticProfile>(`/critics/${encodeURIComponent(id)}`),

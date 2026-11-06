@@ -1,6 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, ApiError, setAuthToken, type Customer } from './api';
+import i18n from '../i18n';
+import { registerForPush, unregisterPush } from './push';
 
 // Kept in the phone's encrypted storage (Android Keystore / iOS Keychain),
 // never in plain app storage.
@@ -14,7 +16,13 @@ interface AuthState {
   signIn: (token: string, customer: Customer) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
-  update: (data: { name?: string; isPublic?: boolean; specialtyIds?: string[] }) => Promise<void>;
+  update: (data: {
+    name?: string;
+    isPublic?: boolean;
+    specialtyIds?: string[];
+    notifyFollowing?: boolean;
+    notifyCampaigns?: boolean;
+  }) => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
 
@@ -27,6 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
 
   const forget = useCallback(async () => {
+    // While the token still works, so the server can drop this phone.
+    await unregisterPush();
     setAuthToken(null);
     setCustomer(null);
     setStatus('signedOut');
@@ -57,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) {
           setCustomer(me);
           setStatus('signedIn');
+          registerForPush(i18n.language === 'en' ? 'en' : 'ar');
         }
       } catch (e) {
         // Only a rejected token signs the customer out - being offline at
@@ -79,6 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthToken(token);
         setCustomer(me);
         setStatus('signedIn');
+        // Right after signing in is when notifications make sense to ask for.
+        registerForPush(i18n.language === 'en' ? 'en' : 'ar');
       },
       signOut: forget,
       refresh,
