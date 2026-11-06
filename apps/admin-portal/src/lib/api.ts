@@ -316,6 +316,34 @@ export interface CriticAdminItem {
   isCritic: boolean
 }
 
+export interface CampaignAudience {
+  minLevel?: number
+  followersOfRestaurantId?: string
+}
+
+export interface CampaignPayload extends CampaignAudience {
+  titleEn: string
+  titleAr: string
+  bodyEn: string
+  bodyAr: string
+  linkType: HomeBannerLink
+  linkValue?: string
+}
+
+export interface CampaignItem {
+  id: string
+  titleEn: string
+  titleAr: string
+  bodyEn: string
+  bodyAr: string
+  linkType: HomeBannerLink
+  minLevel: number | null
+  followersOfRestaurantId: string | null
+  recipientCount: number
+  sentAt: string
+  sentBy: { fullName: string } | null
+}
+
 export interface HomeBanner {
   id: string
   titleEn: string
@@ -930,6 +958,12 @@ export const api = {
     send<SupportTicketDetail>('POST', `/admin/customer-support/${id}/reply`, { text }),
   setSupportTicketStatus: (id: string, status: SupportStatus) =>
     send<SupportTicketDetail>('PATCH', `/admin/customer-support/${id}/status`, { status }),
+
+  campaigns: (page?: number) => get<Paginated<CampaignItem>>(`/admin/campaigns${qsFrom({ page })}`),
+  previewCampaign: (audience: CampaignAudience) =>
+    send<{ customers: number; weeklyLimit: number }>('POST', '/admin/campaigns/preview', audience),
+  sendCampaign: (payload: CampaignPayload) =>
+    send<{ id: string; recipientCount: number }>('POST', '/admin/campaigns', payload),
 
   homeBanners: () => get<HomeBanner[]>('/home/banners/admin'),
   createHomeBanner: (payload: HomeBannerPayload) => send<HomeBanner>('POST', '/home/banners/admin', payload),
