@@ -184,6 +184,21 @@ export class CustomerMeController {
     return this.reports.reportByCustomer(req.customer.id, reviewId, dto.reason, dto.note);
   }
 
+  @Get('notifications')
+  notifications(@Req() req: CustomerRequest, @Query() query: PageQueryDto) {
+    return this.activity.notifications(req.customer.id, query.page);
+  }
+
+  @Get('notifications/unread-count')
+  unreadNotifications(@Req() req: CustomerRequest) {
+    return this.activity.unreadNotifications(req.customer.id);
+  }
+
+  @Post('notifications/read')
+  markNotificationsRead(@Req() req: CustomerRequest) {
+    return this.activity.markNotificationsRead(req.customer.id);
+  }
+
   @Get('support')
   supportTickets(@Req() req: CustomerRequest) {
     return this.support.myTickets(req.customer.id);

@@ -173,6 +173,45 @@ export class CustomerActivityService {
     return { id: bookingId, status: 'CANCELLED' as const };
   }
 
+  // The notifications inbox, newest first.
+  async notifications(customerId: string, pageParam?: number) {
+    const { page, skip, take } = pageOffset(pageParam);
+    const where = { customerId };
+    const [items, total] = await Promise.all([
+      this.prisma.db.customerNotification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        select: {
+          id: true,
+          titleEn: true,
+          titleAr: true,
+          bodyEn: true,
+          bodyAr: true,
+          data: true,
+          readAt: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.db.customerNotification.count({ where }),
+    ]);
+    return { items, total, page, pageSize: take };
+  }
+
+  async unreadNotifications(customerId: string) {
+    const count = await this.prisma.db.customerNotification.count({ where: { customerId, readAt: null } });
+    return { count };
+  }
+
+  async markNotificationsRead(customerId: string) {
+    await this.prisma.db.customerNotification.updateMany({
+      where: { customerId, readAt: null },
+      data: { readAt: new Date() },
+    });
+    return { count: 0 };
+  }
+
   private async phoneOf(customerId: string): Promise<string> {
     const customer = await this.prisma.db.customer.findUnique({ where: { id: customerId }, select: { phone: true } });
     if (!customer) throw new NotFoundException('Account not found');

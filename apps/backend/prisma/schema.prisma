@@ -1367,6 +1367,7 @@ model Customer {
   criticFollowers CriticFollow[]      @relation("CriticFollowed")
   reportsMade     Report[]            @relation("ReportByCustomer")
   pushTokens          CustomerPushToken[]
+  notifications       CustomerNotification[]
   campaignDeliveries  CustomerCampaignDelivery[]
   reportsAgainst  Report[]            @relation("ReportAgainstCustomer")
 
@@ -1638,4 +1639,25 @@ model CustomerCampaignDelivery {
   @@id([campaignId, customerId])
   @@index([customerId, sentAt])
   @@map("customer_campaign_deliveries")
+}
+
+// The customer's notifications inbox (the bell on Home): every push is also
+// saved here, so a message can be read after the phone's banner is gone -
+// and still reaches customers who turned phone notifications off.
+model CustomerNotification {
+  id         String    @id @default(uuid())
+  customerId String
+  titleEn    String
+  titleAr    String
+  bodyEn     String
+  bodyAr     String
+  // What it opens, same shape as the push's data ({ screen, id }).
+  data       Json?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt])
+  @@map("customer_notifications")
 }

@@ -57,8 +57,20 @@ export class PushService {
   // aren't tried again.
   async sendToCustomers(customerIds: string[], text: CustomerPushText, data?: Record<string, string>): Promise<number> {
     if (customerIds.length === 0) return 0;
+    const ids = [...new Set(customerIds)];
+    // Saved first: the inbox has it even if the phone can't be reached.
+    await this.prisma.db.customerNotification.createMany({
+      data: ids.map((customerId) => ({
+        customerId,
+        titleEn: text.titleEn,
+        titleAr: text.titleAr,
+        bodyEn: text.bodyEn,
+        bodyAr: text.bodyAr,
+        data,
+      })),
+    });
     const tokens = await this.prisma.db.customerPushToken.findMany({
-      where: { customerId: { in: [...new Set(customerIds)] } },
+      where: { customerId: { in: ids } },
       select: { token: true, language: true },
     });
     if (tokens.length === 0) return 0;

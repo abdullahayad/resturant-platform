@@ -86,6 +86,7 @@ describe('PushService.sendToCustomers', () => {
   it('sends each phone its own language and forgets phones that uninstalled', async () => {
     const prisma = {
       db: {
+        customerNotification: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
         customerPushToken: {
           findMany: jest.fn().mockResolvedValue([
             { token: 'ExponentPushToken[ar]', language: 'ar' },
@@ -110,6 +111,8 @@ describe('PushService.sendToCustomers', () => {
     const [, init] = fetchMock.mock.calls[0];
     const sent = JSON.parse((init as RequestInit).body as string) as { title: string }[];
     expect(sent.map((m) => m.title)).toEqual(['هلا', 'Hi']);
+    // Saved to the inbox too.
+    expect(prisma.db.customerNotification.createMany).toHaveBeenCalledTimes(1);
     expect(prisma.db.customerPushToken.deleteMany).toHaveBeenCalledWith({
       where: { token: { in: ['ExponentPushToken[gone]'] } },
     });
