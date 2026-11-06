@@ -65,6 +65,16 @@ export class AdminCustomersService {
     return { items, total, page, pageSize: take };
   }
 
+  // What's waiting for an admin - the sidebar's red badges.
+  async alerts() {
+    const [support, reports, healthy] = await Promise.all([
+      this.prisma.db.customerSupportTicket.count({ where: { status: 'OPEN' } }),
+      this.prisma.db.report.count({ where: { status: 'OPEN' } }),
+      this.prisma.db.restaurant.count({ where: { healthyStatus: 'PENDING' } }),
+    ]);
+    return { support, reports, healthy };
+  }
+
   async stats(now = new Date()) {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const weekStart = addDays(baghdadClock(now).date, -6);

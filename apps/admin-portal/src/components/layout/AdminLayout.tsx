@@ -14,6 +14,7 @@ export function AdminLayout() {
   const { theme, toggleTheme } = useTheme()
   const [approvalsBadge, setApprovalsBadge] = useState(0)
   const [blockedUploadsBadge, setBlockedUploadsBadge] = useState(0)
+  const [alerts, setAlerts] = useState({ support: 0, reports: 0, healthy: 0 })
   // Follows the URL; on the dashboard (which belongs to no workspace) it
   // keeps showing whichever workspace was open last.
   const [workspaceId, setWorkspaceId] = useState<WorkspaceId>(
@@ -43,6 +44,22 @@ export function AdminLayout() {
     api.recentBlockedCount().then((r) => setBlockedUploadsBadge(r.count)).catch(() => setBlockedUploadsBadge(0))
   }, [location.pathname])
 
+  // Customers' waiting messages, reports and Healthy requests. Unlike the
+  // counts above these arrive at any moment, so they also refresh every
+  // minute - an admin sitting on one page still sees them come in.
+  useEffect(() => {
+    const load = () => api.customerAlerts().then(setAlerts).catch(() => {})
+    load()
+    const timer = setInterval(load, 60_000)
+    return () => clearInterval(timer)
+  }, [location.pathname])
+
+  // The browser tab shows it too, for when the portal is in the background.
+  const waiting = alerts.support + alerts.reports + alerts.healthy
+  useEffect(() => {
+    document.title = `${waiting > 0 ? `(${waiting}) ` : ''}Restaurant Platform · Admin`
+  }, [waiting])
+
   const signOut = async () => {
     // Clears the server-side cookies too, not just local state - the old
     // localStorage-only clear had nothing server-side to clean up, but an
@@ -55,6 +72,9 @@ export function AdminLayout() {
   const badges: Record<string, number> = {
     '/approvals': approvalsBadge,
     '/recent-activity': blockedUploadsBadge,
+    '/customer-support': alerts.support,
+    '/customer-reports': alerts.reports,
+    '/healthy-tags': alerts.healthy,
   }
   const visibleItems = (items: NavItem[]) =>
     items.filter((item) => !item.superAdminOnly || admin?.role === 'SUPER_ADMIN')

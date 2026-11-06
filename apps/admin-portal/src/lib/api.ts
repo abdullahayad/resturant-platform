@@ -934,6 +934,7 @@ export const api = {
   customers: (q?: string, blocked?: boolean, page?: number) =>
     get<Paginated<CustomerListItem>>(`/admin/customers${qsFrom({ q, blocked: blocked ? 'true' : undefined, page })}`),
   customerStats: () => get<CustomerStats>('/admin/customers/stats'),
+  customerAlerts: () => get<{ support: number; reports: number; healthy: number }>('/admin/customers/alerts'),
   customerLevels: () => get<CustomerLevels>('/admin/customers/levels'),
   customer: (id: string) => get<CustomerDetail>(`/admin/customers/${id}`),
   blockCustomer: (id: string, reason: string) => send<CustomerDetail>('PATCH', `/admin/customers/${id}/block`, { reason }),

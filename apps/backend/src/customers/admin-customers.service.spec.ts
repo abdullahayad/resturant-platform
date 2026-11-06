@@ -1,3 +1,4 @@
+import { EmailService } from '../email/email.service';
 import { CustomerNotificationsService } from '../push/customer-notifications.service';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -79,6 +80,7 @@ describe('AdminCustomersService', () => {
 
 describe('CustomerSupportService', () => {
   let service: CustomerSupportService;
+  const email = { send: jest.fn().mockResolvedValue(true) };
   let prisma: {
     db: {
       customerSupportTicket: {
@@ -91,6 +93,7 @@ describe('CustomerSupportService', () => {
       restaurant: { findUnique: jest.Mock };
       chefTableBooking: { findMany: jest.Mock };
       customerVisit: { findMany: jest.Mock };
+      adminUser: { findMany: jest.Mock };
     };
   };
 
@@ -107,6 +110,7 @@ describe('CustomerSupportService', () => {
         restaurant: { findUnique: jest.fn() },
         chefTableBooking: { findMany: jest.fn().mockResolvedValue([]) },
         customerVisit: { findMany: jest.fn().mockResolvedValue([]) },
+        adminUser: { findMany: jest.fn().mockResolvedValue([{ email: 'boss@ligeta.app' }]) },
       },
     };
     const module = await Test.createTestingModule({
@@ -114,9 +118,29 @@ describe('CustomerSupportService', () => {
         CustomerSupportService,
         { provide: PrismaService, useValue: prisma },
         { provide: CustomerNotificationsService, useValue: { supportReplied: jest.fn().mockResolvedValue(undefined) } },
+        { provide: EmailService, useValue: email },
       ],
     }).compile();
     service = module.get(CustomerSupportService);
+  });
+
+  it('emails the super admins about a new conversation, with no customer text in it', async () => {
+    email.send.mockClear();
+    await service.open('c1', 'OTHER', 'my private problem');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(email.send).toHaveBeenCalledTimes(1);
+    const [to, , html] = email.send.mock.calls[0] as [string, string, string];
+    expect(to).toBe('boss@ligeta.app');
+    expect(html).not.toContain('my private problem');
+  });
+
+  it("doesn't email again while a conversation is already waiting on LiGETA", async () => {
+    email.send.mockClear();
+    prisma.db.customerSupportTicket.findFirst.mockResolvedValue({ id: 't1', status: 'OPEN' });
+    await service.customerReply('c1', 't1', 'one more thing');
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(email.send).not.toHaveBeenCalled();
   });
 
   it('caps how many conversations a customer keeps open', async () => {

@@ -144,6 +144,11 @@ export class AdminCustomersController {
     return this.customers.list(query);
   }
 
+  @Get('alerts')
+  alerts() {
+    return this.customers.alerts();
+  }
+
   @Get('stats')
   stats() {
     return this.customers.stats();

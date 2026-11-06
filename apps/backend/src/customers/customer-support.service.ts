@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomerNotificationsService } from '../push/customer-notifications.service';
+import { EmailService } from '../email/email.service';
 import { pageOffset } from '../common/pagination';
 
 // Mirrors prisma/schema.prisma's enums.
@@ -28,6 +29,7 @@ export class CustomerSupportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly customerNotifications: CustomerNotificationsService,
+    private readonly email: EmailService,
   ) {}
 
   // ── customer side ────────────────────────────────────────────────────
@@ -63,16 +65,19 @@ export class CustomerSupportService {
       data: { customerId, topic, restaurantId, messages: { create: { text: text.trim() } } },
       select: { id: true },
     });
+    this.emailAdmins().catch(() => {});
     return this.myTicket(customerId, ticket.id);
   }
 
   async customerReply(customerId: string, ticketId: string, text: string) {
-    await this.myTicket(customerId, ticketId);
+    const before = await this.myTicket(customerId, ticketId);
     await this.prisma.db.customerSupportTicket.update({
       where: { id: ticketId },
       // Any customer message puts it back in LiGETA's court, even a closed one.
       data: { status: 'OPEN', messages: { create: { text: text.trim() } } },
     });
+    // Already waiting on LiGETA = the admins already know.
+    if (before.status !== 'OPEN') this.emailAdmins().catch(() => {});
     return this.myTicket(customerId, ticketId);
   }
 
@@ -91,6 +96,20 @@ export class CustomerSupportService {
     });
     if (!ticket) throw new NotFoundException('Conversation not found');
     return ticket;
+  }
+
+  // Tells the super admins something is waiting. Deliberately carries no
+  // customer text or details - email isn't where those belong, and it
+  // keeps customer-written text out of an HTML email altogether.
+  private async emailAdmins() {
+    const admins = await this.prisma.db.adminUser.findMany({
+      where: { isActive: true, role: 'SUPER_ADMIN' },
+      select: { email: true },
+    });
+    const html =
+      '<p>A customer is waiting for a reply in LiGETA.</p>' +
+      '<p><a href="https://admin.ligeta.app/customer-support">Open Customer Support</a></p>';
+    await Promise.all(admins.map((a) => this.email.send(a.email, 'LiGETA: new customer support message', html)));
   }
 
   // ── admin side ───────────────────────────────────────────────────────

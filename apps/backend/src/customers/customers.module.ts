@@ -3,6 +3,7 @@ import { AuthModule } from '../auth/auth.module';
 import { FeatureFlagsModule } from '../feature-flags/feature-flags.module';
 import { ReviewsModule } from '../reviews/reviews.module';
 import { PushModule } from '../push/push.module';
+import { EmailModule } from '../email/email.module';
 import { CustomerActivityService } from './customer-activity.service';
 import { CustomerSupportService } from './customer-support.service';
 import { AdminCustomersService } from './admin-customers.service';
@@ -30,7 +31,7 @@ import { CustomerAuthGuard } from './customer-auth.guard';
 import { WhatsAppSenderService } from './whatsapp-sender.service';
 
 @Module({
-  imports: [AuthModule, FeatureFlagsModule, ReviewsModule, PushModule],
+  imports: [AuthModule, FeatureFlagsModule, ReviewsModule, PushModule, EmailModule],
   controllers: [
     CustomerAuthController,
     CustomerMeController,
