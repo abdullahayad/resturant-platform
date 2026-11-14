@@ -21,6 +21,17 @@ import { AppText } from './AppText';
 
 const MAX_PARTY = 20;
 
+// The server answers in English; the customer sees their own language.
+function bookingError(e: unknown, t: (key: string) => string): string {
+  if (!(e instanceof ApiError)) return t('booking.failed');
+  if (e.status === 429) return t('booking.tooMany');
+  if (e.message.includes('fully booked')) return t('booking.fullyBooked');
+  if (e.status === 404) return t('booking.eventGone');
+  if (e.message.startsWith('reservationDate')) return t('booking.dateGone');
+  if (e.status === 400) return t('booking.checkDetails');
+  return t('booking.failed');
+}
+
 // Book seats for one occurrence of an event - name, phone and how many
 // people; paid at the restaurant. No account needed, the same as the
 // booking flow the partner app already receives.
@@ -77,7 +88,7 @@ export function EventBookingSheet({ event, onClose }: { event: EventItem; onClos
       setState('done');
     } catch (e) {
       setState('form');
-      setError(e instanceof ApiError && e.status < 500 ? e.message : t('booking.failed'));
+      setError(bookingError(e, t));
     }
   };
 

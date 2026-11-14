@@ -9,14 +9,22 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_SENTRY_DSN": "https://839f7e1ca3d0679f0597bfd2b2b5c859@o4512005792989184.ingest.de.sentry.io/4512010240655440",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
       },
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_SENTRY_DSN": "https://839f7e1ca3d0679f0597bfd2b2b5c859@o4512005792989184.ingest.de.sentry.io/4512010240655440",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     }
   },
   "submit": {

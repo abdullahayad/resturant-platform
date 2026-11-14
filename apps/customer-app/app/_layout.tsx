@@ -5,6 +5,7 @@ import {
   IBMPlexSansArabic_700Bold,
   useFonts,
 } from '@expo-google-fonts/ibm-plex-sans-arabic';
+import * as Sentry from '@sentry/react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -16,14 +17,22 @@ import { AreaProvider } from '../src/lib/area';
 import { openFromNotification } from '../src/lib/push';
 import { AuthProvider } from '../src/lib/auth';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+// Crash reports. No-ops when the DSN is missing (e.g. a local dev run
+// without .env); dev builds are tagged so they don't read as real users.
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: __DEV__ ? 'development' : 'production',
+  tracesSampleRate: 0.2,
+  sendDefaultPii: false,
+  initialScope: { tags: { app: 'customer' } },
+});
+
+// Any screen that breaks shows a retry screen and reports to Sentry.
+export { CrashScreen as ErrorBoundary } from '../src/components/CrashScreen';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded, error] = useFonts({
     IBMPlexSansArabic_400Regular,
     IBMPlexSansArabic_500Medium,
@@ -87,3 +96,5 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

@@ -106,7 +106,12 @@
     "failed": "The request didn't go through. Check your internet and try again.",
     "sentTitle": "Request sent to the restaurant",
     "sentText": "The restaurant will confirm and contact you on your number.",
-    "done": "Done"
+    "done": "Done",
+    "fullyBooked": "Sorry, this event is fully booked for that date.",
+    "eventGone": "This event is no longer available.",
+    "dateGone": "This date is no longer available for this event. Please pick another one.",
+    "tooMany": "Too many tries. Please wait a minute and try again.",
+    "checkDetails": "Please check your details and try again."
   },
   "restaurant": {
     "notFound": "This restaurant is not available right now",
@@ -342,5 +347,10 @@
     "and": " and ",
     "privacy": "Privacy Policy",
     "agreeSuffix": "."
+  },
+  "crash": {
+    "title": "Something went wrong",
+    "text": "This screen ran into a problem. We have been told about it. Please try again.",
+    "retry": "Try again"
   }
 }

@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react-native';
+
 export const API_BASE_URL = 'https://api.ligeta.app/v1';
 
 const REQUEST_TIMEOUT_MS = 15000;
@@ -41,6 +43,9 @@ async function request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: str
       } catch {
         // Not JSON - keep the generic message.
       }
+      // Server-side failures are worth knowing about; 4xx are normal
+      // answers (wrong code, fully booked) and stay out of Sentry.
+      if (res.status >= 500) Sentry.captureMessage(`API ${res.status} on ${method} ${path.split('?')[0]}`, 'error');
       throw new ApiError(res.status, message);
     }
     const text = await res.text();
