@@ -29,6 +29,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
+import { LegalFooter } from '../../src/components/LegalLinks';
 import { VisitCodeSheet } from '../../src/components/VisitCodeSheet';
 import { api, type MyVisit, type NamedRef } from '../../src/lib/api';
 import { useAuth } from '../../src/lib/auth';
@@ -115,6 +116,7 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
           <LanguageSwitch />
+          <LegalFooter />
         </ScrollView>
       </SafeAreaView>
     );
@@ -412,6 +414,7 @@ export default function ProfileScreen() {
             </AppText>
           </Pressable>
         </View>
+        <LegalFooter />
       </ScrollView>
 
       {showCode && <VisitCodeSheet level={level} onClose={() => setShowCode(false)} />}

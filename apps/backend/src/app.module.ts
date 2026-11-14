@@ -6,6 +6,7 @@ import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { SecurityAlertThrottlerGuard } from './common/security-alert-throttler.guard';
 import { AppController } from './app.controller';
 import { LegalController } from './legal/legal.controller';
+import { SiteController } from './site/site.controller';
 import { SupportSessionPageController } from './support-session/support-session-page.controller';
 import { ReviewPageController } from './review-page/review-page.controller';
 import { AppService } from './app.service';
@@ -82,7 +83,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     HomeBannersModule,
     AdminActivityModule,
   ],
-  controllers: [AppController, LegalController, SupportSessionPageController, ReviewPageController],
+  controllers: [AppController, LegalController, SiteController, SupportSessionPageController, ReviewPageController],
   providers: [
     // Must come before any other exception filter (none currently exist).
     { provide: APP_FILTER, useClass: SentryGlobalFilter },

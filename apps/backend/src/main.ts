@@ -27,6 +27,9 @@ import { AppModule } from './app.module';
 const UNVERSIONED_ROUTES = [
   'privacy-policy',
   'terms-of-service',
+  'app-privacy',
+  'app-terms',
+  'delete-account',
   'docs',
   'docs-json',
   'support-session',

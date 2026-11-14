@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../src/components/AppText';
+import { AgreeToTerms } from '../src/components/LegalLinks';
 import { api, ApiError } from '../src/lib/api';
 import { useAuth } from '../src/lib/auth';
 import { isIraqiMobile } from '../src/lib/format';
@@ -157,6 +158,8 @@ export default function LoginScreen() {
               </Pressable>
             </View>
           )}
+
+          {step === 'phone' && <AgreeToTerms />}
 
           <AppText style={styles.note}>{t('login.note')}</AppText>
         </View>

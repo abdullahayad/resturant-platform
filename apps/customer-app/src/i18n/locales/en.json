@@ -335,5 +335,12 @@
     "title": "Notifications",
     "empty": "No notifications yet",
     "emptyText": "Messages from LiGETA and news from who you follow will show here."
+  },
+  "legal": {
+    "agreePrefix": "By continuing you agree to the ",
+    "terms": "Terms of Use",
+    "and": " and ",
+    "privacy": "Privacy Policy",
+    "agreeSuffix": "."
   }
 }
