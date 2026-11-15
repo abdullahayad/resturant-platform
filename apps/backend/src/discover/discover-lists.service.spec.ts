@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { DiscoverListsService } from './discover-lists.service';
+import { DiscoverListsService, distanceKm, offerOrder } from './discover-lists.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('DiscoverListsService', () => {
@@ -148,5 +148,57 @@ describe('DiscoverListsService', () => {
       expect(result.items[0]).toMatchObject({ price: 4000, discountedPrice: 3000, restaurant: { id: 'r1' } });
       expect(result.total).toBe(1);
     });
+    it('filters by price band, cuisine and healthy', async () => {
+      prisma.db.dish.findMany.mockResolvedValueOnce([]);
+      prisma.db.dish.count.mockResolvedValueOnce(0);
+      prisma.db.promotion.findMany.mockResolvedValueOnce([]);
+
+      await service.budgetDishes(5000, 1, now, { minPrice: 3000, cuisineId: 'c1', healthyOnly: true });
+
+      const where = prisma.db.dish.findMany.mock.calls.at(-1)[0].where;
+      expect(where.price).toEqual({ lte: 5000, gte: 3000 });
+      expect(where.isHealthy).toBe(true);
+      expect(where.restaurant).toMatchObject({ status: 'APPROVED', publishStatus: 'APPROVED', foodCategories: { some: { foodCategoryId: 'c1' } } });
+    });
+  });
+});
+
+describe('offer sorting', () => {
+  const offer = (o: Partial<{ liveNow: boolean; isRecurring: boolean; validUntil: Date | null; discountType: string; discountValue: number; distanceKm: number | null; id: string }>) => ({
+    liveNow: false, isRecurring: false, validUntil: null, discountType: 'PERCENTAGE', discountValue: 10, distanceKm: null, id: '', ...o,
+  });
+
+  it('keeps running-now offers first, then sorts by the chosen order', () => {
+    const list = [
+      offer({ id: 'far', distanceKm: 9 }),
+      offer({ id: 'live', liveNow: true, distanceKm: 20 }),
+      offer({ id: 'near', distanceKm: 1 }),
+    ];
+    expect(list.sort(offerOrder('nearest', true)).map((o) => o.id)).toEqual(['live', 'near', 'far']);
+  });
+
+  it('ending soon puts dated offers by end date and weekly ones last', () => {
+    const list = [
+      offer({ id: 'weekly', isRecurring: true }),
+      offer({ id: 'later', validUntil: new Date('2026-12-30') }),
+      offer({ id: 'soon', validUntil: new Date('2026-11-20') }),
+    ];
+    expect(list.sort(offerOrder('ending', false)).map((o) => o.id)).toEqual(['soon', 'later', 'weekly']);
+  });
+
+  it('biggest puts percentages by size before fixed amounts', () => {
+    const list = [
+      offer({ id: 'amount', discountType: 'FIXED_AMOUNT', discountValue: 5000 }),
+      offer({ id: 'p10', discountValue: 10 }),
+      offer({ id: 'p30', discountValue: 30 }),
+    ];
+    expect(list.sort(offerOrder('biggest', false)).map((o) => o.id)).toEqual(['p30', 'p10', 'amount']);
+  });
+
+  it('measures distance in km', () => {
+    // Tahrir Square to Mansour, roughly 6 km.
+    const km = distanceKm({ lat: 33.3333, lng: 44.4167 }, { lat: 33.3152, lng: 44.3553 });
+    expect(km).toBeGreaterThan(5);
+    expect(km).toBeLessThan(7);
   });
 });

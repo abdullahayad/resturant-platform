@@ -2,7 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { DiscoverService } from './discover.service';
 import { DiscoverListsService } from './discover-lists.service';
 import { DiscoverQueryDto } from './dto/discover-query.dto';
-import { BudgetDishesQueryDto, DiscoverEventsQueryDto } from './dto/discover-lists.dto';
+import { BudgetDishesQueryDto, DiscoverEventsQueryDto, OffersQueryDto } from './dto/discover-lists.dto';
 import { PageQueryDto } from '../common/pagination';
 
 // Public, no login: the customer app's Explore, search, moods, Home rows,
@@ -27,13 +27,17 @@ export class DiscoverController {
   }
 
   @Get('offers')
-  offers(@Query() query: PageQueryDto) {
-    return this.lists.offers(query.page);
+  offers(@Query() query: OffersQueryDto) {
+    return this.lists.offers(query.page, new Date(), { sort: query.sort, lat: query.lat, lng: query.lng });
   }
 
   @Get('budget-dishes')
   budgetDishes(@Query() query: BudgetDishesQueryDto) {
-    return this.lists.budgetDishes(query.maxPrice, query.page);
+    return this.lists.budgetDishes(query.maxPrice, query.page, new Date(), {
+      minPrice: query.minPrice,
+      cuisineId: query.cuisineId,
+      healthyOnly: query.healthyOnly,
+    });
   }
 
   @Get('healthy-dishes')

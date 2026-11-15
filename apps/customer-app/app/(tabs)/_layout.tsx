@@ -1,9 +1,13 @@
+import { router } from 'expo-router';
 import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui';
 import { CalendarCheck, Home, Search, Tag, User } from 'lucide-react-native';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabButton } from '../../src/components/TabButton';
+import { useAuth } from '../../src/lib/auth';
+import { welcomeSeen } from '../../src/lib/welcome';
 import { colors } from '../../src/theme';
 
 // The five main sections in a floating pill bar. The routes are declared
@@ -13,6 +17,20 @@ import { colors } from '../../src/theme';
 export default function TabLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { status } = useAuth();
+
+  // First open, not signed in: the welcome sign-in screen (with a guest
+  // option) comes up once over Home.
+  useEffect(() => {
+    if (status !== 'signedOut') return;
+    let cancelled = false;
+    welcomeSeen().then((seen) => {
+      if (!seen && !cancelled) router.push({ pathname: '/login', params: { welcome: '1' } });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
 
   return (
     <Tabs style={styles.root}>
@@ -44,7 +62,7 @@ export default function TabLayout() {
           <TabButton icon={Search} label={t('tabs.explore')} />
         </TabTrigger>
         <TabTrigger name="offers" asChild>
-          <TabButton icon={Tag} label={t('tabs.offers')} />
+          <TabButton icon={Tag} label={t('tabs.offers')} badge={t('tabs.new')} />
         </TabTrigger>
         <TabTrigger name="events" asChild>
           <TabButton icon={CalendarCheck} label={t('tabs.events')} />

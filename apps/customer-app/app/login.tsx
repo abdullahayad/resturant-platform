@@ -1,21 +1,32 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MessageCircle, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../src/components/AppText';
 import { AgreeToTerms } from '../src/components/LegalLinks';
 import { api, ApiError } from '../src/lib/api';
 import { useAuth } from '../src/lib/auth';
 import { isIraqiMobile } from '../src/lib/format';
+import { markWelcomeSeen } from '../src/lib/welcome';
 import { colors, fonts } from '../src/theme';
 
 // Sign in with a 6-digit code sent on WhatsApp - no password. A new number
-// creates the account on the spot.
+// creates the account on the spot, so signing in and signing up are one
+// step. Opened with welcome=1 on the first launch: the LiGETA welcome on
+// top and a "Continue as guest" way out (stores require browsing without
+// an account).
 export default function LoginScreen() {
   const { t } = useTranslation();
   const { signIn } = useAuth();
+  const welcome = useLocalSearchParams<{ welcome?: string }>().welcome === '1';
+
+  // However the welcome closes (guest, signed in, back button), it has
+  // been seen and won't come back.
+  useEffect(() => {
+    if (welcome) return markWelcomeSeen;
+  }, [welcome]);
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -78,20 +89,36 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
-        <Pressable style={styles.close} onPress={() => router.back()} hitSlop={10} accessibilityLabel={t('home.close')}>
-          <X size={24} color={colors.text} />
-        </Pressable>
+        {welcome ? (
+          <View style={styles.closeSpace} />
+        ) : (
+          <Pressable style={styles.close} onPress={() => router.back()} hitSlop={10} accessibilityLabel={t('home.close')}>
+            <X size={24} color={colors.text} />
+          </Pressable>
+        )}
 
-        <View style={styles.body}>
-          <View style={styles.icon}>
-            <MessageCircle size={34} color={colors.white} />
-          </View>
-          <AppText weight="bold" style={styles.title}>
-            {step === 'phone' ? t('login.title') : t('login.codeTitle')}
-          </AppText>
-          <AppText style={styles.text}>
-            {step === 'phone' ? t('login.text') : t('login.codeText', { phone })}
-          </AppText>
+        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          {welcome && step === 'phone' ? (
+            <>
+              <Image source={require('../assets/images/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+              <AppText weight="bold" style={styles.title}>
+                {t('login.welcomeTitle')}
+              </AppText>
+              <AppText style={styles.text}>{t('login.welcomeText')}</AppText>
+            </>
+          ) : (
+            <>
+              <View style={styles.icon}>
+                <MessageCircle size={34} color={colors.white} />
+              </View>
+              <AppText weight="bold" style={styles.title}>
+                {step === 'phone' ? t('login.title') : t('login.codeTitle')}
+              </AppText>
+              <AppText style={styles.text}>
+                {step === 'phone' ? t('login.text') : t('login.codeText', { phone })}
+              </AppText>
+            </>
+          )}
 
           {step === 'phone' ? (
             <TextInput
@@ -162,7 +189,18 @@ export default function LoginScreen() {
           {step === 'phone' && <AgreeToTerms />}
 
           <AppText style={styles.note}>{t('login.note')}</AppText>
-        </View>
+
+          {welcome && (
+            <View style={styles.guestBox}>
+              <Pressable style={styles.guest} onPress={() => router.back()} accessibilityRole="button">
+                <AppText weight="bold" style={styles.guestText}>
+                  {t('login.guest')}
+                </AppText>
+              </Pressable>
+              <AppText style={styles.guestNote}>{t('login.guestNote')}</AppText>
+            </View>
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -172,7 +210,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   close: { alignSelf: 'flex-end', padding: 16 },
-  body: { paddingHorizontal: 24, gap: 12, alignItems: 'stretch' },
+  closeSpace: { height: 24 },
+  body: { paddingHorizontal: 24, paddingBottom: 32, gap: 12, alignItems: 'stretch' },
+  logo: { width: 88, height: 88, borderRadius: 24, alignSelf: 'center', marginBottom: 6 },
+  guestBox: { marginTop: 8, gap: 6 },
+  guest: { height: 52, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  guestText: { fontSize: 15.5, color: colors.text },
+  guestNote: { fontSize: 12.5, color: colors.mutedIcon, textAlign: 'center' },
   icon: {
     width: 68,
     height: 68,

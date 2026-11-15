@@ -4,7 +4,8 @@
     "explore": "Explore",
     "offers": "Offers",
     "events": "Events",
-    "profile": "Profile"
+    "profile": "Profile",
+    "new": "New"
   },
   "home": {
     "chooseArea": "Choose your area",
@@ -150,8 +151,8 @@
   },
   "offers": {
     "tabs": {
-      "deals": "Deals",
-      "budget": "5,000 or less"
+      "deals": "Discounts",
+      "budget": "5,000 & under"
     },
     "noDeals": "No offers right now",
     "noDealsText": "New offers will show up here.",
@@ -163,7 +164,29 @@
     "everyDay": "Every {{day}}",
     "until": "Until {{date}}",
     "liveNow": "On now",
-    "wholeMenu": "On the whole menu"
+    "wholeMenu": "On the whole menu",
+    "subtitle": "Real deals and prices from restaurants near you",
+    "sortLabel": "Sort offers",
+    "sorts": {
+      "nearest": "Nearest",
+      "ending": "Ending soon",
+      "biggest": "Biggest discount"
+    },
+    "bannerTitle": "Good food for 5,000 or less",
+    "bannerText": "Prices straight from the restaurant's menu, no surprises",
+    "priceLabel": "Price",
+    "bands": {
+      "all": "All",
+      "under3": "Under 3,000",
+      "b35": "3,000 - 5,000"
+    },
+    "allCuisines": "All",
+    "cheapestFirst": "Cheapest first",
+    "healthyOnly": "Healthy only",
+    "healthy": "Healthy",
+    "mostOrdered": "Most ordered",
+    "endsSoon": "Ends soon",
+    "km": "{{n}} km"
   },
   "login": {
     "title": "Sign in",
@@ -182,7 +205,11 @@
     "unavailable": "WhatsApp sign-in is coming soon.",
     "wrongCode": "Wrong code",
     "expired": "This code has expired. Ask for a new one.",
-    "blocked": "This account is blocked. Contact us if you think this is a mistake."
+    "blocked": "This account is blocked. Contact us if you think this is a mistake.",
+    "welcomeTitle": "Welcome to LiGETA",
+    "welcomeText": "Discover restaurants, offers and events near you. Sign in with your number - no password needed.",
+    "guest": "Continue as guest",
+    "guestNote": "You can sign in any time from Profile."
   },
   "profile": {
     "signInTitle": "Sign in to collect your visits",

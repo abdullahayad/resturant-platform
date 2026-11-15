@@ -299,6 +299,23 @@ export interface Offer {
   liveNow: boolean;
   dishes: (NamedRef & { price: number; photoUrl: string | null })[];
   restaurant: RestaurantMini;
+  // Only when the request sent the customer's location.
+  distanceKm: number | null;
+}
+
+export type OfferSort = 'newest' | 'nearest' | 'ending' | 'biggest';
+
+export interface OffersQuery {
+  sort?: OfferSort;
+  lat?: number;
+  lng?: number;
+}
+
+export interface BudgetQuery {
+  maxPrice?: number;
+  minPrice?: number;
+  cuisineId?: string;
+  healthyOnly?: boolean;
 }
 
 export interface BudgetDish {
@@ -309,6 +326,7 @@ export interface BudgetDish {
   discountedPrice: number | null;
   photoUrl: string | null;
   isHealthy: boolean;
+  isMostOrdered?: boolean;
   menuCategory: NamedRef | null;
   restaurant: RestaurantMini;
 }
@@ -495,9 +513,9 @@ export const api = {
     get<Paginated<RestaurantCard>>('/discover/restaurants' + toQueryString(query)),
   featured: () => get<RestaurantCard[]>('/discover/featured'),
   restaurantPage: (id: string) => get<RestaurantPage>(`/restaurants/${encodeURIComponent(id)}/public-page`),
-  offers: (page = 1) => get<Paginated<Offer>>('/discover/offers' + toQueryString({ page })),
-  budgetDishes: (page = 1, maxPrice?: number) =>
-    get<Paginated<BudgetDish>>('/discover/budget-dishes' + toQueryString({ page, maxPrice })),
+  offers: (page = 1, query: OffersQuery = {}) => get<Paginated<Offer>>('/discover/offers' + toQueryString({ page, ...query })),
+  budgetDishes: (page = 1, query: BudgetQuery = {}) =>
+    get<Paginated<BudgetDish>>('/discover/budget-dishes' + toQueryString({ page, ...query })),
   // The Home "healthy dishes" row (same card shape as the 5,000-or-less dishes).
   healthyDishes: (page = 1) => get<Paginated<BudgetDish>>('/discover/healthy-dishes' + toQueryString({ page })),
   events: (query: EventsQuery = {}) => get<Paginated<EventItem>>('/discover/events' + toQueryString(query)),

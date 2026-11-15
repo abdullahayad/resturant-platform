@@ -4,6 +4,7 @@ import { Prisma } from '../../generated/prisma/client';
 import { pageOffset, PAGE_SIZE, type Paginated } from '../common/pagination';
 import { addDays, baghdadClock, weekdayOf } from '../common/baghdadTime';
 import { computeDiscountedPrice, isPromotionLiveNow, type PromotionForPricing } from '../promotions/promotion-pricing';
+import type { OfferSort } from './dto/discover-lists.dto';
 
 export const DEFAULT_BUDGET_PRICE = 5000;
 
@@ -44,6 +45,49 @@ function toMini({ galleryPhotos, healthyStatus, ...r }: RestaurantMiniRow): Rest
   return { ...r, coverPhotoUrl: galleryPhotos[0]?.url ?? null, isHealthy: healthyStatus === 'APPROVED' };
 }
 
+interface Point {
+  lat: number;
+  lng: number;
+}
+
+// Straight-line distance in km (haversine) - plenty for sorting nearby offers.
+export function distanceKm(a: Point, b: Point): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+interface SortableOffer {
+  liveNow: boolean;
+  isRecurring: boolean;
+  validUntil: Date | null;
+  discountType: string;
+  discountValue: number;
+  distanceKm: number | null;
+}
+
+// Running-now offers always come first; the chosen sort orders within.
+// Ending soon: dated offers by end date, weekly ones last. Biggest: percent
+// offers by size, then fixed-amount ones by amount.
+export function offerOrder(sort: OfferSort | undefined, hasLocation: boolean) {
+  return (a: SortableOffer, b: SortableOffer): number => {
+    const live = Number(b.liveNow) - Number(a.liveNow);
+    if (live) return live;
+    if (sort === 'ending') {
+      const end = (o: SortableOffer) => (o.isRecurring || !o.validUntil ? Infinity : o.validUntil.getTime());
+      return end(a) - end(b);
+    }
+    if (sort === 'biggest') {
+      const pct = (o: SortableOffer) => Number(o.discountType === 'PERCENTAGE');
+      return pct(b) - pct(a) || b.discountValue - a.discountValue;
+    }
+    if (sort === 'nearest' && hasLocation) return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
+    return 0;
+  };
+}
+
 const visibleDish = { isActive: true, moderationStatus: { not: 'HIDDEN' } } satisfies Prisma.DishWhereInput;
 
 const pricingSelect = {
@@ -75,7 +119,12 @@ export class DiscoverListsService {
   // Every offer a customer can still use: running now, coming up later
   // this week (recurring days), or a dated one that hasn't ended. The ones
   // running right now come first.
-  async offers(pageParam: number | undefined, now = new Date()) {
+  async offers(
+    pageParam: number | undefined,
+    now = new Date(),
+    opts: { sort?: OfferSort; lat?: number; lng?: number } = {},
+  ) {
+    const from = opts.lat != null && opts.lng != null ? { lat: opts.lat, lng: opts.lng } : null;
     const rows = await this.prisma.db.promotion.findMany({
       where: {
         isActive: true,
@@ -103,7 +152,7 @@ export class DiscoverListsService {
           where: { dish: visibleDish },
           select: { dish: { select: { id: true, nameEn: true, nameAr: true, price: true, photoUrl: true } } },
         },
-        restaurant: { select: restaurantMiniSelect },
+        restaurant: { select: { ...restaurantMiniSelect, latitude: true, longitude: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -112,22 +161,36 @@ export class DiscoverListsService {
       // A dish-specific offer whose dishes have all been hidden or switched
       // off has nothing left to offer.
       .filter((p) => p.scope === 'WHOLE_MENU' || p.dishes.length > 0)
-      .map(({ restaurant, dishes, discountValue, ...p }) => ({
+      .map(({ restaurant: { latitude, longitude, ...restaurant }, dishes, discountValue, ...p }) => ({
         ...p,
         discountValue: Number(discountValue),
         liveNow: isPromotionLiveNow(p, now),
         dishes: dishes.map(({ dish }) => ({ ...dish, price: Number(dish.price) })),
         restaurant: toMini(restaurant),
+        distanceKm:
+          from && latitude != null && longitude != null
+            ? Math.round(distanceKm(from, { lat: Number(latitude), lng: Number(longitude) }) * 10) / 10
+            : null,
       }))
-      .sort((a, b) => Number(b.liveNow) - Number(a.liveNow));
+      .sort(offerOrder(opts.sort, from != null));
 
     return pageOf(items, pageParam);
   }
 
   // "بـ5 آلاف وأقل": dishes listed at or under the price, cheapest first,
   // with today's discount applied when one is running.
-  async budgetDishes(maxPrice = DEFAULT_BUDGET_PRICE, pageParam: number | undefined, now = new Date()) {
-    return this.dishList({ price: { lte: maxPrice } }, [{ price: 'asc' }, { id: 'asc' }], pageParam, now);
+  async budgetDishes(
+    maxPrice = DEFAULT_BUDGET_PRICE,
+    pageParam: number | undefined,
+    now = new Date(),
+    opts: { minPrice?: number; cuisineId?: string; healthyOnly?: boolean } = {},
+  ) {
+    const filter: Prisma.DishWhereInput = {
+      price: { lte: maxPrice, ...(opts.minPrice != null ? { gte: opts.minPrice } : {}) },
+      ...(opts.healthyOnly ? { isHealthy: true } : {}),
+      ...(opts.cuisineId ? { restaurant: { ...LIVE_RESTAURANT, foodCategories: { some: { foodCategoryId: opts.cuisineId } } } } : {}),
+    };
+    return this.dishList(filter, [{ price: 'asc' }, { id: 'asc' }], pageParam, now);
   }
 
   // The Home "healthy dishes" row: dishes restaurants marked healthy,
@@ -144,7 +207,7 @@ export class DiscoverListsService {
     pageParam: number | undefined,
     now: Date,
   ) {
-    const where = { ...visibleDish, ...filter, restaurant: LIVE_RESTAURANT } satisfies Prisma.DishWhereInput;
+    const where = { ...visibleDish, restaurant: LIVE_RESTAURANT, ...filter } satisfies Prisma.DishWhereInput;
     const { page, skip, take } = pageOffset(pageParam);
     const [rows, total] = await Promise.all([
       this.prisma.db.dish.findMany({
@@ -156,6 +219,7 @@ export class DiscoverListsService {
           price: true,
           photoUrl: true,
           isHealthy: true,
+          isMostOrdered: true,
           menuCategory: { select: { id: true, nameEn: true, nameAr: true } },
           restaurant: { select: restaurantMiniSelect },
         },
