@@ -78,6 +78,22 @@ export class CriticsService {
     return rows.map((r) => r.criticId);
   }
 
+  // Profile's "Critics I follow": newest follow first. Critics who have
+  // since gone private, been hidden or blocked, or dropped below the critic
+  // bar are left out (the follow itself is kept, so they come back if that
+  // changes).
+  async followed(customerId: string) {
+    const follows = await this.prisma.db.criticFollow.findMany({
+      where: { followerId: customerId },
+      orderBy: { createdAt: 'desc' },
+      select: { critic: { select: criticSelect } },
+    });
+    const visible = follows
+      .map((f) => f.critic)
+      .filter((c) => isCritic(c, c._count.visits));
+    return this.shape(visible);
+  }
+
   async follow(customerId: string, criticId: string) {
     if (customerId === criticId) throw new BadRequestException("You can't follow yourself");
     const row = await this.prisma.db.customer.findUnique({ where: { id: criticId }, select: criticSelect });

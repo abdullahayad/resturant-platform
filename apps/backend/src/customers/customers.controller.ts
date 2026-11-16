@@ -148,6 +148,11 @@ export class CustomerMeController {
     return this.activity.cancelBooking(req.customer.id, id);
   }
 
+  @Get('critics')
+  followedCriticsList(@Req() req: CustomerRequest) {
+    return this.critics.followed(req.customer.id);
+  }
+
   @Get('critics/ids')
   followedCritics(@Req() req: CustomerRequest) {
     return this.critics.followedIds(req.customer.id);

@@ -242,7 +242,8 @@
     "notifyFollowing": "أخبار اللي أتابعهم",
     "notifyFollowingText": "عروض وفعاليات المطاعم اللي تتابعها، وتقييمات النقاد اللي تتابعهم.",
     "notifyCampaigns": "عروض ليكيته",
-    "notifyCampaignsText": "حملات ومواسم مميزة - مرتين بالأسبوع كحد أقصى."
+    "notifyCampaignsText": "حملات ومواسم مميزة - مرتين بالأسبوع كحد أقصى.",
+    "criticsFollowing": "نقّاد أتابعهم ({{n}})"
   },
   "healthy": {
     "tag": "🌿 صحي"

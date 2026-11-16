@@ -168,3 +168,33 @@ describe('ReportsService', () => {
     expect(prisma.db.customer.update).not.toHaveBeenCalled();
   });
 });
+
+describe('CriticsService.followed', () => {
+  it('lists followed critics, leaving out ones that are no longer critics', async () => {
+    const critic = (id: string, extra: object = {}) => ({
+      id, name: id, isPublic: true, criticHidden: false, isStar: false, blockedAt: null, specialtyIds: [],
+      createdAt: new Date('2026-10-01'), _count: { visits: 30, reviews: 4, criticFollowers: 2 }, ...extra,
+    });
+    const prisma = {
+      db: {
+        criticFollow: {
+          findMany: jest.fn().mockResolvedValue([
+            { critic: critic('keep') },
+            { critic: critic('hidden', { criticHidden: true }) },
+            { critic: critic('private', { isPublic: false }) },
+          ]),
+        },
+        review: { findMany: jest.fn().mockResolvedValue([]) },
+        foodCategory: { findMany: jest.fn().mockResolvedValue([]) },
+      },
+    };
+    const module = await Test.createTestingModule({
+      providers: [CriticsService, { provide: PrismaService, useValue: prisma }],
+    }).compile();
+
+    const list = await module.get(CriticsService).followed('me');
+
+    expect(list.map((c) => c.id)).toEqual(['keep']);
+    expect(prisma.db.criticFollow.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { followerId: 'me' } }));
+  });
+});

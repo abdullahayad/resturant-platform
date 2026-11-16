@@ -565,6 +565,8 @@ export const api = {
   critics: (specialtyId?: string) => get<Critic[]>('/critics' + toQueryString({ specialtyId })),
   critic: (id: string) => get<CriticProfile>(`/critics/${encodeURIComponent(id)}`),
   followedCritics: () => get<string[]>('/customers/me/critics/ids'),
+  // Profile's "Critics I follow".
+  followedCriticsList: () => get<Critic[]>('/customers/me/critics'),
   followCritic: (id: string) => request<{ following: boolean }>('POST', `/customers/me/critics/${encodeURIComponent(id)}`),
   unfollowCritic: (id: string) =>
     request<{ following: boolean }>('DELETE', `/customers/me/critics/${encodeURIComponent(id)}`),

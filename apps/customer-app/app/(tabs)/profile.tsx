@@ -52,6 +52,7 @@ export default function ProfileScreen() {
   const [nameDraft, setNameDraft] = useState('');
   const [visits, setVisits] = useState<MyVisit[]>([]);
   const [followed, setFollowed] = useState<Awaited<ReturnType<typeof api.followedRestaurants>>>([]);
+  const [critics, setCritics] = useState<Awaited<ReturnType<typeof api.followedCriticsList>>>([]);
   const [cuisines, setCuisines] = useState<NamedRef[]>([]);
   const ar = i18n.language === 'ar';
   const Chevron = I18nManager.isRTL ? ChevronLeft : ChevronRight;
@@ -73,6 +74,12 @@ export default function ProfileScreen() {
         .followedRestaurants()
         .then((f) => {
           if (!cancelled) setFollowed(f);
+        })
+        .catch(() => {});
+      api
+        .followedCriticsList()
+        .then((c) => {
+          if (!cancelled) setCritics(c);
         })
         .catch(() => {});
       api
@@ -352,6 +359,40 @@ export default function ProfileScreen() {
           </>
         )}
 
+        {critics.length > 0 && (
+          <>
+            <AppText weight="bold" style={styles.sectionTitle}>
+              {t('profile.criticsFollowing', { n: critics.length })}
+            </AppText>
+            <View style={styles.card}>
+              {critics.map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={styles.visitRow}
+                  onPress={() => router.push({ pathname: '/critic/[id]', params: { id: c.id } })}
+                  accessibilityRole="link"
+                >
+                  <View style={[styles.visitLogo, styles.criticAvatar]}>
+                    <AppText weight="bold" style={styles.criticInitial}>
+                      {c.name.trim().charAt(0).toUpperCase()}
+                    </AppText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <AppText weight="semibold">
+                      {c.name}
+                      {c.isStar ? ' ⭐' : ''}
+                    </AppText>
+                    <AppText style={styles.settingText} numberOfLines={1}>
+                      {[t('critics.reviewsCount', { n: c.reviewCount }), ...c.specialties.slice(0, 2).map((s) => (ar ? s.nameAr : s.nameEn))].join(' · ')}
+                    </AppText>
+                  </View>
+                  <Chevron size={18} color={colors.mutedIcon} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
         {visits.length > 0 && (
           <>
             <AppText weight="bold" style={styles.sectionTitle}>
@@ -474,6 +515,8 @@ function LanguageSwitch() {
 }
 
 const styles = StyleSheet.create({
+  criticAvatar: { backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
+  criticInitial: { color: colors.white, fontSize: 18 },
   languageCard: { padding: 14, gap: 10 },
   criticCard: { padding: 14, gap: 8 },
   link: { fontSize: 13.5, color: colors.blue },

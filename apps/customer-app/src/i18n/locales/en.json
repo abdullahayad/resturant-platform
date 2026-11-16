@@ -242,7 +242,8 @@
     "notifyFollowing": "News from who I follow",
     "notifyFollowingText": "Offers and events from restaurants you follow, and new reviews from critics you follow.",
     "notifyCampaigns": "LiGETA offers",
-    "notifyCampaignsText": "Seasonal campaigns and specials - at most twice a week."
+    "notifyCampaignsText": "Seasonal campaigns and specials - at most twice a week.",
+    "criticsFollowing": "Critics I follow ({{n}})"
   },
   "healthy": {
     "tag": "🌿 Healthy"
