@@ -10,6 +10,7 @@ import {
   type RestaurantListItem,
 } from '@/lib/api'
 import { Switch } from '@/components/Switch'
+import { RamadanSettingsCard } from '@/components/RamadanSettingsCard'
 import { cn } from '@/lib/utils'
 
 const inputClass = 'rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary'
@@ -169,6 +170,8 @@ export function HomeLayoutPage() {
           themselves from live restaurants — set each cuisine's emoji under Master Data → Food Categories.
         </p>
       </div>
+
+      <RamadanSettingsCard moods={moods} />
 
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
         <div className="text-sm font-semibold text-primary">{editingId ? 'Edit banner' : 'New banner'}</div>

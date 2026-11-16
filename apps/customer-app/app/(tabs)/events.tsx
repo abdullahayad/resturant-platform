@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -23,6 +23,15 @@ export default function EventsScreen() {
   const [date, setDate] = useState<string | undefined>(undefined);
   const [typeId, setTypeId] = useState<string | undefined>(undefined);
   const [types, setTypes] = useState<EventType[]>([]);
+  // Opened with a type already picked (e.g. Ramadan's iftar button). Today
+  // only, since that's what an iftar shortcut means.
+  const { typeId: typeParam } = useLocalSearchParams<{ typeId?: string }>();
+  useEffect(() => {
+    if (!typeParam) return;
+    setTypeId(typeParam);
+    setDate(baghdadNow().date);
+    router.setParams({ typeId: '' });
+  }, [typeParam]);
   const [booking, setBooking] = useState<EventItem | null>(null);
 
   const strip = useMemo(() => {

@@ -391,5 +391,30 @@
     "emptyText": "اضغط علامة الحفظ على أي مطعم حتى ترجعله بسرعة. ولأخباره اضغط متابعة.",
     "explore": "استكشف المطاعم",
     "opensAt": "يفتح الساعة {{time}}"
+  },
+  "ramadan": {
+    "kareem": "رمضان كريم",
+    "day": "رمضان · اليوم {{day}} من {{total}}",
+    "startsIn_one": "رمضان يبدأ باچر",
+    "startsIn_other": "رمضان بعد {{count}} يوم",
+    "hm": "{{h}} س {{m}} د",
+    "iftarIn": "الإفطار بعد {{time}}",
+    "suhoorEndsIn": "الإمساك بعد {{time}}",
+    "iftarNow": "وقت الإفطار، الإمساك الساعة {{time}}",
+    "suhoorEnds": "الإمساك (الفجر)",
+    "iftar": "الإفطار (المغرب)",
+    "chooseMethod": "شنو التوقيت اللي تتبعه؟",
+    "methods": {
+      "sunni": "أهل السنة",
+      "shia": "الجعفري"
+    },
+    "note": "{{place}} · {{method}} · قد يختلف دقيقة عن جامعك",
+    "switchTo": "استخدم {{method}}",
+    "iftarPlaces": "إفطار اليوم",
+    "suhoorPlaces": "مفتوح للسحور",
+    "startsIn_zero": "رمضان يبدأ اليوم",
+    "startsIn_two": "رمضان بعد يومين",
+    "startsIn_few": "رمضان بعد {{count}} أيام",
+    "startsIn_many": "رمضان بعد {{count}} يوماً"
   }
 }

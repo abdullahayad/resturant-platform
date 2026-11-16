@@ -41,6 +41,7 @@ import { DiscoverModule } from './discover/discover.module';
 import { CustomersModule } from './customers/customers.module';
 import { HealthyModule } from './healthy/healthy.module';
 import { HomeBannersModule } from './home-banners/home-banners.module';
+import { RamadanModule } from './ramadan/ramadan.module';
 import { AdminActivityModule } from './admin-activity/admin-activity.module';
 
 @Module({
@@ -81,6 +82,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     CustomersModule,
     HealthyModule,
     HomeBannersModule,
+    RamadanModule,
     AdminActivityModule,
   ],
   controllers: [AppController, LegalController, SiteController, SupportSessionPageController, ReviewPageController],

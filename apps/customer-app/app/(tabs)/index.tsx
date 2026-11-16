@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
+import { RamadanCard } from '../../src/components/RamadanCard';
 import { AreaSheet } from '../../src/components/AreaSheet';
 import {
   api,
@@ -226,6 +227,8 @@ export default function HomeScreen() {
             <AppText style={styles.searchHint}>{t('home.searchHint')}</AppText>
           </Pressable>
         </View>
+
+        <RamadanCard />
 
         {banners.length > 0 && (
           <ScrollView

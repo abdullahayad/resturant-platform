@@ -331,6 +331,19 @@ export interface BudgetDish {
   restaurant: RestaurantMini;
 }
 
+// The Ramadan card on Home (admin-controlled).
+export type RamadanStatus =
+  | { phase: 'off' }
+  | ({ phase: 'countdown'; daysUntil: number } & RamadanCommon)
+  | ({ phase: 'ramadan'; day: number; totalDays: number } & RamadanCommon);
+
+interface RamadanCommon {
+  startDate: string;
+  endDate: string;
+  iftarEventType: (NamedRef & { icon: string | null }) | null;
+  suhoorMood: (NamedRef & { emoji: string }) | null;
+}
+
 export interface EventType extends NamedRef {
   icon: string | null;
 }
@@ -512,6 +525,7 @@ export const api = {
   restaurants: (query: DiscoverQuery = {}) =>
     get<Paginated<RestaurantCard>>('/discover/restaurants' + toQueryString(query)),
   featured: () => get<RestaurantCard[]>('/discover/featured'),
+  ramadan: () => get<RamadanStatus>('/home/ramadan'),
   restaurantPage: (id: string) => get<RestaurantPage>(`/restaurants/${encodeURIComponent(id)}/public-page`),
   offers: (page = 1, query: OffersQuery = {}) => get<Paginated<Offer>>('/discover/offers' + toQueryString({ page, ...query })),
   budgetDishes: (page = 1, query: BudgetQuery = {}) =>

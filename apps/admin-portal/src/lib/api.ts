@@ -566,6 +566,14 @@ export interface AdminEventReservationItem {
   createdAt: string
 }
 
+export interface RamadanSettings {
+  enabled: boolean
+  startDate: string
+  endDate: string
+  iftarEventTypeId: string | null
+  suhoorMoodId: string | null
+}
+
 export type MasterDataKind = 'business-types' | 'food-categories' | 'menu-categories' | 'facilities' | 'event-types'
 
 export interface MasterDataItemFull {
@@ -790,7 +798,7 @@ async function get<T>(path: string): Promise<T> {
   return handle<T>(res)
 }
 
-async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
+async function send<T>(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     credentials: 'include',
@@ -967,6 +975,8 @@ export const api = {
     send<{ id: string; recipientCount: number }>('POST', '/admin/campaigns', payload),
 
   homeBanners: () => get<HomeBanner[]>('/home/banners/admin'),
+  ramadanSettings: () => get<RamadanSettings>('/home/ramadan/admin'),
+  updateRamadanSettings: (payload: RamadanSettings) => send<RamadanSettings>('PUT', '/home/ramadan/admin', payload),
   createHomeBanner: (payload: HomeBannerPayload) => send<HomeBanner>('POST', '/home/banners/admin', payload),
   updateHomeBanner: (id: string, payload: HomeBannerPayload) =>
     send<HomeBanner>('PATCH', `/home/banners/admin/${id}`, payload),

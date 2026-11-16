@@ -391,5 +391,26 @@
     "emptyText": "Tap the bookmark on any restaurant to come back to it quickly. For its news, tap Follow.",
     "explore": "Explore restaurants",
     "opensAt": "Opens at {{time}}"
+  },
+  "ramadan": {
+    "kareem": "Ramadan Kareem",
+    "day": "Ramadan · day {{day}} of {{total}}",
+    "startsIn_one": "Ramadan starts tomorrow",
+    "startsIn_other": "Ramadan starts in {{count}} days",
+    "hm": "{{h}}h {{m}}m",
+    "iftarIn": "Iftar in {{time}}",
+    "suhoorEndsIn": "Suhoor ends in {{time}}",
+    "iftarNow": "Iftar time - suhoor ends at {{time}}",
+    "suhoorEnds": "Suhoor ends (Fajr)",
+    "iftar": "Iftar (Maghrib)",
+    "chooseMethod": "Which timing do you follow?",
+    "methods": {
+      "sunni": "Sunni",
+      "shia": "Shia (Jafari)"
+    },
+    "note": "{{place}} · {{method}} · may differ by a minute from your mosque",
+    "switchTo": "Use {{method}}",
+    "iftarPlaces": "Iftar today",
+    "suhoorPlaces": "Open for suhoor"
   }
 }

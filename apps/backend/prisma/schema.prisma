@@ -1661,3 +1661,12 @@ model CustomerNotification {
   @@index([customerId, createdAt])
   @@map("customer_notifications")
 }
+
+// Small admin-editable settings, one JSON value per key (e.g. "ramadan").
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
