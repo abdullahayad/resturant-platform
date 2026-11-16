@@ -331,6 +331,22 @@ export interface BudgetDish {
   restaurant: RestaurantMini;
 }
 
+// A restaurant's stamp card, and one customer's stamps there.
+export interface StampCardOffer {
+  visitsRequired: number;
+  rewardEn: string;
+  rewardAr: string;
+}
+
+export interface StampProgress extends StampCardOffer {
+  stamps: number;
+  ready: boolean;
+}
+
+export interface MyStampCard extends StampProgress {
+  restaurant: { id: string; nameEn: string; nameAr: string; logoUrl: string | null };
+}
+
 // The Ramadan card on Home (admin-controlled).
 export type RamadanStatus =
   | { phase: 'off' }
@@ -526,6 +542,8 @@ export const api = {
     get<Paginated<RestaurantCard>>('/discover/restaurants' + toQueryString(query)),
   featured: () => get<RestaurantCard[]>('/discover/featured'),
   ramadan: () => get<RamadanStatus>('/home/ramadan'),
+  stampCard: (restaurantId: string) => get<StampCardOffer | null>(`/stamp-cards/${encodeURIComponent(restaurantId)}`),
+  myStampCards: () => get<MyStampCard[]>('/customers/me/stamp-cards'),
   restaurantPage: (id: string) => get<RestaurantPage>(`/restaurants/${encodeURIComponent(id)}/public-page`),
   offers: (page = 1, query: OffersQuery = {}) => get<Paginated<Offer>>('/discover/offers' + toQueryString({ page, ...query })),
   budgetDishes: (page = 1, query: BudgetQuery = {}) =>

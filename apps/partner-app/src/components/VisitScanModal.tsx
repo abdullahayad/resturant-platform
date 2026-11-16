@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import { CheckCircle2, ScanLine, X, XCircle } from 'lucide-react-native';
+import { CheckCircle2, Gift, ScanLine, X, XCircle } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useAuth } from '../lib/AuthContext';
@@ -18,7 +18,7 @@ const webBackdropStyle: ViewStyle = { position: 'fixed' as ViewStyle['position']
 type ScanState =
   | { kind: 'scanning' }
   | { kind: 'checking' }
-  | { kind: 'done'; result: VisitScanResult }
+  | { kind: 'done'; result: VisitScanResult; rewarded?: boolean }
   | { kind: 'failed' };
 
 // Staff scan the "My visit code" QR a customer shows in the customer app,
@@ -26,7 +26,8 @@ type ScanState =
 // the restaurant's own review QR - and only offered when the off-by-default
 // "visitScan" feature flag is on.
 export function VisitScanModal({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation('visitScan');
+  const { t, i18n } = useTranslation('visitScan');
+  const ar = i18n.language === 'ar';
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { token } = useAuth();
@@ -35,6 +36,23 @@ export function VisitScanModal({ onClose }: { onClose: () => void }) {
   // The camera fires several reads per second for the same code - only the
   // first one in each scan is sent.
   const busy = useRef(false);
+  const [rewarding, setRewarding] = useState(false);
+  const [rewardError, setRewardError] = useState(false);
+
+  // Hand over the stamp-card reward: the card starts again from zero.
+  const giveReward = async () => {
+    if (state.kind !== 'done' || !token) return;
+    setRewarding(true);
+    setRewardError(false);
+    try {
+      const stampCard = await api.redeemStampReward(token, state.result.customerId);
+      setState({ kind: 'done', result: { ...state.result, stampCard }, rewarded: true });
+    } catch {
+      setRewardError(true);
+    } finally {
+      setRewarding(false);
+    }
+  };
 
   const onScanned = async ({ data }: BarcodeScanningResult) => {
     if (busy.current || !token) return;
@@ -49,6 +67,7 @@ export function VisitScanModal({ onClose }: { onClose: () => void }) {
 
   const scanNext = () => {
     busy.current = false;
+    setRewardError(false);
     setState({ kind: 'scanning' });
   };
 
@@ -111,6 +130,41 @@ export function VisitScanModal({ onClose }: { onClose: () => void }) {
                     {t('levelAndVisits', { level: state.result.level, visits: state.result.visitCount })}
                   </Text>
                   {state.result.alreadyToday && <Text style={styles.resultMeta}>{t('alreadyToday')}</Text>}
+                  {state.result.stampCard && (
+                    <View style={styles.stampBox}>
+                      <View style={styles.stampRow}>
+                        {Array.from({ length: state.result.stampCard.visitsRequired }, (_, i) => (
+                          <View
+                            key={i}
+                            style={[styles.stamp, i < state.result.stampCard!.stamps && styles.stampFilled]}
+                          />
+                        ))}
+                      </View>
+                      {state.rewarded ? (
+                        <Text style={styles.stampDone}>{t('rewardGiven')}</Text>
+                      ) : state.result.stampCard.ready ? (
+                        <>
+                          <Text style={styles.stampReady}>
+                            {t('rewardReady', {
+                              reward: ar ? state.result.stampCard.rewardAr : state.result.stampCard.rewardEn,
+                            })}
+                          </Text>
+                          <Pressable onPress={giveReward} disabled={rewarding} style={[styles.rewardButton, rewarding && styles.disabled]}>
+                            <Gift size={18} color={colors.primaryForeground} />
+                            <Text style={styles.primaryButtonText}>{t('giveReward')}</Text>
+                          </Pressable>
+                          {rewardError && <Text style={styles.rewardError}>{t('rewardFailed')}</Text>}
+                        </>
+                      ) : (
+                        <Text style={styles.resultMeta}>
+                          {t('stampsLeft', {
+                            count: state.result.stampCard.visitsRequired - state.result.stampCard.stamps,
+                            reward: ar ? state.result.stampCard.rewardAr : state.result.stampCard.rewardEn,
+                          })}
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </>
               ) : (
                 <>
@@ -226,5 +280,22 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
+  stampBox: { alignSelf: 'stretch', marginTop: 6, padding: 12, borderRadius: radii.md, backgroundColor: colors.secondary, gap: 8, alignItems: 'center' },
+  stampRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
+  stamp: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.primary },
+  stampFilled: { backgroundColor: colors.primary },
+  stampReady: { fontSize: 15, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  stampDone: { fontSize: 15, fontWeight: '700', color: colors.success, textAlign: 'center' },
+  rewardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.success,
+    borderRadius: radii.md,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  rewardError: { fontSize: 13, color: colors.destructive, textAlign: 'center' },
+  disabled: { opacity: 0.6 },
   primaryButtonText: { color: colors.primaryForeground, fontSize: 15, fontWeight: '700' },
 });

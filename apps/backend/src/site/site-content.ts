@@ -11,8 +11,8 @@ export interface Section {
 }
 
 export const APP_LEGAL_UPDATED: Record<Lang, string> = {
-  en: 'November 14, 2026',
-  ar: '١٤ تشرين الثاني ٢٠٢٦',
+  en: 'November 16, 2026',
+  ar: '١٦ تشرين الثاني ٢٠٢٦',
 };
 
 export const APP_PRIVACY: Record<Lang, Section[]> = {
@@ -29,7 +29,7 @@ export const APP_PRIVACY: Record<Lang, Section[]> = {
         'Without an account: you can browse restaurants, offers and events without signing in. We do not ask for your name or phone number for browsing.',
         'Your account: your mobile number (used to sign in with a one-time code sent on WhatsApp), and the name you choose to show on reviews. Sign-in codes are stored only in scrambled (hashed) form and expire after a few minutes.',
         'What you post: reviews, star ratings, review photos you choose from your gallery, "helpful" votes, reports about reviews, and messages you send to our support team.',
-        'Your activity: restaurants and critics you follow, visits recorded when a restaurant scans your visit code, event bookings (the name, phone number, party size and notes you enter), and the in-app notifications sent to you.',
+        'Your activity: restaurants and critics you follow, visits recorded when a restaurant scans your visit code, stamp-card rewards a restaurant hands you, event bookings (the name, phone number, party size and notes you enter), and the in-app notifications sent to you.',
         'Location: only when you tap "near me", to sort restaurants by distance. It is used on the spot and is not stored with your account. We never use location in the background.',
         'Device information: a push notification token if you allow notifications, your chosen language, and crash and error reports (device model, operating system and app version) so we can fix problems.',
         'We do not collect payment details - nothing is paid inside the app.',
@@ -65,7 +65,7 @@ export const APP_PRIVACY: Record<Lang, Section[]> = {
       heading: '7. Deleting your account',
       body: [
         'In the app: Profile → Delete account. Without the app: visit ligeta.app/delete-account, confirm your number with a WhatsApp code, and delete.',
-        'Deleting removes your account, name, phone number, follows, visits, notifications, support messages, helpful votes and sign-in codes immediately. Reviews you posted stay on the restaurant page so ratings remain fair, but they are no longer linked to your account. Bookings you made remain in the restaurant\'s own booking records.',
+        'Deleting removes your account, name, phone number, follows, visits, stamp cards, notifications, support messages, helpful votes and sign-in codes immediately. Reviews you posted stay on the restaurant page so ratings remain fair, but they are no longer linked to your account. Bookings you made remain in the restaurant\'s own booking records.',
       ],
     },
     {
@@ -108,7 +108,7 @@ export const APP_PRIVACY: Record<Lang, Section[]> = {
         'بدون حساب: يمكنك تصفّح المطاعم والعروض والفعاليات دون تسجيل الدخول، ولا نطلب اسمك أو رقمك للتصفّح.',
         'حسابك: رقم هاتفك (لتسجيل الدخول برمز لمرة واحدة يصلك على واتساب)، والاسم الذي تختار إظهاره على تقييماتك. رموز الدخول تُحفظ بشكل مشفّر فقط وتنتهي صلاحيتها خلال دقائق.',
         'ما تنشره: التقييمات والنجوم وصور التقييم التي تختارها من معرضك، وأصوات "مفيد"، والبلاغات عن التقييمات، ورسائلك إلى فريق الدعم.',
-        'نشاطك: المطاعم والنقّاد الذين تتابعهم، والزيارات التي تُسجَّل عندما يمسح المطعم رمز زيارتك، وحجوزات الفعاليات (الاسم والرقم وعدد الأشخاص والملاحظات التي تكتبها)، والإشعارات المرسلة إليك داخل التطبيق.',
+        'نشاطك: المطاعم والنقّاد الذين تتابعهم، والزيارات التي تُسجَّل عندما يمسح المطعم رمز زيارتك، ومكافآت بطاقة الختم التي يسلّمها لك المطعم، وحجوزات الفعاليات (الاسم والرقم وعدد الأشخاص والملاحظات التي تكتبها)، والإشعارات المرسلة إليك داخل التطبيق.',
         'الموقع: فقط عندما تضغط "قريب مني" لترتيب المطاعم حسب المسافة. يُستخدم في وقته ولا يُحفظ مع حسابك، ولا نستخدم موقعك في الخلفية أبداً.',
         'معلومات الجهاز: رمز الإشعارات إذا سمحت بها، ولغتك المختارة، وتقارير الأعطال (نوع الجهاز ونظام التشغيل وإصدار التطبيق) لنصلح المشاكل.',
         'لا نجمع أي معلومات دفع، فلا يوجد دفع داخل التطبيق.',
@@ -142,7 +142,7 @@ export const APP_PRIVACY: Record<Lang, Section[]> = {
       heading: '٧. حذف حسابك',
       body: [
         'من التطبيق: الملف الشخصي ← حذف الحساب. بدون التطبيق: ادخل إلى ligeta.app/delete-account، وأكّد رقمك برمز واتساب، ثم احذف.',
-        'الحذف يزيل فوراً حسابك واسمك ورقمك ومتابعاتك وزياراتك وإشعاراتك ورسائل الدعم وأصوات "مفيد" ورموز الدخول. تبقى التقييمات التي نشرتها في صفحة المطعم حفاظاً على عدالة التقييم، لكنها لا تعود مرتبطة بحسابك. وتبقى حجوزاتك ضمن سجلات الحجز الخاصة بالمطعم.',
+        'الحذف يزيل فوراً حسابك واسمك ورقمك ومتابعاتك وزياراتك وبطاقات الختم وإشعاراتك ورسائل الدعم وأصوات "مفيد" ورموز الدخول. تبقى التقييمات التي نشرتها في صفحة المطعم حفاظاً على عدالة التقييم، لكنها لا تعود مرتبطة بحسابك. وتبقى حجوزاتك ضمن سجلات الحجز الخاصة بالمطعم.',
       ],
     },
     {

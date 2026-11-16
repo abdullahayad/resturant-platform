@@ -4,6 +4,7 @@ import { Prisma } from '../../generated/prisma/client';
 import { baghdadClock } from '../common/baghdadTime';
 import { pageOffset } from '../common/pagination';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { StampCardsService } from './stamp-cards.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 import { CRITIC_MIN_VISITS, isCritic, levelFor } from './customer-levels';
 import { makeVisitCode, readVisitCode } from './customer-secrets';
@@ -19,6 +20,7 @@ export class CustomersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly flags: FeatureFlagsService,
+    private readonly stampCards: StampCardsService,
   ) {}
 
   async profile(customerId: string) {
@@ -177,12 +179,19 @@ export class CustomersService {
       alreadyToday = true;
     }
 
-    const visitCount = await this.prisma.db.customerVisit.count({ where: { customerId } });
+    const [visitCount, stampCard] = await Promise.all([
+      this.prisma.db.customerVisit.count({ where: { customerId } }),
+      this.stampCards.progress(customerId, restaurantId),
+    ]);
     return {
+      customerId,
       customerName: customerLabel(customer),
       level: levelFor(visitCount).level,
       visitCount,
       alreadyToday,
+      // This restaurant's stamp card, when it runs one: staff see the
+      // stamps and a "Give reward" button once it's earned.
+      stampCard,
     };
   }
 }

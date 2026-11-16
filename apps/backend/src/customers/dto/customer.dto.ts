@@ -4,11 +4,14 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 import { REPORT_REASONS, type ReportReasonValue } from '../reports.service';
@@ -105,4 +108,28 @@ export class ScanVisitDto {
   @IsString()
   @MaxLength(200)
   code: string;
+}
+
+// Partner app > Customers > Stamp card.
+export class StampCardDto {
+  @IsBoolean()
+  isActive: boolean;
+
+  @IsInt()
+  @Min(2)
+  @Max(20)
+  visitsRequired: number;
+
+  @IsString()
+  @MaxLength(80)
+  rewardEn: string;
+
+  @IsString()
+  @MaxLength(80)
+  rewardAr: string;
+}
+
+export class RedeemStampRewardDto {
+  @IsUUID()
+  customerId: string;
 }

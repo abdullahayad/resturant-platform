@@ -37,8 +37,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppText } from '../../src/components/AppText';
 import { EventBookingSheet } from '../../src/components/EventBookingSheet';
 import { EventCard } from '../../src/components/EventCard';
+import { StampCardBox } from '../../src/components/StampCardBox';
 import { ReportSheet } from '../../src/components/ReportSheet';
-import { api, type EventItem, type MenuDish, type Named, type RestaurantPage } from '../../src/lib/api';
+import { api, type EventItem, type MenuDish, type Named, type RestaurantPage, type StampCardOffer, type StampProgress } from '../../src/lib/api';
 import { baghdadNow, formatIqd, isOpenNow, toWhatsAppNumber } from '../../src/lib/format';
 import { useAuth } from '../../src/lib/auth';
 import { useSaved } from '../../src/lib/saved';
@@ -76,6 +77,32 @@ export default function RestaurantScreen() {
   const [helpfulMine, setHelpfulMine] = useState<Set<string>>(new Set());
   const [helpfulCounts, setHelpfulCounts] = useState<Record<string, number>>({});
   const [reporting, setReporting] = useState<string | null>(null);
+  const [stampOffer, setStampOffer] = useState<StampCardOffer | null>(null);
+  // undefined = signed out (the card then invites to sign in).
+  const [stampProgress, setStampProgress] = useState<StampProgress | null | undefined>(undefined);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      api
+        .stampCard(id)
+        .then((o) => {
+          if (!cancelled) setStampOffer(o);
+        })
+        .catch(() => {});
+      if (status === 'signedIn') {
+        api
+          .myStampCards()
+          .then((cards) => {
+            if (!cancelled) setStampProgress(cards.find((c) => c.restaurant.id === id) ?? null);
+          })
+          .catch(() => {});
+      } else setStampProgress(undefined);
+      return () => {
+        cancelled = true;
+      };
+    }, [id, status]),
+  );
 
   useEffect(() => {
     if (status !== 'signedIn') return;
@@ -338,6 +365,12 @@ export default function RestaurantScreen() {
               {following ? t('restaurant.following') : t('restaurant.follow')}
             </AppText>
           </Pressable>
+
+          {stampOffer && (
+            <View style={styles.block}>
+              <StampCardBox offer={stampOffer} progress={stampProgress} />
+            </View>
+          )}
 
           {events.length > 0 && (
             <View style={styles.block}>

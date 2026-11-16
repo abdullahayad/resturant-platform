@@ -12,5 +12,15 @@
   "scanNext": "امسح التالي",
   "permissionNeeded": "نحتاج الكاميرا حتى نمسح أكواد زيارات الزبائن.",
   "allowCamera": "السماح بالكاميرا",
-  "phoneOnly": "المسح يشتغل بتطبيق الموبايل. افتح ليكيته للمطاعم على الموبايل حتى تمسح الأكواد."
+  "phoneOnly": "المسح يشتغل بتطبيق الموبايل. افتح ليكيته للمطاعم على الموبايل حتى تمسح الأكواد.",
+  "rewardReady": "استحق المكافأة: {{reward}}",
+  "giveReward": "سلّم المكافأة",
+  "rewardGiven": "تم تسليم المكافأة، البطاقة تبدأ من جديد",
+  "rewardFailed": "تعذّر تسجيل المكافأة. حاول مجدداً.",
+  "stampsLeft_zero": "باقي 0 زيارات على: {{reward}}",
+  "stampsLeft_one": "باقي زيارة واحدة على: {{reward}}",
+  "stampsLeft_two": "باقي زيارتين على: {{reward}}",
+  "stampsLeft_few": "باقي {{count}} زيارات على: {{reward}}",
+  "stampsLeft_many": "باقي {{count}} زيارة على: {{reward}}",
+  "stampsLeft_other": "باقي {{count}} زيارة على: {{reward}}"
 }

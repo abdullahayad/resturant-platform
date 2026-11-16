@@ -62,5 +62,18 @@
     "sent": "Thanks - LiGETA will review it.",
     "failed": "Could not send the report",
     "close": "Close"
+  },
+  "stampCard": {
+    "title": "Stamp card",
+    "body": "Reward regulars: every verified visit (a scanned visit code, once a day) is a stamp. When a customer has enough, Scan Visit shows a Give reward button.",
+    "visits": "Visits for one reward",
+    "rewardEn": "Reward (English)",
+    "rewardAr": "Reward (Arabic)",
+    "example_one": "Customers see: every visit earns {{reward}}",
+    "example_other": "Customers see: every {{count}} visits earn {{reward}}",
+    "save": "Save stamp card",
+    "saved": "Saved - customers see it on your page.",
+    "failed": "Could not save. Check your connection.",
+    "needReward": "Write the reward in both languages to switch it on."
   }
 }

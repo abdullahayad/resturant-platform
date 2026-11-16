@@ -412,5 +412,14 @@
     "switchTo": "Use {{method}}",
     "iftarPlaces": "Iftar today",
     "suhoorPlaces": "Open for suhoor"
+  },
+  "stamps": {
+    "title": "Stamp card",
+    "offer_one": "Every visit earns: {{reward}}",
+    "offer_other": "Every {{count}} visits earn: {{reward}}",
+    "progress": "{{stamps}} of {{total}} stamps - show your visit code when you visit",
+    "ready": "Reward ready: {{reward}} - show your visit code to get it",
+    "signInHint": "Sign in and show your visit code to collect stamps",
+    "mine": "My stamp cards"
   }
 }

@@ -123,7 +123,7 @@ export function deleteAccountPage(lang: Lang, nonce: string): string {
 <p>${t('In the app you can do this from Profile → Delete account. Here you can do it without the app: confirm your number with a WhatsApp code, then delete.', 'يمكنك ذلك من التطبيق عبر الملف الشخصي ← حذف الحساب. وهنا يمكنك الحذف بدون التطبيق: أكّد رقمك برمز واتساب ثم احذف.')}</p>
 <div class="card">
   <h2>${t('What gets deleted', 'ما الذي يُحذف')}</h2>
-  <p>${t('Immediately and permanently: your account, name, phone number, follows, visits, notifications, support messages, helpful votes and sign-in codes.', 'فوراً وبشكل نهائي: حسابك واسمك ورقمك ومتابعاتك وزياراتك وإشعاراتك ورسائل الدعم وأصوات "مفيد" ورموز الدخول.')}</p>
+  <p>${t('Immediately and permanently: your account, name, phone number, follows, visits, stamp cards, notifications, support messages, helpful votes and sign-in codes.', 'فوراً وبشكل نهائي: حسابك واسمك ورقمك ومتابعاتك وزياراتك وبطاقات الختم وإشعاراتك ورسائل الدعم وأصوات "مفيد" ورموز الدخول.')}</p>
   <p class="muted">${t('Reviews you posted stay on the restaurant page but are no longer linked to you. Bookings remain in the restaurant\'s own records.', 'تبقى تقييماتك في صفحة المطعم لكنها لا تعود مرتبطة بك. وتبقى الحجوزات في سجلات المطعم.')}</p>
 </div>
 <div class="card">

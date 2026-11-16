@@ -585,13 +585,31 @@ export type ActivityItem =
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 
+export interface StampProgress {
+  stamps: number;
+  visitsRequired: number;
+  ready: boolean;
+  rewardEn: string;
+  rewardAr: string;
+}
+
+export interface StampCardSettings {
+  isActive: boolean;
+  visitsRequired: number;
+  rewardEn: string;
+  rewardAr: string;
+}
+
 export interface VisitScanResult {
+  customerId: string;
   customerName: string;
   level: number;
   visitCount: number;
   // True when this customer was already counted at this restaurant today -
   // the scan is accepted but doesn't add a second visit.
   alreadyToday: boolean;
+  // This restaurant's stamp card, when it runs one.
+  stampCard: StampProgress | null;
 }
 
 export interface ReservationItem {
@@ -979,6 +997,11 @@ export const api = {
   // backend side arrives with customer accounts; until then the screen that
   // calls this is hidden behind the off-by-default "visitScan" flag.
   scanVisit: (token: string, code: string) => send<VisitScanResult>('POST', '/visits/scan', token, { code }),
+  redeemStampReward: (token: string, customerId: string) =>
+    send<StampProgress & { redeemed: true }>('POST', '/visits/reward', token, { customerId }),
+  stampCard: (token: string) => get<StampCardSettings>('/restaurants/me/stamp-card', token),
+  updateStampCard: (token: string, payload: StampCardSettings) =>
+    send<StampCardSettings>('PUT', '/restaurants/me/stamp-card', token, payload),
 
   updateReservationStatus: (token: string, id: string, status: ReservationStatus) =>
     send<ReservationItem>('PATCH', `/restaurants/me/reservations/${id}`, token, { status }),

@@ -19,12 +19,14 @@ import { ReportsService } from './reports.service';
 import {
   CustomerAuthController,
   CriticsController,
+  StampCardsPublicController,
   CustomerMeController,
   RestaurantCustomersController,
   VisitsController,
 } from './customers.controller';
 import { FollowsService } from './follows.service';
 import { RestaurantCustomersService } from './restaurant-customers.service';
+import { StampCardsService } from './stamp-cards.service';
 import { CustomerAuthService } from './customer-auth.service';
 import { CustomersService } from './customers.service';
 import { CustomerAuthGuard } from './customer-auth.guard';
@@ -42,6 +44,7 @@ import { WhatsAppSenderService } from './whatsapp-sender.service';
     AdminReportsController,
     AdminCampaignsController,
     CriticsController,
+    StampCardsPublicController,
   ],
   providers: [
     CustomerAuthService,
@@ -54,6 +57,7 @@ import { WhatsAppSenderService } from './whatsapp-sender.service';
     ReportsService,
     CampaignsService,
     RestaurantCustomersService,
+    StampCardsService,
     CustomerAuthGuard,
     WhatsAppSenderService,
   ],

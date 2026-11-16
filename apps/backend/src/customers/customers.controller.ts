@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -20,6 +21,7 @@ import { CustomerSupportService } from './customer-support.service';
 import { CriticsService } from './critics.service';
 import { ReportsService } from './reports.service';
 import { RestaurantCustomersService } from './restaurant-customers.service';
+import { StampCardsService } from './stamp-cards.service';
 import { CustomerAuthGuard, type CustomerRequest } from './customer-auth.guard';
 import {
   CustomerPushTokenDto,
@@ -27,7 +29,9 @@ import {
   OpenSupportTicketDto,
   ReportReviewDto,
   RequestCodeDto,
+  RedeemStampRewardDto,
   ScanVisitDto,
+  StampCardDto,
   SupportMessageDto,
   UpdateCustomerDto,
   VerifyCodeDto,
@@ -66,6 +70,7 @@ export class CustomerMeController {
     private readonly support: CustomerSupportService,
     private readonly critics: CriticsService,
     private readonly reports: ReportsService,
+    private readonly stampCardsSvc: StampCardsService,
   ) {}
 
   @Get()
@@ -153,6 +158,11 @@ export class CustomerMeController {
     return this.critics.followed(req.customer.id);
   }
 
+  @Get('stamp-cards')
+  stampCards(@Req() req: CustomerRequest) {
+    return this.stampCardsSvc.customerCards(req.customer.id);
+  }
+
   @Get('critics/ids')
   followedCritics(@Req() req: CustomerRequest) {
     return this.critics.followedIds(req.customer.id);
@@ -234,7 +244,18 @@ export class RestaurantCustomersController {
   constructor(
     private readonly restaurantCustomers: RestaurantCustomersService,
     private readonly reports: ReportsService,
+    private readonly stampCards: StampCardsService,
   ) {}
+
+  @Get('stamp-card')
+  stampCard(@Req() req: { user: PartnerJwtPayload }) {
+    return this.stampCards.settings(req.user.sub);
+  }
+
+  @Put('stamp-card')
+  updateStampCard(@Req() req: { user: PartnerJwtPayload }, @Body() dto: StampCardDto) {
+    return this.stampCards.update(req.user.sub, dto);
+  }
 
   // A restaurant reporting a review about itself (fake, abusive, spam...).
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -262,13 +283,35 @@ export class RestaurantCustomersController {
 // cashier usually does it), as long as the Scan Visit flag is on for it.
 @Controller('visits')
 export class VisitsController {
-  constructor(private readonly customers: CustomersService) {}
+  constructor(
+    private readonly customers: CustomersService,
+    private readonly stampCards: StampCardsService,
+  ) {}
+
+  // The cashier hands over a stamp-card reward from the scan result.
+  @UseGuards(ApprovedPartnerGuard)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Post('reward')
+  reward(@Req() req: { user: PartnerJwtPayload }, @Body() dto: RedeemStampRewardDto) {
+    return this.stampCards.redeem(req.user, dto.customerId);
+  }
 
   @UseGuards(ApprovedPartnerGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('scan')
   scan(@Req() req: { user: PartnerJwtPayload }, @Body() dto: ScanVisitDto) {
     return this.customers.scanVisit(req.user, dto.code);
+  }
+}
+
+// Public: a restaurant's stamp card offer, for its page in the app.
+@Controller('stamp-cards')
+export class StampCardsPublicController {
+  constructor(private readonly stampCards: StampCardsService) {}
+
+  @Get(':restaurantId')
+  card(@Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.stampCards.publicCard(restaurantId);
   }
 }
 

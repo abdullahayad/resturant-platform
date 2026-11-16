@@ -3,6 +3,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { StampCardsService } from './stamp-cards.service';
 import { Prisma } from '../../generated/prisma/client';
 import { makeVisitCode } from './customer-secrets';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
@@ -37,6 +38,7 @@ describe('CustomersService.scanVisit', () => {
         CustomersService,
         { provide: PrismaService, useValue: prisma },
         { provide: FeatureFlagsService, useValue: flags },
+        { provide: StampCardsService, useValue: { progress: jest.fn().mockResolvedValue(null) } },
       ],
     }).compile();
     service = module.get(CustomersService);
@@ -50,7 +52,7 @@ describe('CustomersService.scanVisit', () => {
     expect(prisma.db.customerVisit.create).toHaveBeenCalledWith({
       data: { customerId: 'cust-1', restaurantId: 'rest-1', visitDate: '2026-10-29', scannedByStaffId: 'staff-9' },
     });
-    expect(result).toEqual({ customerName: 'Ali', level: 2, visitCount: 3, alreadyToday: false });
+    expect(result).toEqual({ customerId: 'cust-1', customerName: 'Ali', level: 2, visitCount: 3, alreadyToday: false, stampCard: null });
   });
 
   it('says "already today" for a second scan on the same day', async () => {

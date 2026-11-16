@@ -416,5 +416,18 @@
     "startsIn_two": "رمضان بعد يومين",
     "startsIn_few": "رمضان بعد {{count}} أيام",
     "startsIn_many": "رمضان بعد {{count}} يوماً"
+  },
+  "stamps": {
+    "title": "بطاقة الختم",
+    "offer_zero": "كل {{count}} زيارات: {{reward}}",
+    "offer_one": "كل زيارة: {{reward}}",
+    "offer_two": "كل زيارتين: {{reward}}",
+    "offer_few": "كل {{count}} زيارات: {{reward}}",
+    "offer_many": "كل {{count}} زيارة: {{reward}}",
+    "offer_other": "كل {{count}} زيارة: {{reward}}",
+    "progress": "{{stamps}} من {{total}} أختام، اعرض رمز زيارتك لما تزور",
+    "ready": "مكافأتك جاهزة: {{reward}}، اعرض رمز زيارتك حتى تستلمها",
+    "signInHint": "سجّل دخولك واعرض رمز زيارتك حتى تجمع الأختام",
+    "mine": "بطاقات الختم"
   }
 }

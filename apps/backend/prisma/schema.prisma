@@ -225,15 +225,15 @@ enum MoodGroup {
 // than join tables, so deleting a facility etc. just leaves a stale id that
 // matches nothing - moods never block master-data cleanup.
 model Mood {
-  id      String    @id @default(uuid())
-  nameEn  String
-  nameAr  String
-  emoji   String
-  group   MoodGroup @default(CLASSIC)
+  id         String    @id @default(uuid())
+  nameEn     String
+  nameAr     String
+  emoji      String
+  group      MoodGroup @default(CLASSIC)
   // What kind of food/restaurant belongs here, in words - shown to the
   // admin as guidance and usable as a subtitle in the app.
-  foodsEn String?
-  foodsAr String?
+  foodsEn    String?
+  foodsAr    String?
   // Free-text notes on how restaurants should be matched, for rules that
   // the structured fields below can't express (yet).
   matchNotes String?
@@ -273,9 +273,9 @@ model Province {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  districts   District[]
-  zones       Zone[]
-  restaurants Restaurant[]
+  districts            District[]
+  zones                Zone[]
+  restaurants          Restaurant[]
   featureFlagOverrides FeatureFlagOverride[]
 
   @@map("provinces")
@@ -312,15 +312,15 @@ model Zone {
 }
 
 model District {
-  id         String   @id @default(uuid())
-  provinceId String
+  id          String   @id @default(uuid())
+  provinceId  String
   // Which zone this district is grouped under, if its province uses zones
   // at all - null for every district in a province with no zones (every
   // province except Baghdad today). Deleting a zone demotes its districts
   // back to direct province-level ones rather than deleting them.
-  zoneId     String?
-  nameEn     String
-  nameAr     String
+  zoneId      String?
+  nameEn      String
+  nameAr      String
   // One letter - the restaurant code's last segment (e.g. "M" for Mansour
   // -> BGKM001). Only unique within its own zone if it has one, otherwise
   // within its own province - enforced in MasterDataService, not a DB
@@ -328,19 +328,19 @@ model District {
   // per zone, or per province when zoneId is null" (Postgres treats every
   // NULL as distinct, so a zoneId-inclusive unique index would silently
   // allow duplicate codes across every zoneless province's districts).
-  code       String
+  code        String
   // Running counter for this district's restaurant codes - incremented
   // atomically (raw SQL UPDATE ... RETURNING) at registration time so two
   // restaurants registering in the same district at once can't collide.
-  nextCodeSeq Int     @default(0)
-  isActive   Boolean  @default(true)
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  nextCodeSeq Int      @default(0)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  province    Province     @relation(fields: [provinceId], references: [id], onDelete: Cascade)
-  zone        Zone?        @relation(fields: [zoneId], references: [id], onDelete: SetNull)
-  restaurants Restaurant[]
+  province             Province              @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  zone                 Zone?                 @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  restaurants          Restaurant[]
   featureFlagOverrides FeatureFlagOverride[]
 
   @@index([provinceId])
@@ -370,9 +370,9 @@ model AdminUser {
   twoFactorSecret  String?
   twoFactorEnabled Boolean @default(false)
 
-  reviewedRestaurants        Restaurant[]         @relation("RestaurantReviewedBy")
-  publishReviewedRestaurants Restaurant[]         @relation("RestaurantPublishReviewedBy")
-  reviewReplyActions         ReviewReply[]        @relation("ReviewReplyModeratedBy")
+  reviewedRestaurants        Restaurant[]             @relation("RestaurantReviewedBy")
+  publishReviewedRestaurants Restaurant[]             @relation("RestaurantPublishReviewedBy")
+  reviewReplyActions         ReviewReply[]            @relation("ReviewReplyModeratedBy")
   sentNotifications          AdminNotification[]
   reviewedPromotions         Promotion[]
   reviewedFeatured           FeaturedPlacement[]
@@ -402,8 +402,8 @@ model Restaurant {
 
   provinceId String?
   districtId String?
-  latitude   Decimal? @db.Decimal(9, 6)
-  longitude  Decimal? @db.Decimal(9, 6)
+  latitude   Decimal?                               @db.Decimal(9, 6)
+  longitude  Decimal?                               @db.Decimal(9, 6)
   // Kept in sync with latitude/longitude by a DB trigger (see the
   // add_restaurant_geography migration), not written to directly anywhere
   // in application code - Prisma has no native geography scalar, so this
@@ -491,11 +491,11 @@ model Restaurant {
   // it only records a "confirmed profile-complete" checkpoint. If declined,
   // the restaurant cannot resubmit on their own — an admin must reopen it
   // (see RestaurantsService.reopenPublish) before they can submit again.
-  publishStatus          PublishStatus @default(NOT_SUBMITTED)
-  publishSubmittedAt     DateTime?
-  publishRejectionReason String?
-  publishReviewedById    String?
-  publishReviewedAt      DateTime?
+  publishStatus                PublishStatus @default(NOT_SUBMITTED)
+  publishSubmittedAt           DateTime?
+  publishRejectionReason       String?
+  publishReviewedById          String?
+  publishReviewedAt            DateTime?
   // Set only once the restaurant explicitly dismisses a decline notice
   // (Mark as Done) — reset to null on every fresh decline and on
   // resubmission, so a repeat decline shows as unacknowledged again.
@@ -517,32 +517,34 @@ model Restaurant {
   reviewedBy        AdminUser? @relation("RestaurantReviewedBy", fields: [reviewedById], references: [id])
   publishReviewedBy AdminUser? @relation("RestaurantPublishReviewedBy", fields: [publishReviewedById], references: [id])
 
-  businessTypes     RestaurantBusinessType[]
-  foodCategories    RestaurantFoodCategory[]
-  facilities        RestaurantFacility[]
-  dishes            Dish[]
-  galleryPhotos     GalleryPhoto[]
-  stories           Story[]
-  reviews           Review[]
-  chefTableBookings ChefTableBooking[]
-  staffUsers        PartnerStaffUser[]
-  openingHours      OpeningHours[]
-  events            RestaurantEvent[]
-  chefProfiles      ChefProfile[]
-  notifications     NotificationRecipient[]
-  promotions        Promotion[]
-  promotionTemplates PromotionTemplate[]
-  featuredPlacements FeaturedPlacement[]
-  pushTokens        RestaurantPushToken[]
-  featureFlagOverrides FeatureFlagOverride[]
-  blockedUploads    BlockedUpload[]
-  adminSupportSessions AdminSupportSession[]
-  activityLogs      RestaurantActivityLog[]
-  verificationDocuments VerificationDocument[]
-  customerVisits    CustomerVisit[]
-  followers         CustomerFollow[]
+  businessTypes          RestaurantBusinessType[]
+  foodCategories         RestaurantFoodCategory[]
+  facilities             RestaurantFacility[]
+  dishes                 Dish[]
+  galleryPhotos          GalleryPhoto[]
+  stories                Story[]
+  reviews                Review[]
+  chefTableBookings      ChefTableBooking[]
+  staffUsers             PartnerStaffUser[]
+  openingHours           OpeningHours[]
+  events                 RestaurantEvent[]
+  chefProfiles           ChefProfile[]
+  notifications          NotificationRecipient[]
+  promotions             Promotion[]
+  promotionTemplates     PromotionTemplate[]
+  featuredPlacements     FeaturedPlacement[]
+  pushTokens             RestaurantPushToken[]
+  featureFlagOverrides   FeatureFlagOverride[]
+  blockedUploads         BlockedUpload[]
+  adminSupportSessions   AdminSupportSession[]
+  activityLogs           RestaurantActivityLog[]
+  verificationDocuments  VerificationDocument[]
+  customerVisits         CustomerVisit[]
+  followers              CustomerFollow[]
   customerSupportTickets CustomerSupportTicket[]
   reportsMade            Report[]
+  stampCard              StampCard?
+  stampRewards           StampReward[]
 
   @@index([status])
   @@index([publishStatus])
@@ -608,28 +610,28 @@ model RestaurantFacility {
 // ────────────────────────────────────────────────────────────────────────────
 
 model Dish {
-  id             String   @id @default(uuid())
-  restaurantId   String
-  menuCategoryId String?
-  nameEn         String
-  nameAr         String
-  price          Decimal  @db.Decimal(10, 2)
-  photoUrl       String?
-  isMostOrdered  Boolean  @default(false)
+  id               String           @id @default(uuid())
+  restaurantId     String
+  menuCategoryId   String?
+  nameEn           String
+  nameAr           String
+  price            Decimal          @db.Decimal(10, 2)
+  photoUrl         String?
+  isMostOrdered    Boolean          @default(false)
   // Marked by the restaurant itself (salads, grilled, low-calorie...) - feeds
   // the customer app's "healthy dishes" row. Separate from the restaurant's
   // admin-approved Healthy tag; an admin can still hide a dish via moderation.
-  isHealthy      Boolean  @default(false)
-  isActive       Boolean  @default(true)
+  isHealthy        Boolean          @default(false)
+  isActive         Boolean          @default(true)
   moderationStatus ModerationStatus @default(VISIBLE)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  restaurant       Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  menuCategory     MenuCategory?       @relation(fields: [menuCategoryId], references: [id])
-  galleryPhotos    GalleryPhoto[]
-  promotions       PromotionDish[]
-  chefSignatures   ChefSignatureDish[]
+  restaurant     Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuCategory   MenuCategory?       @relation(fields: [menuCategoryId], references: [id])
+  galleryPhotos  GalleryPhoto[]
+  promotions     PromotionDish[]
+  chefSignatures ChefSignatureDish[]
 
   @@index([restaurantId])
   @@index([menuCategoryId])
@@ -788,13 +790,13 @@ model Review {
   // review stays - if the customer deletes their account.
   customerId String?
 
-  restaurant Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  customer   Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  reply      ReviewReply?
+  restaurant   Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer     Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  reply        ReviewReply?
   // Photos the customer attached when posting this review — stored as
   // GalleryPhoto rows tagged album: REVIEW, so they also show up in the
   // restaurant's own gallery and go through the same moderation flow.
-  photos     GalleryPhoto[]
+  photos       GalleryPhoto[]
   helpfulVotes ReviewHelpfulVote[]
   reports      Report[]
 
@@ -849,8 +851,8 @@ model ChefTableBooking {
   // constraint is simpler than a composite one for the same guarantee.
   idempotencyKey       String        @unique
 
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   event      RestaurantEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -938,10 +940,10 @@ model RestaurantEvent {
   recurringDaysOfWeek Int[]     @default([]) // recurring events: which days it happens, 0 = Sunday ... 6 = Saturday. One event can recur on several days (e.g. every Sun + Tue) - all other fields (price, capacity, etc.) are shared across every day.
   recurringTime       String? // recurring events: "HH:mm"
 
-  isActive  Boolean  @default(true)
+  isActive         Boolean          @default(true)
   moderationStatus ModerationStatus @default(VISIBLE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   restaurant   Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   eventType    EventType          @relation(fields: [eventTypeId], references: [id])
@@ -961,7 +963,7 @@ model RestaurantEvent {
 // ────────────────────────────────────────────────────────────────────────────
 
 model Promotion {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   restaurantId  String
   titleEn       String
   titleAr       String
@@ -970,7 +972,7 @@ model Promotion {
   photoUrl      String?
 
   discountType  PromotionDiscountType
-  discountValue Decimal @db.Decimal(10, 2) // percentage (0-100] or a fixed IQD amount
+  discountValue Decimal               @db.Decimal(10, 2) // percentage (0-100] or a fixed IQD amount
   scope         PromotionScope
 
   isRecurring        Boolean   @default(false)
@@ -993,8 +995,8 @@ model Promotion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  restaurant Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  reviewedBy AdminUser?        @relation(fields: [reviewedById], references: [id])
+  restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reviewedBy AdminUser?      @relation(fields: [reviewedById], references: [id])
   dishes     PromotionDish[]
 
   @@index([restaurantId, status])
@@ -1024,7 +1026,7 @@ model PromotionDish {
 // Promotion is, and a dish deleted since the template was saved is just
 // silently dropped when applied, not an error.
 model PromotionTemplate {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   restaurantId  String
   name          String // the template's own label, e.g. "Happy Hour" - distinct from titleEn/titleAr, which is what customers see on the resulting promotion
   titleEn       String
@@ -1033,10 +1035,10 @@ model PromotionTemplate {
   descriptionAr String?
   photoUrl      String?
 
-  discountType PromotionDiscountType
-  discountValue Decimal @db.Decimal(10, 2)
-  scope        PromotionScope
-  dishIds      String[]
+  discountType  PromotionDiscountType
+  discountValue Decimal               @db.Decimal(10, 2)
+  scope         PromotionScope
+  dishIds       String[]
 
   isRecurring        Boolean @default(false)
   recurringDayOfWeek Int?
@@ -1109,7 +1111,7 @@ model PartnerStaffUser {
   passwordResetCodeHash  String?
   passwordResetExpiresAt DateTime?
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant              @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   activityLogs RestaurantActivityLog[]
 
   @@index([restaurantId])
@@ -1152,7 +1154,7 @@ model AdminNotification {
   createdById    String
   createdAt      DateTime @default(now())
 
-  createdBy  AdminUser                @relation(fields: [createdById], references: [id])
+  createdBy  AdminUser               @relation(fields: [createdById], references: [id])
   recipients NotificationRecipient[]
 
   @@map("admin_notifications")
@@ -1245,7 +1247,7 @@ model AdminSupportSession {
 // a name, so a rename later doesn't make old entries read wrong - absence of
 // both means the restaurant owner made the change directly.
 model RestaurantActivityLog {
-  id           String  @id @default(uuid())
+  id           String @id @default(uuid())
   restaurantId String
   section      String
   summary      String
@@ -1321,55 +1323,56 @@ model FeatureFlagOverride {
 // ────────────────────────────────────────────────────────────────────────────
 
 model Customer {
-  id       String  @id @default(uuid())
+  id              String    @id @default(uuid())
   // Normalized local form (07XXXXXXXXX, see common/phone.ts) - the login.
-  phone    String  @unique
+  phone           String    @unique
   // The same one-way hash reviews store for their reviewer's phone (see
   // common/reviewerPhoneHash.ts) - lets a review be matched to this
   // customer's scanned visits ("verified visit") without ever comparing or
   // exposing raw numbers. Set at every sign-in.
-  phoneHash String?
-  name     String?
+  phoneHash       String?
+  name            String?
   // Off by default. Only a public profile can ever be followed by other
   // customers (and only once it reaches the top levels).
-  isPublic Boolean @default(false)
+  isPublic        Boolean   @default(false)
   // Bumped to sign the customer out everywhere - every token carries the
   // value it was issued with and CustomerAuthGuard re-checks it.
-  tokenVersion Int @default(0)
+  tokenVersion    Int       @default(0)
   // Blocked by an admin (fake visits or reviews, abuse): can't sign in, and
   // every open session stops on its next request. Cleared on unblock.
-  blockedAt     DateTime?
-  blockedReason String?
-  blockedById   String?
+  blockedAt       DateTime?
+  blockedReason   String?
+  blockedById     String?
   // Critics: a public profile at Level 4+ (or a LiGETA Star) is a critic
   // other customers can follow. isStar = picked by an admin; criticHidden =
   // an admin took the critic status away (e.g. undisclosed paid reviews) -
   // turning Public back on doesn't undo that.
-  isStar       Boolean  @default(false)
-  criticHidden Boolean  @default(false)
+  isStar          Boolean   @default(false)
+  criticHidden    Boolean   @default(false)
   // Up to 3 cuisines the critic is known for (FoodCategory ids), chosen in Profile.
-  specialtyIds String[] @default([])
+  specialtyIds    String[]  @default([])
   // Notification choices (Profile): news from followed restaurants and
   // critics, and LiGETA's own campaigns. Booking and support replies always
   // come through - they're answers to something the customer did.
-  notifyFollowing Boolean @default(true)
-  notifyCampaigns Boolean @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  notifyFollowing Boolean   @default(true)
+  notifyCampaigns Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  blockedBy      AdminUser?              @relation("CustomerBlockedBy", fields: [blockedById], references: [id], onDelete: SetNull)
-  supportTickets CustomerSupportTicket[]
-  visits  CustomerVisit[]
-  follows CustomerFollow[]
-  reviews Review[]
-  helpfulVotes    ReviewHelpfulVote[]
-  followsCritics  CriticFollow[]      @relation("CriticFollower")
-  criticFollowers CriticFollow[]      @relation("CriticFollowed")
-  reportsMade     Report[]            @relation("ReportByCustomer")
-  pushTokens          CustomerPushToken[]
-  notifications       CustomerNotification[]
-  campaignDeliveries  CustomerCampaignDelivery[]
-  reportsAgainst  Report[]            @relation("ReportAgainstCustomer")
+  blockedBy          AdminUser?                 @relation("CustomerBlockedBy", fields: [blockedById], references: [id], onDelete: SetNull)
+  supportTickets     CustomerSupportTicket[]
+  visits             CustomerVisit[]
+  follows            CustomerFollow[]
+  reviews            Review[]
+  helpfulVotes       ReviewHelpfulVote[]
+  followsCritics     CriticFollow[]             @relation("CriticFollower")
+  criticFollowers    CriticFollow[]             @relation("CriticFollowed")
+  reportsMade        Report[]                   @relation("ReportByCustomer")
+  pushTokens         CustomerPushToken[]
+  notifications      CustomerNotification[]
+  campaignDeliveries CustomerCampaignDelivery[]
+  reportsAgainst     Report[]                   @relation("ReportAgainstCustomer")
+  stampRewards       StampReward[]
 
   @@index([phoneHash])
   @@map("customers")
@@ -1606,19 +1609,19 @@ model CustomerPushToken {
 
 // A push campaign sent from Admin > App > Push Campaigns.
 model CustomerCampaign {
-  id        String         @id @default(uuid())
-  titleEn   String
-  titleAr   String
-  bodyEn    String
-  bodyAr    String
-  linkType  HomeBannerLink @default(NONE)
-  linkValue String?
+  id                      String         @id @default(uuid())
+  titleEn                 String
+  titleAr                 String
+  bodyEn                  String
+  bodyAr                  String
+  linkType                HomeBannerLink @default(NONE)
+  linkValue               String?
   // Audience: everyone who allows campaigns, narrowed by these (all optional).
   minLevel                Int?
   followersOfRestaurantId String?
-  recipientCount          Int      @default(0)
+  recipientCount          Int            @default(0)
   sentById                String?
-  sentAt                  DateTime @default(now())
+  sentAt                  DateTime       @default(now())
 
   sentBy     AdminUser?                 @relation(fields: [sentById], references: [id], onDelete: SetNull)
   deliveries CustomerCampaignDelivery[]
@@ -1669,4 +1672,37 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
+}
+
+// A restaurant's stamp card: every N verified visits (scanned visit codes)
+// earns the reward, which staff hand over from the scan screen.
+model StampCard {
+  restaurantId   String   @id
+  isActive       Boolean  @default(false)
+  visitsRequired Int      @default(5)
+  rewardEn       String
+  rewardAr       String
+  updatedAt      DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("stamp_cards")
+}
+
+// A stamp-card reward handed over. Stamps count the visits after the latest one.
+model StampReward {
+  id                String   @id @default(uuid())
+  restaurantId      String
+  customerId        String
+  rewardEn          String
+  rewardAr          String
+  redeemedByStaffId String?
+  createdAt         DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, customerId, createdAt])
+  @@index([customerId, createdAt])
+  @@map("stamp_rewards")
 }

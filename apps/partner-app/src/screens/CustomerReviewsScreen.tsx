@@ -17,6 +17,7 @@ import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
 import { ReviewQrModal } from '../components/ReviewQrModal';
 import { VisitScanModal } from '../components/VisitScanModal';
 import { CustomersCard } from '../components/CustomersCard';
+import { StampCardSettingsCard } from '../components/StampCardSettingsCard';
 import { ReportReviewModal } from '../components/ReportReviewModal';
 import { radii, cardShadow } from '../theme/tokens';
 
@@ -253,6 +254,8 @@ export function CustomerReviewsScreen() {
           )}
 
           <CustomersCard refreshKey={customersRefresh} />
+
+          {canScanVisits && <StampCardSettingsCard />}
 
           {loadError && <Text style={styles.error}>{loadError}</Text>}
 

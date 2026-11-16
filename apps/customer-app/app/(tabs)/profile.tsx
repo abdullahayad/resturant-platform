@@ -31,6 +31,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
 import { LegalFooter } from '../../src/components/LegalLinks';
+import { StampCardBox } from '../../src/components/StampCardBox';
 import { VisitCodeSheet } from '../../src/components/VisitCodeSheet';
 import { api, type MyVisit, type NamedRef } from '../../src/lib/api';
 import { useAuth } from '../../src/lib/auth';
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
   const [visits, setVisits] = useState<MyVisit[]>([]);
   const [followed, setFollowed] = useState<Awaited<ReturnType<typeof api.followedRestaurants>>>([]);
   const [critics, setCritics] = useState<Awaited<ReturnType<typeof api.followedCriticsList>>>([]);
+  const [stampCards, setStampCards] = useState<Awaited<ReturnType<typeof api.myStampCards>>>([]);
   const [cuisines, setCuisines] = useState<NamedRef[]>([]);
   const ar = i18n.language === 'ar';
   const Chevron = I18nManager.isRTL ? ChevronLeft : ChevronRight;
@@ -74,6 +76,12 @@ export default function ProfileScreen() {
         .followedRestaurants()
         .then((f) => {
           if (!cancelled) setFollowed(f);
+        })
+        .catch(() => {});
+      api
+        .myStampCards()
+        .then((c) => {
+          if (!cancelled) setStampCards(c);
         })
         .catch(() => {});
       api
@@ -359,6 +367,25 @@ export default function ProfileScreen() {
           </>
         )}
 
+        {stampCards.length > 0 && (
+          <>
+            <AppText weight="bold" style={styles.sectionTitle}>
+              {t('stamps.mine')}
+            </AppText>
+            <View style={styles.stampList}>
+              {stampCards.map((c) => (
+                <Pressable
+                  key={c.restaurant.id}
+                  onPress={() => router.push({ pathname: '/restaurant/[id]', params: { id: c.restaurant.id } })}
+                  accessibilityRole="link"
+                >
+                  <StampCardBox offer={c} progress={c} title={ar ? c.restaurant.nameAr : c.restaurant.nameEn} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
         {critics.length > 0 && (
           <>
             <AppText weight="bold" style={styles.sectionTitle}>
@@ -515,6 +542,7 @@ function LanguageSwitch() {
 }
 
 const styles = StyleSheet.create({
+  stampList: { gap: 10 },
   criticAvatar: { backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
   criticInitial: { color: colors.white, fontSize: 18 },
   languageCard: { padding: 14, gap: 10 },
