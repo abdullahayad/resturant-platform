@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import {
+  Bookmark,
   CalendarCheck,
   ChevronLeft,
   Bell,
@@ -113,6 +114,15 @@ export default function ProfileScreen() {
               <AppText weight="bold" style={styles.primaryText}>
                 {t('profile.signIn')}
               </AppText>
+            </Pressable>
+          </View>
+          <View style={[styles.card, { marginTop: 18 }]}>
+            <Pressable style={styles.settingRow} onPress={() => router.push('/saved')} accessibilityRole="link">
+              <Bookmark size={20} color={colors.text} />
+              <AppText weight="semibold" style={[styles.settingTitle, { flex: 1 }]}>
+                {t('saved.title')}
+              </AppText>
+              <Chevron size={18} color={colors.mutedIcon} />
             </Pressable>
           </View>
           <LanguageSwitch />
@@ -372,6 +382,14 @@ export default function ProfileScreen() {
         )}
 
         <View style={styles.card}>
+          <Pressable style={styles.settingRow} onPress={() => router.push('/saved')} accessibilityRole="link">
+            <Bookmark size={20} color={colors.text} />
+            <AppText weight="semibold" style={[styles.settingTitle, { flex: 1 }]}>
+              {t('saved.title')}
+            </AppText>
+            <Chevron size={18} color={colors.mutedIcon} />
+          </Pressable>
+          <View style={styles.divider} />
           <Pressable style={styles.settingRow} onPress={() => router.push('/bookings')} accessibilityRole="link">
             <CalendarCheck size={20} color={colors.text} />
             <AppText weight="semibold" style={[styles.settingTitle, { flex: 1 }]}>

@@ -1,6 +1,8 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   BadgeCheck,
+  Bookmark,
+  CloudOff,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -39,6 +41,7 @@ import { ReportSheet } from '../../src/components/ReportSheet';
 import { api, type EventItem, type MenuDish, type Named, type RestaurantPage } from '../../src/lib/api';
 import { baghdadNow, formatIqd, isOpenNow, toWhatsAppNumber } from '../../src/lib/format';
 import { useAuth } from '../../src/lib/auth';
+import { useSaved } from '../../src/lib/saved';
 import { useDateLabels } from '../../src/lib/useDateLabels';
 import { colors } from '../../src/theme';
 
@@ -59,6 +62,10 @@ export default function RestaurantScreen() {
 
   const [page, setPage] = useState<RestaurantPage | null>(null);
   const [failed, setFailed] = useState(false);
+  // Showing the saved copy because the live page couldn't load.
+  const [offline, setOffline] = useState(false);
+  const saved = useSaved();
+  const { refresh: refreshSaved, offlineCopy } = saved;
   const [events, setEvents] = useState<EventItem[]>([]);
   const [section, setSection] = useState<Section>('menu');
   const [viewer, setViewer] = useState<string | null>(null);
@@ -114,14 +121,24 @@ export default function RestaurantScreen() {
       api
         .restaurantPage(id)
         .then((p) => {
-          if (!cancelled) setPage(p);
+          if (cancelled) return;
+          setPage(p);
+          setOffline(false);
+          refreshSaved(p);
         })
         .catch(() => {
-          if (!cancelled) setFailed(true);
+          if (cancelled) return;
+          // No connection: a saved restaurant still opens from its copy.
+          const copy = offlineCopy(id);
+          if (copy) {
+            setPage(copy);
+            setOffline(true);
+          } else setFailed(true);
         });
       return () => {
         cancelled = true;
       };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]),
   );
 
@@ -224,13 +241,36 @@ export default function RestaurantScreen() {
             <Pressable style={styles.round} onPress={() => router.back()} accessibilityLabel={t('restaurant.back')}>
               <Back size={22} color={colors.text} />
             </Pressable>
-            <Pressable style={styles.round} onPress={share} accessibilityLabel={t('restaurant.share')}>
-              <Share2 size={19} color={colors.text} />
-            </Pressable>
+            <View style={styles.heroRight}>
+              <Pressable
+                style={styles.round}
+                onPress={() => saved.toggle(page)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: saved.isSaved(page.id) }}
+                accessibilityLabel={saved.isSaved(page.id) ? t('saved.remove') : t('saved.save')}
+              >
+                <Bookmark
+                  size={19}
+                  color={saved.isSaved(page.id) ? colors.orange : colors.text}
+                  fill={saved.isSaved(page.id) ? colors.orange : 'transparent'}
+                />
+              </Pressable>
+              <Pressable style={styles.round} onPress={share} accessibilityLabel={t('restaurant.share')}>
+                <Share2 size={19} color={colors.text} />
+              </Pressable>
+            </View>
           </View>
         </View>
 
         <View style={styles.info}>
+          {offline && (
+            <View style={styles.offline}>
+              <CloudOff size={16} color={colors.blue} />
+              <AppText weight="medium" style={styles.offlineText}>
+                {t('saved.offlineCopy')}
+              </AppText>
+            </View>
+          )}
           <View style={styles.titleRow}>
             {page.logoUrl && <Image source={{ uri: page.logoUrl }} style={styles.logo} />}
             <View style={styles.titleText}>
@@ -659,6 +699,9 @@ const styles = StyleSheet.create({
   backPlain: { padding: 10 },
   hero: { width: '100%', height: 250, backgroundColor: colors.surface },
   noHero: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.peach },
+  heroRight: { flexDirection: 'row', gap: 10 },
+  offline: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, padding: 10, borderRadius: 12, backgroundColor: colors.blueTint },
+  offlineText: { fontSize: 13, color: colors.blue, flex: 1 },
   heroButtons: { position: 'absolute', left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between' },
   round: {
     width: 42,

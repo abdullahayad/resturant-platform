@@ -379,5 +379,16 @@
     "title": "Something went wrong",
     "text": "This screen ran into a problem. We have been told about it. Please try again.",
     "retry": "Try again"
+  },
+  "saved": {
+    "title": "Saved",
+    "save": "Save restaurant",
+    "remove": "Remove from saved",
+    "offlineNote": "Saved on your phone - opens even without internet",
+    "offlineCopy": "No connection - showing your saved copy",
+    "emptyTitle": "No saved restaurants",
+    "emptyText": "Tap the bookmark on any restaurant to come back to it quickly. For its news, tap Follow.",
+    "explore": "Explore restaurants",
+    "opensAt": "Opens at {{time}}"
   }
 }

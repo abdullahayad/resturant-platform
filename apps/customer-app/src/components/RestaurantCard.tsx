@@ -1,7 +1,9 @@
-import { BadgeCheck, MapPin, Star, Utensils } from 'lucide-react-native';
+import { BadgeCheck, Bookmark, MapPin, Star, Utensils } from 'lucide-react-native';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import type { NamedRef, RestaurantCard as Card } from '../lib/api';
+import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { api, type NamedRef, type RestaurantCard as Card } from '../lib/api';
+import { useSaved } from '../lib/saved';
 import { formatIqd } from '../lib/format';
 import { colors } from '../theme';
 import { AppText } from './AppText';
@@ -14,6 +16,23 @@ export function RestaurantCard({ restaurant: r, onPress }: { restaurant: Card; o
   const name = (x: NamedRef | Card) => (i18n.language === 'ar' ? x.nameAr : x.nameEn);
   const cuisines = r.foodCategories.slice(0, 3).map(name).join(' · ');
   const place = [r.district, r.province].filter((x): x is NamedRef => !!x).map(name)[0];
+  const saved = useSaved();
+  const isSaved = saved.isSaved(r.id);
+  const [saving, setSaving] = useState(false);
+
+  // Saving keeps a full copy of the page for offline use, so it's fetched
+  // first; removing is instant.
+  const toggleSave = async () => {
+    if (isSaved) return saved.remove(r.id);
+    setSaving(true);
+    try {
+      saved.toggle(await api.restaurantPage(r.id));
+    } catch {
+      // No connection - nothing saved; the bookmark stays empty.
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={name(r)}>
@@ -29,6 +48,21 @@ export function RestaurantCard({ restaurant: r, onPress }: { restaurant: Card; o
             )}
           </View>
         )}
+        <Pressable
+          style={styles.save}
+          onPress={toggleSave}
+          disabled={saving}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityState={{ selected: isSaved }}
+          accessibilityLabel={isSaved ? t('saved.remove') : t('saved.save')}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color={colors.orange} />
+          ) : (
+            <Bookmark size={18} color={isSaved ? colors.orange : colors.text} fill={isSaved ? colors.orange : 'transparent'} />
+          )}
+        </Pressable>
         <View style={styles.tags}>
           {r.hasOffer && (
             <View style={[styles.tag, { backgroundColor: colors.orange }]}>
@@ -110,6 +144,17 @@ export function RestaurantCard({ restaurant: r, onPress }: { restaurant: Card; o
 }
 
 const styles = StyleSheet.create({
+  save: {
+    position: 'absolute',
+    top: 10,
+    end: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: {
     backgroundColor: colors.white,
     borderRadius: 20,

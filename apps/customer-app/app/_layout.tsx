@@ -16,6 +16,7 @@ import { SystemBarShade } from '../src/components/SystemBarShade';
 import { AreaProvider } from '../src/lib/area';
 import { openFromNotification } from '../src/lib/push';
 import { AuthProvider } from '../src/lib/auth';
+import { SavedProvider } from '../src/lib/saved';
 
 // Crash reports. No-ops when the DSN is missing (e.g. a local dev run
 // without .env); dev builds are tagged so they don't read as real users.
@@ -79,6 +80,7 @@ function RootLayout() {
   return (
     <AuthProvider>
       <AreaProvider>
+      <SavedProvider>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -86,12 +88,14 @@ function RootLayout() {
         <Stack.Screen name="login" options={{ presentation: 'modal' }} />
         <Stack.Screen name="review/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="bookings" />
+        <Stack.Screen name="saved" />
         <Stack.Screen name="my-reviews" />
         <Stack.Screen name="help" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="critic/[id]" />
       </Stack>
       <SystemBarShade />
+      </SavedProvider>
       </AreaProvider>
     </AuthProvider>
   );
