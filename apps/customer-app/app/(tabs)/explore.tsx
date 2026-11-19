@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
-import { ArrowUpDown, Check, MapPin, Search, X } from 'lucide-react-native';
+import { ArrowUpDown, Check, List, Map as MapIcon, MapPin, Search, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
+import { ExploreMap } from '../../src/components/ExploreMap';
 import { RestaurantCard } from '../../src/components/RestaurantCard';
 import { api, type DiscoverQuery, type DiscoverSort, type NamedRef, type RestaurantCard as Card } from '../../src/lib/api';
 import { useArea } from '../../src/lib/area';
@@ -57,6 +58,8 @@ export default function ExploreScreen() {
   const [offersOnly, setOffersOnly] = useState(false);
   const [cuisines, setCuisines] = useState<NamedRef[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
+  // List or map of the same results.
+  const [view, setView] = useState<'list' | 'map'>('list');
   const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [results, setResults] = useState<Results | null>(null);
@@ -210,9 +213,22 @@ export default function ExploreScreen() {
 
   const header = (
     <View style={styles.header}>
-      <AppText weight="bold" style={styles.title}>
-        {t('tabs.explore')}
-      </AppText>
+      <View style={styles.titleRow}>
+        <AppText weight="bold" style={styles.title}>
+          {t('tabs.explore')}
+        </AppText>
+        <Pressable
+          style={styles.viewToggle}
+          onPress={() => setView((v) => (v === 'list' ? 'map' : 'list'))}
+          accessibilityRole="button"
+          accessibilityLabel={view === 'list' ? t('explore.showMap') : t('explore.showList')}
+        >
+          {view === 'list' ? <MapIcon size={17} color={colors.white} /> : <List size={17} color={colors.white} />}
+          <AppText weight="bold" style={styles.viewToggleText}>
+            {view === 'list' ? t('explore.map') : t('explore.list')}
+          </AppText>
+        </Pressable>
+      </View>
       <View style={styles.search}>
         <Search size={20} color={colors.orange} strokeWidth={2.2} />
         <TextInput
@@ -314,6 +330,9 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {header}
+      {view === 'map' ? (
+        <ExploreMap restaurants={current?.items ?? []} point={point} provinceNameEn={area?.provinceNameEn} total={current?.total ?? 0} />
+      ) : (
       <FlatList
         ref={listRef}
         data={current?.items ?? []}
@@ -333,6 +352,7 @@ export default function ExploreScreen() {
         keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.orange} />}
       />
+      )}
 
       <Modal visible={sortOpen} transparent animationType="slide" onRequestClose={() => setSortOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setSortOpen(false)} accessibilityLabel={t('home.close')} />
@@ -366,7 +386,10 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   header: { paddingTop: 8, gap: 12, borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 10 },
-  title: { fontSize: 26, marginHorizontal: 16 },
+  title: { fontSize: 26 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16 },
+  viewToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: colors.navy },
+  viewToggleText: { color: colors.white, fontSize: 13.5 },
   search: {
     height: 50,
     marginHorizontal: 16,

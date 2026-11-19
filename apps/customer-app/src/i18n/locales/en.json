@@ -64,7 +64,12 @@
     "locationText": "We need your location to sort restaurants by distance. Turn it on in the app settings.",
     "openSettings": "Settings",
     "locationFailed": "Couldn't find your location. Make sure GPS is on.",
-    "healthy": "🌿 Healthy"
+    "healthy": "🌿 Healthy",
+    "map": "Map",
+    "list": "List",
+    "showMap": "Show on map",
+    "showList": "Show as list",
+    "mapShowing": "{{n}} of {{total}} on the map - scroll the list for more"
   },
   "days": [
     "Sunday",
