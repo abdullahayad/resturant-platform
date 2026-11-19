@@ -141,6 +141,19 @@ describe('DiscoverService', () => {
       expect(rankCall).not.toContain('"shown"');
     });
 
+    it('with My location on, picks only nearby places when there are any', async () => {
+      prisma.db.restaurant.findMany.mockResolvedValueOnce([
+        { id: 'far', latitude: '36.19', longitude: '44.01' }, // Erbil
+        { id: 'near', latitude: '33.32', longitude: '44.37' }, // Baghdad
+      ]);
+
+      await service.surprise({ lat: 33.31, lng: 44.36 }, now, () => 0);
+
+      const rankCall = JSON.stringify(prisma.db.$queryRaw.mock.calls[0]);
+      expect(rankCall).toContain('"near"');
+      expect(rankCall).not.toContain('"far"');
+    });
+
     it('returns null when the area has nothing left', async () => {
       prisma.db.restaurant.findMany.mockResolvedValueOnce([{ id: 'shown' }]);
       await expect(service.surprise({ exclude: ['shown'] }, now)).resolves.toBeNull();

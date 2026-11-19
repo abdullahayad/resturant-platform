@@ -44,7 +44,7 @@ export default function HomeScreen() {
   const [chefs, setChefs] = useState<Chef[]>([]);
   const [critics, setCritics] = useState<Critic[]>([]);
   const [areaOpen, setAreaOpen] = useState(false);
-  const { area } = useArea();
+  const { area, nearMe } = useArea();
   const { status } = useAuth();
   const [unread, setUnread] = useState(0);
 
@@ -129,12 +129,16 @@ export default function HomeScreen() {
 
   const name = (m: Mood) => (i18n.language === 'ar' ? m.nameAr : m.nameEn);
   const ar = i18n.language === 'ar';
-  const areaTitle = area
+  const areaTitle = nearMe
+    ? t('area.myLocation')
+    : area
     ? ar
       ? (area.districtNameAr ?? area.provinceNameAr)
       : (area.districtNameEn ?? area.provinceNameEn)
     : t('home.everywhere');
-  const areaSubtitle = area
+  const areaSubtitle = nearMe
+    ? t('area.myLocationHint')
+    : area
     ? area.districtId
       ? ar
         ? area.provinceNameAr

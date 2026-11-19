@@ -128,6 +128,17 @@ export class SurpriseQueryDto {
   @IsUUID()
   districtId?: string;
 
+  // "My location": prefer places within SURPRISE_NEAR_KM of here.
+  @IsOptional()
+  @Type(() => Number)
+  @IsLatitude()
+  lat?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLongitude()
+  lng?: number;
+
   // Already shown this round ("Another one"), so they don't come back.
   @IsOptional()
   @Transform(toArray)

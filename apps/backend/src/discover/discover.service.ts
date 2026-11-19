@@ -6,6 +6,7 @@ import { isPromotionLiveNow } from '../promotions/promotion-pricing';
 import { isOpenAt, opensAfterMidnight } from './open-now';
 import type { DiscoverQueryDto, DiscoverSort, SurpriseQueryDto } from './dto/discover-query.dto';
 import { containsPattern, foldSearchText, foldSql } from './search-text';
+import { distanceKm } from './discover-lists.service';
 
 // Ratings are ranked with a "smoothed" average: every restaurant starts
 // with PRIOR_WEIGHT imaginary reviews of PRIOR_MEAN stars, so one lucky
@@ -15,6 +16,9 @@ const PRIOR_WEIGHT = 5;
 const PRIOR_MEAN = 3.5;
 
 const MAX_FEATURED = 10;
+
+// "Surprise me" with My location on: pick within this distance when it can.
+const SURPRISE_NEAR_KM = 10;
 
 const named = { select: { id: true, nameEn: true, nameAr: true } } as const;
 
@@ -175,9 +179,23 @@ export class DiscoverService {
     const filter = await this.buildWhere({ provinceId: query.provinceId, districtId: query.districtId }, now);
     if (!filter) return null;
     const exclude = new Set(query.exclude ?? []);
-    const ids = (await this.prisma.db.restaurant.findMany({ where: filter.where, select: { id: true } }))
-      .map((r) => r.id)
-      .filter((id) => !exclude.has(id));
+    const point = query.lat != null && query.lng != null ? { lat: query.lat, lng: query.lng } : null;
+    const candidates = (
+      await this.prisma.db.restaurant.findMany({
+        where: filter.where,
+        select: { id: true, latitude: true, longitude: true },
+      })
+    ).filter((r) => !exclude.has(r.id));
+    // Near me: only places close by, unless there are none.
+    const near = point
+      ? candidates.filter(
+          (r) =>
+            r.latitude != null &&
+            r.longitude != null &&
+            distanceKm(point, { lat: Number(r.latitude), lng: Number(r.longitude) }) <= SURPRISE_NEAR_KM,
+        )
+      : [];
+    const ids = (near.length ? near : candidates).map((r) => r.id);
     if (!ids.length) return null;
 
     const hours = await this.prisma.db.openingHours.findMany({
@@ -189,7 +207,7 @@ export class DiscoverService {
     const pool = open.length ? open : ids;
     const pick = pool[Math.floor(random() * pool.length)];
 
-    const rows = await this.rank([pick], { sort: 'recommended', point: null, skip: 0, take: 1, now });
+    const rows = await this.rank([pick], { sort: 'recommended', point, skip: 0, take: 1, now });
     return (await this.toCards(rows, now))[0] ?? null;
   }
 

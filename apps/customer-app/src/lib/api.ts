@@ -542,7 +542,7 @@ export const api = {
     get<Paginated<RestaurantCard>>('/discover/restaurants' + toQueryString(query)),
   featured: () => get<RestaurantCard[]>('/discover/featured'),
   // Home's "Surprise me": one random restaurant in the area, or nothing.
-  surprise: (query: { provinceId?: string; districtId?: string; exclude?: string[] }) =>
+  surprise: (query: { provinceId?: string; districtId?: string; lat?: number; lng?: number; exclude?: string[] }) =>
     get<RestaurantCard | undefined>('/discover/surprise' + toQueryString(query)),
   ramadan: () => get<RamadanStatus>('/home/ramadan'),
   stampCard: (restaurantId: string) => get<StampCardOffer | null>(`/stamp-cards/${encodeURIComponent(restaurantId)}`),

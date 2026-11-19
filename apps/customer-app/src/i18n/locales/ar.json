@@ -316,7 +316,11 @@
     "everywhere": "كل العراق",
     "allOf": "كل {{name}}",
     "changeProvince": "محافظة ثانية",
-    "clear": "إلغاء المنطقة"
+    "clear": "إلغاء المنطقة",
+    "myLocation": "موقعي",
+    "myLocationHint": "الأماكن الأقرب إلك أولاً",
+    "searchHint": "دوّر على منطقة، مثلاً المنصور",
+    "noMatch": "ماكو منطقة بهذا الاسم"
   },
   "help": {
     "title": "المساعدة",

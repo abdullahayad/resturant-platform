@@ -1,13 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Location from 'expo-location';
 import { ArrowUpDown, Check, List, Map as MapIcon, MapPin, Search, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
-  Linking,
   Modal,
   Pressable,
   RefreshControl,
@@ -50,7 +47,7 @@ export default function ExploreScreen() {
   // Explore with one already picked.
   const cuisineIds = useMemo(() => (params.cuisines ? params.cuisines.split(',') : []), [params.cuisines]);
   // The area chosen on Home.
-  const { area, setArea } = useArea();
+  const { area, setArea, point, locating, setNearMe } = useArea();
 
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
@@ -61,8 +58,6 @@ export default function ExploreScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   // List or map of the same results.
   const [view, setView] = useState<'list' | 'map'>('list');
-  const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
-  const [locating, setLocating] = useState(false);
   const [results, setResults] = useState<Results | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -171,32 +166,22 @@ export default function ExploreScreen() {
   };
 
   // Asks for the location only when the customer taps Near me, and only
-  // while the app is open (no background location, see app.json).
+  // while the app is open (no background location, see app.json). Shared
+  // with Home's "My location" (lib/area.tsx).
   const toggleNearMe = async () => {
     if (point) {
-      setPoint(null);
+      await setNearMe(false);
       if (sort === 'nearest') setSort('recommended');
       return;
     }
-    setLocating(true);
-    try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t('explore.locationTitle'), t('explore.locationText'), [
-          { text: t('profile.cancel'), style: 'cancel' },
-          { text: t('explore.openSettings'), onPress: () => Linking.openSettings() },
-        ]);
-        return;
-      }
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setPoint({ lat: position.coords.latitude, lng: position.coords.longitude });
-      setSort('nearest');
-    } catch {
-      Alert.alert(t('explore.locationTitle'), t('explore.locationFailed'));
-    } finally {
-      setLocating(false);
-    }
+    if (await setNearMe(true)) setSort('nearest');
   };
+
+  // Near me switched on elsewhere (Home) - show the nearest first here too.
+  useEffect(() => {
+    if (point) setSort((s) => (s === 'recommended' ? 'nearest' : s));
+    else setSort((s) => (s === 'nearest' ? 'recommended' : s));
+  }, [!!point]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const name = (x: NamedRef) => (i18n.language === 'ar' ? x.nameAr : x.nameEn);
   const toggleCuisine = (id: string) =>

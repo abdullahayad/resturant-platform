@@ -312,7 +312,11 @@
     "everywhere": "All of Iraq",
     "allOf": "All of {{name}}",
     "changeProvince": "Another province",
-    "clear": "Clear area"
+    "clear": "Clear area",
+    "myLocation": "My location",
+    "myLocationHint": "Nearest places to you first",
+    "searchHint": "Search for an area, e.g. Mansour",
+    "noMatch": "No area with that name"
   },
   "help": {
     "title": "Help",

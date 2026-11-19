@@ -1,19 +1,22 @@
-import { Check } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { Check, LocateFixed, Search, X } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, type Province } from '../lib/api';
 import { useArea } from '../lib/area';
-import { colors } from '../theme';
+import { foldSearchText } from '../lib/searchText';
+import { colors, fonts } from '../theme';
 import { AppText } from './AppText';
 
-// "اختر منطقتك": pick a province, then all of it or one district. Baghdad's
-// districts come grouped under its zones (Rusafa / Karkh).
+// "اختر منطقتك": My location (nearest first), or a province then all of it
+// or one district - or type an area's name to jump straight to it.
+// Baghdad's districts come grouped under its zones (Rusafa / Karkh).
 export function AreaSheet({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { area, setArea } = useArea();
+  const { area, setArea, nearMe, locating, setNearMe } = useArea();
+  const [query, setQuery] = useState('');
   const [provinces, setProvinces] = useState<Province[] | null>(null);
   const [provinceId, setProvinceId] = useState<string | null>(area?.provinceId ?? null);
   const ar = i18n.language === 'ar';
@@ -42,8 +45,48 @@ export function AreaSheet({ onClose }: { onClose: () => void }) {
       ]
     : [];
 
+  type Named = { id: string; nameAr: string; nameEn: string };
+  // Picking a place to visit turns My location off - the customer is
+  // looking somewhere else now.
+  const pick = (p: Named, district?: Named) => {
+    if (nearMe) void setNearMe(false);
+    setArea({
+      provinceId: p.id,
+      provinceNameAr: p.nameAr,
+      provinceNameEn: p.nameEn,
+      districtId: district?.id,
+      districtNameAr: district?.nameAr,
+      districtNameEn: district?.nameEn,
+    });
+    onClose();
+  };
+
+  const useMyLocation = async () => {
+    if (await setNearMe(true)) {
+      setArea(null);
+      onClose();
+    }
+  };
+
+  // Typed search: districts (with their province) and provinces whose
+  // name contains the words, either language.
+  const matches = useMemo(() => {
+    const q = foldSearchText(query);
+    if (!q || !provinces) return null;
+    const hit = (x: Named) => foldSearchText(x.nameAr).includes(q) || foldSearchText(x.nameEn).includes(q);
+    const out: { key: string; province: Named; district?: Named }[] = [];
+    for (const p of provinces) {
+      if (hit(p)) out.push({ key: p.id, province: p });
+      for (const d of [...p.districts, ...p.zones.flatMap((z) => z.districts)]) {
+        if (hit(d)) out.push({ key: d.id, province: p, district: d });
+      }
+    }
+    return out.slice(0, 40);
+  }, [query, provinces]);
+
   const choose = (district?: { id: string; nameAr: string; nameEn: string }) => {
     if (!province) return;
+    if (nearMe) void setNearMe(false);
     setArea({
       provinceId: province.id,
       provinceNameAr: province.nameAr,
@@ -81,17 +124,62 @@ export function AreaSheet({ onClose }: { onClose: () => void }) {
           )}
         </View>
 
+        {!province && (
+          <View style={styles.search}>
+            <Search size={18} color={colors.mutedIcon} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('area.searchHint')}
+              placeholderTextColor={colors.mutedIcon}
+              style={styles.searchInput}
+              returnKeyType="search"
+            />
+            {!!query && (
+              <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel={t('explore.clearSearch')}>
+                <X size={18} color={colors.mutedIcon} />
+              </Pressable>
+            )}
+          </View>
+        )}
+
         {provinces === null ? (
           <ActivityIndicator color={colors.orange} style={styles.spinner} />
         ) : (
-          <ScrollView>
-            {!province ? (
+          <ScrollView keyboardShouldPersistTaps="handled">
+            {matches ? (
+              matches.length ? (
+                matches.map((m) =>
+                  row(
+                    m.district ? `${name(m.district)} · ${name(m.province)}` : t('area.allOf', { name: name(m.province) }),
+                    m.district ? area?.districtId === m.district.id : area?.provinceId === m.province.id && !area.districtId,
+                    () => pick(m.province, m.district),
+                    m.key,
+                  ),
+                )
+              ) : (
+                <AppText style={styles.noMatch}>{t('area.noMatch')}</AppText>
+              )
+            ) : !province ? (
               <>
-                {row(t('area.everywhere'), !area, () => {
+                <Pressable style={styles.row} onPress={useMyLocation} disabled={locating} accessibilityRole="radio" accessibilityState={{ checked: nearMe }}>
+                  <View style={styles.myLocation}>
+                    {locating ? <ActivityIndicator size="small" color={colors.orange} /> : <LocateFixed size={20} color={colors.orange} />}
+                    <View>
+                      <AppText weight={nearMe ? 'bold' : 'semibold'} style={styles.rowText}>
+                        {t('area.myLocation')}
+                      </AppText>
+                      <AppText style={styles.rowHint}>{t('area.myLocationHint')}</AppText>
+                    </View>
+                  </View>
+                  {nearMe && <Check size={20} color={colors.orange} strokeWidth={2.6} />}
+                </Pressable>
+                {row(t('area.everywhere'), !area && !nearMe, () => {
+                  if (nearMe) void setNearMe(false);
                   setArea(null);
                   onClose();
                 }, 'everywhere')}
-                {provinces.map((p) => row(name(p), area?.provinceId === p.id, () => setProvinceId(p.id), p.id))}
+                {provinces.map((p) => row(name(p), !nearMe && area?.provinceId === p.id, () => setProvinceId(p.id), p.id))}
               </>
             ) : (
               <>
@@ -139,4 +227,20 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   rowText: { fontSize: 16 },
+  rowHint: { fontSize: 12.5, color: colors.muted },
+  myLocation: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  search: {
+    height: 46,
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 6,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  searchInput: { flex: 1, fontFamily: fonts.regular, fontSize: 15, color: colors.text, paddingVertical: 0 },
+  noMatch: { fontSize: 14, color: colors.muted, textAlign: 'center', marginVertical: 24 },
 });

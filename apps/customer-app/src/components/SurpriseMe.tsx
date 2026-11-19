@@ -18,7 +18,7 @@ type Shown = { status: 'loading' } | { status: 'found'; restaurant: Card } | { s
 export function SurpriseMe() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { area } = useArea();
+  const { area, point } = useArea();
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState<Shown>({ status: 'loading' });
   const [seen, setSeen] = useState<string[]>([]);
@@ -27,8 +27,11 @@ export function SurpriseMe() {
     setShown({ status: 'loading' });
     try {
       const restaurant = await api.surprise({
-        provinceId: area?.provinceId,
-        districtId: area?.districtId,
+        // My location: nearby places; otherwise the chosen area.
+        provinceId: point ? undefined : area?.provinceId,
+        districtId: point ? undefined : area?.districtId,
+        lat: point?.lat,
+        lng: point?.lng,
         exclude: exclude.slice(-30),
       });
       if (restaurant) {
