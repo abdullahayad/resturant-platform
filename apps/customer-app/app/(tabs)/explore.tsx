@@ -351,7 +351,10 @@ export default function ExploreScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {header}
       {view === 'map' ? (
-        <ExploreMap restaurants={current?.items ?? []} point={point} provinceNameEn={area?.provinceNameEn} total={current?.total ?? 0} />
+        <ExploreMap restaurants={current?.items ?? []} point={point} provinceNameEn={area?.provinceNameEn} total={current?.total ?? 0}
+          onLocate={toggleNearMe}
+          locating={locating}
+        />
       ) : (
       <FlatList
         ref={listRef}

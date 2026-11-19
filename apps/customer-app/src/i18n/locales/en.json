@@ -72,7 +72,8 @@
     "mapShowing": "{{n}} of {{total}} on the map - scroll the list for more",
     "dishes_one": "1 dish",
     "dishes_other": "{{count}} dishes",
-    "places": "Places"
+    "places": "Places",
+    "myLocation": "My location"
   },
   "days": [
     "Sunday",

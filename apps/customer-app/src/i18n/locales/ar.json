@@ -76,7 +76,8 @@
     "dishes_few": "{{count}} أطباق",
     "dishes_many": "{{count}} طبقاً",
     "dishes_other": "{{count}} طبق",
-    "places": "المطاعم"
+    "places": "المطاعم",
+    "myLocation": "موقعي"
   },
   "days": [
     "الأحد",

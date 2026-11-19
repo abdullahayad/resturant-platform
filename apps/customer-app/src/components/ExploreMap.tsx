@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { Star, Utensils, X } from 'lucide-react-native';
+import { LocateFixed, Star, Utensils, X } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RestaurantCard as Card } from '../lib/api';
@@ -18,11 +18,16 @@ export function ExploreMap({
   point,
   provinceNameEn,
   total,
+  onLocate,
+  locating = false,
 }: {
   restaurants: Card[];
   point: { lat: number; lng: number } | null;
   provinceNameEn?: string | null;
   total: number;
+  // Turns on Near me (asks for the location) - the map then centres on it.
+  onLocate?: () => void;
+  locating?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -82,6 +87,27 @@ export function ExploreMap({
           />
         ))}
       </MapView>
+
+      {onLocate && (
+        <Pressable
+          style={styles.locate}
+          onPress={() => {
+            if (point) {
+              mapRef.current?.animateToRegion(
+                { latitude: point.lat, longitude: point.lng, latitudeDelta: 0.03, longitudeDelta: 0.03 },
+                400,
+              );
+            } else {
+              onLocate();
+            }
+          }}
+          disabled={locating}
+          accessibilityRole="button"
+          accessibilityLabel={t('explore.myLocation')}
+        >
+          {locating ? <ActivityIndicator color={colors.orange} /> : <LocateFixed size={22} color={point ? colors.blue : colors.navy} />}
+        </Pressable>
+      )}
 
       {pins.length < total && (
         <View style={styles.note} pointerEvents="none">
@@ -152,6 +178,22 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   noteText: { fontSize: 12.5, color: colors.text },
+  locate: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.navy,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
   card: {
     position: 'absolute',
     left: 14,
