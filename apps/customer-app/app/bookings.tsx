@@ -17,6 +17,7 @@ const STATUS_COLORS: Record<BookingStatus, { bg: string; fg: string }> = {
   CONFIRMED: { bg: colors.greenTint, fg: colors.green },
   CANCELLED: { bg: colors.surface, fg: colors.muted },
   COMPLETED: { bg: colors.blueTint, fg: colors.blue },
+  NO_SHOW: { bg: colors.surface, fg: colors.muted },
 };
 
 // When a booking happens, in Baghdad terms: recurring events store the

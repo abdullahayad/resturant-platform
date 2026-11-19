@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import { CustomerNotificationsService } from '../push/customer-notifications.service';
@@ -49,6 +49,15 @@ const reservationSelect = {
 
 // Non-cancelled reservations count against capacity.
 const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED'] as const;
+
+// No-shows: a phone with NO_SHOW_LIMIT bookings marked "didn't come" (at
+// any restaurant) within the last NO_SHOW_WINDOW_DAYS can't book until the
+// oldest of them ages out. The customer terms say so.
+export const NO_SHOW_LIMIT = 3;
+export const NO_SHOW_WINDOW_DAYS = 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Iraq is UTC+3 all year.
+const BAGHDAD_OFFSET_MS = 3 * 60 * 60 * 1000;
 
 @Injectable()
 export class EventsService {
@@ -334,6 +343,10 @@ export class EventsService {
 
     const event = await this.findBookableEvent(restaurantId, eventId);
     this.assertValidOccurrence(event, dto.reservationDate);
+    const noShows = await this.recentNoShows([normalizePhone(dto.guestPhone)]);
+    if ((noShows.get(normalizePhone(dto.guestPhone)) ?? 0) >= NO_SHOW_LIMIT) {
+      throw new ForbiddenException('Too many no-shows: booking is paused for this number');
+    }
 
     let reservation;
     try {
@@ -405,8 +418,33 @@ export class EventsService {
     });
 
     const phones = reservations.map((r) => normalizePhone(r.guestPhone));
-    const tiersByPhone = await this.loyalty.currentTiersForPhones(phones);
-    return reservations.map((r, i) => ({ ...r, guestTier: tiersByPhone.get(phones[i]) ?? null }));
+    const [tiersByPhone, noShows] = await Promise.all([
+      this.loyalty.currentTiersForPhones(phones),
+      this.recentNoShows(phones),
+    ]);
+    return reservations.map((r, i) => ({
+      ...r,
+      guestTier: tiersByPhone.get(phones[i]) ?? null,
+      // How many times this guest didn't come lately, at any restaurant -
+      // shown on the request so staff can decide.
+      guestNoShows: noShows.get(phones[i]) ?? 0,
+    }));
+  }
+
+  // NO_SHOW bookings per phone within the window.
+  private async recentNoShows(phones: string[]): Promise<Map<string, number>> {
+    const unique = [...new Set(phones)];
+    if (!unique.length) return new Map();
+    const rows = await this.prisma.db.chefTableBooking.groupBy({
+      by: ['guestPhoneNormalized'],
+      where: {
+        guestPhoneNormalized: { in: unique },
+        status: 'NO_SHOW',
+        reservationDate: { gte: new Date(Date.now() - NO_SHOW_WINDOW_DAYS * DAY_MS) },
+      },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((r) => [r.guestPhoneNormalized, r._count._all]));
   }
 
   async pendingReservationsCount(restaurantId: string) {
@@ -428,6 +466,18 @@ export class EventsService {
       },
     });
     if (!booking || booking.restaurantId !== restaurantId) throw new NotFoundException('Reservation not found');
+    if (dto.status === 'NO_SHOW' && booking.status !== 'NO_SHOW') {
+      // Only a confirmed guest can fail to show, and only once their day
+      // has come (Baghdad time) - not ahead of time.
+      if (booking.status !== 'CONFIRMED' && booking.status !== 'COMPLETED') {
+        throw new BadRequestException('Only a confirmed booking can be marked as a no-show');
+      }
+      const todayBaghdad = new Date(Date.now() + BAGHDAD_OFFSET_MS).toISOString().slice(0, 10);
+      const bookingDay = new Date(booking.reservationDate.getTime() + BAGHDAD_OFFSET_MS).toISOString().slice(0, 10);
+      if (bookingDay > todayBaghdad) {
+        throw new BadRequestException("A booking can't be marked as a no-show before its day");
+      }
+    }
     const updated = await this.prisma.db.chefTableBooking.update({
       where: { id },
       data: { status: dto.status },

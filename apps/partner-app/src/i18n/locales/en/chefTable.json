@@ -53,7 +53,8 @@
     "PENDING": "Pending",
     "CONFIRMED": "Confirmed",
     "CANCELLED": "Cancelled",
-    "COMPLETED": "Completed"
+    "COMPLETED": "Completed",
+    "NO_SHOW": "Didn't come"
   },
   "stats": {
     "total": "Total",
@@ -65,5 +66,8 @@
     "calendar": "Calendar",
     "selectDayHint": "Tap a day with bookings to see who's coming in.",
     "noBookingsThisDay": "No bookings on this day."
-  }
+  },
+  "markNoShow": "Didn't come",
+  "noShowWarning_one": "Didn't show up once recently",
+  "noShowWarning_other": "Didn't show up {{count}} times recently"
 }

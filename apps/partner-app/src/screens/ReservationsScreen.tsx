@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Users, Phone, CalendarDays, Check, X, ChevronLeft, ChevronRight, CalendarCheck2 } from 'lucide-react-native';
+import { Users, Phone, CalendarDays, Check, X, ChevronLeft, ChevronRight, CalendarCheck2, UserX, TriangleAlert } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/colors';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -22,6 +22,7 @@ const STATUS_ACCENT: Record<ReservationStatus, AccentKey> = {
   CONFIRMED: 'accentConfirmed',
   CANCELLED: 'accentCancelled',
   COMPLETED: 'accentConfirmed',
+  NO_SHOW: 'accentCancelled',
 };
 
 const STATUS_BADGE: Record<ReservationStatus, { badge: BadgeKey; text: BadgeTextKey }> = {
@@ -29,9 +30,15 @@ const STATUS_BADGE: Record<ReservationStatus, { badge: BadgeKey; text: BadgeText
   CONFIRMED: { badge: 'badgeConfirmed', text: 'badgeConfirmedText' },
   CANCELLED: { badge: 'badgeCancelled', text: 'badgeCancelledText' },
   COMPLETED: { badge: 'badgeConfirmed', text: 'badgeConfirmedText' },
+  NO_SHOW: { badge: 'badgeCancelled', text: 'badgeCancelledText' },
 };
 
-const FILTERS: (ReservationStatus | 'ALL')[] = ['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+const FILTERS: (ReservationStatus | 'ALL')[] = ['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED'];
+
+// A guest can only be marked "didn't come" once their day has arrived.
+function dayHasCome(iso: string): boolean {
+  return dateKey(iso) <= dateKey(new Date());
+}
 
 function formatReservationDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
@@ -95,7 +102,7 @@ export function ReservationsScreen() {
     setBusyId(id);
     try {
       const updated = await api.updateReservationStatus(token, id, status);
-      setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, ...updated } : r)));
     } finally {
       setBusyId(null);
     }
@@ -276,6 +283,12 @@ export function ReservationsScreen() {
                 </Text>
               </View>
             )}
+            {!!r.guestNoShows && (
+              <View style={styles.noShowWarning}>
+                <TriangleAlert size={13} color={colors.destructive} />
+                <Text style={styles.noShowWarningText}>{t('noShowWarning', { count: r.guestNoShows })}</Text>
+              </View>
+            )}
             {r.notes && <Text style={styles.notes}>{r.notes}</Text>}
 
             {(r.status === 'PENDING' || r.status === 'CONFIRMED') && (
@@ -298,6 +311,16 @@ export function ReservationsScreen() {
                   >
                     <CalendarCheck2 size={14} color={colors.primary} />
                     <Text style={styles.completeButtonText}>{t('markCompleted')}</Text>
+                  </Pressable>
+                )}
+                {r.status === 'CONFIRMED' && dayHasCome(r.reservationDate) && (
+                  <Pressable
+                    disabled={busyId === r.id}
+                    onPress={() => setReservationStatus(r.id, 'NO_SHOW')}
+                    style={[styles.actionButton, styles.cancelButton]}
+                  >
+                    <UserX size={14} color={colors.destructive} />
+                    <Text style={styles.cancelButtonText}>{t('markNoShow')}</Text>
                   </Pressable>
                 )}
                 <Pressable
@@ -392,6 +415,8 @@ const createStyles = (colors: ThemeColors, isRTL: boolean) => StyleSheet.create(
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   badgeTier: { alignSelf: 'flex-start', backgroundColor: colors.primaryTint15, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   badgeTierText: { color: colors.primary, fontSize: 11, fontWeight: '700' },
+  noShowWarning: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: colors.destructiveTint15, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  noShowWarningText: { color: colors.destructive, fontSize: 11.5, fontWeight: '700' },
   badgePending: { backgroundColor: colors.secondary },
   badgePendingText: { color: colors.mutedForeground, fontSize: 12, fontWeight: '600' },
   badgeConfirmed: { backgroundColor: colors.successTint15 },

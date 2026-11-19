@@ -53,7 +53,8 @@
     "PENDING": "قيد الانتظار",
     "CONFIRMED": "مؤكد",
     "CANCELLED": "ملغى",
-    "COMPLETED": "مكتمل"
+    "COMPLETED": "مكتمل",
+    "NO_SHOW": "لم يحضر"
   },
   "stats": {
     "total": "الإجمالي",
@@ -65,5 +66,11 @@
     "calendar": "تقويم",
     "selectDayHint": "اضغط على يوم فيه حجوزات لعرض الضيوف القادمين.",
     "noBookingsThisDay": "لا توجد حجوزات في هذا اليوم."
-  }
+  },
+  "markNoShow": "لم يحضر",
+  "noShowWarning_one": "لم يحضر مرة واحدة مؤخراً",
+  "noShowWarning_two": "لم يحضر مرتين مؤخراً",
+  "noShowWarning_few": "لم يحضر {{count}} مرات مؤخراً",
+  "noShowWarning_many": "لم يحضر {{count}} مرة مؤخراً",
+  "noShowWarning_other": "لم يحضر {{count}} مرة مؤخراً"
 }

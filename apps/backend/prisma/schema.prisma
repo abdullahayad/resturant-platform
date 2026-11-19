@@ -99,6 +99,9 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+  // The restaurant marked a confirmed guest as not having come. Too many
+  // of these within NO_SHOW_WINDOW_DAYS blocks new bookings for that phone.
+  NO_SHOW
 }
 
 enum ModerationStatus {

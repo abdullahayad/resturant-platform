@@ -19,6 +19,7 @@ const reservationStatusTones: Record<ReservationStatus, StatusPillTone> = {
   CONFIRMED: 'success',
   CANCELLED: 'destructive',
   COMPLETED: 'success',
+  NO_SHOW: 'destructive',
 }
 
 function formatSchedule(e: AdminEventItem) {

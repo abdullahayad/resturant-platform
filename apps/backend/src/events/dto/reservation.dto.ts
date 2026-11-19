@@ -35,7 +35,7 @@ export class AvailabilityQueryDto {
   date: string;
 }
 
-const STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'] as const;
+const STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'] as const;
 
 export class UpdateReservationStatusDto {
   @IsIn(STATUSES)

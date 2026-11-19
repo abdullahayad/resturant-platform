@@ -120,7 +120,8 @@
     "eventGone": "This event is no longer available.",
     "dateGone": "This date is no longer available for this event. Please pick another one.",
     "tooMany": "Too many tries. Please wait a minute and try again.",
-    "checkDetails": "Please check your details and try again."
+    "checkDetails": "Please check your details and try again.",
+    "noShowPaused": "Booking is paused for this number because of several missed bookings in the last 3 months. Please contact LiGETA support if this is a mistake."
   },
   "restaurant": {
     "notFound": "This restaurant is not available right now",
@@ -289,7 +290,8 @@
       "PENDING": "Waiting for the restaurant",
       "CONFIRMED": "Confirmed",
       "CANCELLED": "Cancelled",
-      "COMPLETED": "Done"
+      "COMPLETED": "Done",
+      "NO_SHOW": "Didn't attend"
     },
     "cancel": "Cancel booking",
     "cancelTitle": "Cancel this booking?",

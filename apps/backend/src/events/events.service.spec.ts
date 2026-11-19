@@ -1,7 +1,8 @@
 import { CustomerNotificationsService } from '../push/customer-notifications.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { EventsService } from './events.service';
+import { EventsService, NO_SHOW_LIMIT } from './events.service';
+import { normalizePhone } from '../common/phone';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
@@ -60,6 +61,8 @@ describe('EventsService', () => {
           findUnique: jest.fn(),
           findMany: jest.fn(),
           create: jest.fn(),
+          update: jest.fn(),
+          groupBy: jest.fn().mockResolvedValue([]),
         },
         $transaction: jest.fn(),
       },
@@ -80,7 +83,13 @@ describe('EventsService', () => {
           },
         },
         { provide: RestaurantActivityLogService, useValue: { log: jest.fn() } },
-        { provide: CustomerNotificationsService, useValue: { followedRestaurantNews: jest.fn().mockResolvedValue(undefined), bookingStatusChanged: jest.fn().mockResolvedValue(undefined) } },
+        {
+          provide: CustomerNotificationsService,
+          useValue: {
+            followedRestaurantNews: jest.fn().mockResolvedValue(undefined),
+            bookingStatusChanged: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -282,6 +291,75 @@ describe('EventsService', () => {
       });
 
       expect(result).toEqual({ id: 'winner' });
+    });
+  });
+
+  describe('no-shows', () => {
+    const user = { sub: 'u1', restaurantId, role: 'OWNER' } as never;
+
+    it('pauses booking for a number with too many recent no-shows', async () => {
+      prisma.db.restaurantEvent.findUnique.mockResolvedValueOnce(bookableOneOffEvent);
+      prisma.db.chefTableBooking.groupBy.mockResolvedValueOnce([
+        { guestPhoneNormalized: normalizePhone('0770'), _count: { _all: NO_SHOW_LIMIT } },
+      ]);
+
+      await expect(
+        service.createReservation(restaurantId, eventId, {
+          idempotencyKey: 'key-ns',
+          guestName: 'Ali',
+          guestPhone: '0770',
+          partySize: 2,
+          reservationDate: '2026-09-10',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.db.chefTableBooking.create).not.toHaveBeenCalled();
+    });
+
+    it('only marks a confirmed booking whose day has come', async () => {
+      const future = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+      const booking = {
+        id: 'b1',
+        restaurantId,
+        status: 'CONFIRMED',
+        reservationDate: future,
+        guestPhoneNormalized: 'x',
+        guestName: 'Ali',
+        event: { titleEn: 'E', titleAr: 'E' },
+        restaurant: { nameEn: 'R', nameAr: 'R' },
+      };
+      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce(booking);
+      await expect(service.updateReservationStatus(restaurantId, 'b1', { status: 'NO_SHOW' }, user)).rejects.toThrow(
+        BadRequestException,
+      );
+
+      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({
+        ...booking,
+        status: 'PENDING',
+        reservationDate: new Date(),
+      });
+      await expect(service.updateReservationStatus(restaurantId, 'b1', { status: 'NO_SHOW' }, user)).rejects.toThrow(
+        BadRequestException,
+      );
+
+      prisma.db.chefTableBooking.findUnique.mockResolvedValueOnce({
+        ...booking,
+        reservationDate: new Date(Date.now() - 60_000),
+      });
+      prisma.db.chefTableBooking.update.mockResolvedValueOnce({ id: 'b1', status: 'NO_SHOW' });
+      await expect(
+        service.updateReservationStatus(restaurantId, 'b1', { status: 'NO_SHOW' }, user),
+      ).resolves.toMatchObject({
+        status: 'NO_SHOW',
+      });
+    });
+
+    it("shows staff each guest's recent no-shows", async () => {
+      prisma.db.chefTableBooking.findMany.mockResolvedValueOnce([{ id: 'b1', guestPhone: '0770' }]);
+      prisma.db.chefTableBooking.groupBy.mockResolvedValueOnce([
+        { guestPhoneNormalized: normalizePhone('0770'), _count: { _all: 2 } },
+      ]);
+      const [r] = await service.listReservations(restaurantId);
+      expect(r).toMatchObject({ guestNoShows: 2 });
     });
   });
 

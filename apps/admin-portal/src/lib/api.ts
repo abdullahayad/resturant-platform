@@ -185,7 +185,7 @@ export interface CustomerStats {
   visitedThisWeek: number
 }
 
-export type CustomerBookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+export type CustomerBookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
 
 export interface CustomerDetail {
   id: string
@@ -534,7 +534,7 @@ export interface ModeratableEventItem {
   restaurant: { id: string; nameEn: string; nameAr: string; codeNumber: string }
 }
 
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
 
 export interface AdminEventItem {
   id: string

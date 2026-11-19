@@ -25,6 +25,7 @@ const MAX_PARTY = 20;
 function bookingError(e: unknown, t: (key: string) => string): string {
   if (!(e instanceof ApiError)) return t('booking.failed');
   if (e.status === 429) return t('booking.tooMany');
+  if (e.status === 403 && e.message.includes('no-shows')) return t('booking.noShowPaused');
   if (e.message.includes('fully booked')) return t('booking.fullyBooked');
   if (e.status === 404) return t('booking.eventGone');
   if (e.message.startsWith('reservationDate')) return t('booking.dateGone');

@@ -8,6 +8,7 @@ const bookingTones: Record<CustomerBookingStatus, StatusPillTone> = {
   CONFIRMED: 'success',
   CANCELLED: 'muted',
   COMPLETED: 'muted',
+  NO_SHOW: 'destructive',
 }
 
 const date = (iso: string) => new Date(iso).toLocaleDateString()

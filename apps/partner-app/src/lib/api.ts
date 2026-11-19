@@ -583,7 +583,7 @@ export type ActivityItem =
   | { type: 'reservation'; id: string; createdAt: string; guestName: string; partySize: number; eventTitleEn: string }
   | { type: 'announcement'; id: string; createdAt: string; titleEn: string; titleAr: string };
 
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
 
 export interface StampProgress {
   stamps: number;
@@ -624,6 +624,8 @@ export interface ReservationItem {
   createdAt: string;
   event: { id: string; titleEn: string; titleAr: string; capacity: number | null };
   guestTier: { labelEn: string; labelAr: string } | null;
+  // Times this guest didn't come lately (90 days, any restaurant).
+  guestNoShows?: number;
 }
 
 // Payment Accounts (Settings & Staff) - each restaurant's own ZainCash/Qi
