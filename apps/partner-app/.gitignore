@@ -39,6 +39,10 @@ yarn-error.*
 # credentials to EAS; never bundled into the app itself.
 firebase-service-account.json
 
+# Apple signing files (certificates, keys, requests) - stay on this computer;
+# EAS holds the copies it needs.
+credentials/
+
 # typescript
 *.tsbuildinfo
 
