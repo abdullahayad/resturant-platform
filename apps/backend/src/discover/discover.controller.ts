@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { DiscoverService } from './discover.service';
 import { DiscoverListsService } from './discover-lists.service';
-import { DiscoverQueryDto } from './dto/discover-query.dto';
+import { DiscoverQueryDto, SurpriseQueryDto } from './dto/discover-query.dto';
 import {
   BudgetDishesQueryDto,
   DiscoverEventsQueryDto,
@@ -24,6 +24,11 @@ export class DiscoverController {
   @Get('restaurants')
   search(@Query() query: DiscoverQueryDto) {
     return this.discover.search(query);
+  }
+
+  @Get('surprise')
+  surprise(@Query() query: SurpriseQueryDto) {
+    return this.discover.surprise(query);
   }
 
   @Get('featured')

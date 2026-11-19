@@ -4,7 +4,7 @@ import { Prisma } from '../../generated/prisma/client';
 import { pageOffset, type Paginated } from '../common/pagination';
 import { isPromotionLiveNow } from '../promotions/promotion-pricing';
 import { isOpenAt, opensAfterMidnight } from './open-now';
-import type { DiscoverQueryDto, DiscoverSort } from './dto/discover-query.dto';
+import type { DiscoverQueryDto, DiscoverSort, SurpriseQueryDto } from './dto/discover-query.dto';
 import { containsPattern, foldSearchText, foldSql } from './search-text';
 
 // Ratings are ranked with a "smoothed" average: every restaurant starts
@@ -166,6 +166,31 @@ export class DiscoverService {
     if (!ids.length) return [];
     const rows = await this.rank(ids, { sort: 'recommended', point: null, skip: 0, take: MAX_FEATURED, now });
     return this.toCards(rows, now);
+  }
+
+  // "Surprise me": one random live restaurant in the area, picked from the
+  // ones open right now when there are any. Never one already shown this
+  // round. null when the area has nothing (left).
+  async surprise(query: SurpriseQueryDto, now = new Date(), random = Math.random): Promise<RestaurantCard | null> {
+    const filter = await this.buildWhere({ provinceId: query.provinceId, districtId: query.districtId }, now);
+    if (!filter) return null;
+    const exclude = new Set(query.exclude ?? []);
+    const ids = (await this.prisma.db.restaurant.findMany({ where: filter.where, select: { id: true } }))
+      .map((r) => r.id)
+      .filter((id) => !exclude.has(id));
+    if (!ids.length) return null;
+
+    const hours = await this.prisma.db.openingHours.findMany({
+      where: { restaurantId: { in: ids } },
+      select: { restaurantId: true, dayOfWeek: true, isClosed: true, openTime: true, closeTime: true },
+    });
+    const byRestaurant = groupBy(hours, (h) => h.restaurantId);
+    const open = ids.filter((id) => isOpenAt(byRestaurant.get(id) ?? [], now) === true);
+    const pool = open.length ? open : ids;
+    const pick = pool[Math.floor(random() * pool.length)];
+
+    const rows = await this.rank([pick], { sort: 'recommended', point: null, skip: 0, take: 1, now });
+    return (await this.toCards(rows, now))[0] ?? null;
   }
 
   private readPoint(query: DiscoverQueryDto): { lat: number; lng: number } | null {

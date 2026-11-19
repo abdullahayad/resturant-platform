@@ -6,6 +6,7 @@ import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, useWin
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
 import { RamadanCard } from '../../src/components/RamadanCard';
+import { SurpriseMe } from '../../src/components/SurpriseMe';
 import { AreaSheet } from '../../src/components/AreaSheet';
 import {
   api,
@@ -286,6 +287,8 @@ export default function HomeScreen() {
             ))}
           </ScrollView>
         )}
+
+        <SurpriseMe />
 
         <AppText weight="bold" style={styles.sectionTitle}>
           {t('home.moodTitle')}

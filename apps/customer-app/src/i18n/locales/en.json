@@ -429,5 +429,15 @@
     "ready": "Reward ready: {{reward}} - show your visit code to get it",
     "signInHint": "Sign in and show your visit code to collect stamps",
     "mine": "My stamp cards"
+  },
+  "surprise": {
+    "title": "Can't decide? Surprise me",
+    "text": "We pick a place open near you right now",
+    "sheetTitle": "How about this one?",
+    "another": "Another one",
+    "go": "Let's go",
+    "none": "No more places in this area. Try another area or start over.",
+    "startOver": "Start over",
+    "failed": "Couldn't load a suggestion. Check your connection and try again."
   }
 }

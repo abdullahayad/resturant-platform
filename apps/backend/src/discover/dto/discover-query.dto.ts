@@ -117,3 +117,22 @@ export class DiscoverQueryDto extends PageQueryDto {
   @IsIn(DISCOVER_SORTS)
   sort?: DiscoverSort;
 }
+
+// "Surprise me" on Home: one random live restaurant in the chosen area.
+export class SurpriseQueryDto {
+  @IsOptional()
+  @IsUUID()
+  provinceId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  districtId?: string;
+
+  // Already shown this round ("Another one"), so they don't come back.
+  @IsOptional()
+  @Transform(toArray)
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsUUID('all', { each: true })
+  exclude?: string[];
+}

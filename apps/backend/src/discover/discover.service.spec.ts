@@ -115,6 +115,38 @@ describe('DiscoverService', () => {
     expect(result.total).toBe(1);
   });
 
+  it('searches with forgiving Arabic spelling and returns nothing when no name matches', async () => {
+    prisma.db.$queryRaw.mockResolvedValueOnce([]);
+
+    const result = await service.search({ q: 'كَبـاب' }, now);
+
+    expect(result.total).toBe(0);
+    expect(prisma.db.restaurant.findMany).not.toHaveBeenCalled();
+    expect(JSON.stringify(prisma.db.$queryRaw.mock.calls[0])).toContain('%كباب%');
+  });
+
+  describe('surprise', () => {
+    it('picks among restaurants open now, skipping ones already shown', async () => {
+      prisma.db.restaurant.findMany.mockResolvedValueOnce([{ id: 'open1' }, { id: 'shown' }, { id: 'closed' }]);
+      prisma.db.openingHours.findMany.mockResolvedValueOnce([
+        { restaurantId: 'open1', dayOfWeek: 3, isClosed: false, openTime: '09:00', closeTime: '23:00' },
+        { restaurantId: 'shown', dayOfWeek: 3, isClosed: false, openTime: '09:00', closeTime: '23:00' },
+        { restaurantId: 'closed', dayOfWeek: 3, isClosed: false, openTime: '18:00', closeTime: '23:00' },
+      ]);
+
+      await service.surprise({ provinceId: 'p1', exclude: ['shown'] }, now, () => 0.99);
+
+      const rankCall = JSON.stringify(prisma.db.$queryRaw.mock.calls[0]);
+      expect(rankCall).toContain('"open1"');
+      expect(rankCall).not.toContain('"shown"');
+    });
+
+    it('returns null when the area has nothing left', async () => {
+      prisma.db.restaurant.findMany.mockResolvedValueOnce([{ id: 'shown' }]);
+      await expect(service.surprise({ exclude: ['shown'] }, now)).resolves.toBeNull();
+    });
+  });
+
   it('rejects location queries without both coordinates', async () => {
     await expect(service.search({ sort: 'nearest' }, now)).rejects.toThrow(BadRequestException);
     await expect(service.search({ lat: 33.3 }, now)).rejects.toThrow(BadRequestException);
