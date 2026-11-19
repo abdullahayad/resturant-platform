@@ -5,11 +5,15 @@ import { pageOffset, PAGE_SIZE, type Paginated } from '../common/pagination';
 import { addDays, baghdadClock, weekdayOf } from '../common/baghdadTime';
 import { computeDiscountedPrice, isPromotionLiveNow, type PromotionForPricing } from '../promotions/promotion-pricing';
 import type { OfferSort } from './dto/discover-lists.dto';
+import { containsPattern, foldSearchText, foldSql } from './search-text';
 
 export const DEFAULT_BUDGET_PRICE = 5000;
 
 // Live = approved AND published - the same gate as Explore and the public
 // restaurant page.
+// Dish search looks at no more than this many matches.
+const MAX_DISH_MATCHES = 200;
+
 const LIVE_RESTAURANT = { status: 'APPROVED', publishStatus: 'APPROVED' } satisfies Prisma.RestaurantWhereInput;
 
 // Just enough of a restaurant to label an offer, dish or event card and
@@ -191,6 +195,30 @@ export class DiscoverListsService {
       ...(opts.cuisineId ? { restaurant: { ...LIVE_RESTAURANT, foodCategories: { some: { foodCategoryId: opts.cuisineId } } } } : {}),
     };
     return this.dishList(filter, [{ price: 'asc' }, { id: 'asc' }], pageParam, now);
+  }
+
+  // Dish search ("كباب"): the dishes themselves, shown above the
+  // restaurant results in Explore. Same forgiving matching as restaurant
+  // search; popular dishes first, then cheapest.
+  async searchDishes(q: string, pageParam: number | undefined, now = new Date()) {
+    const folded = foldSearchText(q);
+    const { page, take } = pageOffset(pageParam);
+    if (!folded) return { items: [], total: 0, page, pageSize: take };
+    const pattern = containsPattern(folded);
+    const rows = await this.prisma.db.$queryRaw<{ id: string }[]>`
+      SELECT d.id FROM dishes d JOIN restaurants r ON r.id = d."restaurantId"
+      WHERE d."isActive" AND d."moderationStatus" <> 'HIDDEN'
+        AND r.status = 'APPROVED' AND r."publishStatus" = 'APPROVED'
+        AND (${foldSql(Prisma.raw('d."nameEn"'))} LIKE ${pattern} OR ${foldSql(Prisma.raw('d."nameAr"'))} LIKE ${pattern})
+      LIMIT ${MAX_DISH_MATCHES}
+    `;
+    if (!rows.length) return { items: [], total: 0, page, pageSize: take };
+    return this.dishList(
+      { id: { in: rows.map((r) => r.id) } },
+      [{ isMostOrdered: 'desc' }, { price: 'asc' }, { id: 'asc' }],
+      pageParam,
+      now,
+    );
   }
 
   // The Home "healthy dishes" row: dishes restaurants marked healthy,

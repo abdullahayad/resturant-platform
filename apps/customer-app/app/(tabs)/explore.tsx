@@ -18,9 +18,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/AppText';
+import { DishSearchRow } from '../../src/components/DishSearchRow';
 import { ExploreMap } from '../../src/components/ExploreMap';
 import { RestaurantCard } from '../../src/components/RestaurantCard';
-import { api, type DiscoverQuery, type DiscoverSort, type NamedRef, type RestaurantCard as Card } from '../../src/lib/api';
+import { api, type BudgetDish, type DiscoverQuery, type DiscoverSort, type NamedRef, type RestaurantCard as Card } from '../../src/lib/api';
 import { useArea } from '../../src/lib/area';
 import { colors, fonts, TAB_BAR_SPACE } from '../../src/theme';
 
@@ -66,6 +67,8 @@ export default function ExploreScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const listRef = useRef<FlatList<Card>>(null);
+  // Dishes matching the search words, kept with the words they belong to.
+  const [dishes, setDishes] = useState<{ q: string; items: BudgetDish[]; total: number } | null>(null);
 
   const query = useMemo<DiscoverQuery>(
     () => ({
@@ -128,6 +131,23 @@ export default function ExploreScreen() {
       cancelled = true;
     };
   }, [fetchFirstPage]);
+
+  useEffect(() => {
+    if (!q) return;
+    let cancelled = false;
+    api
+      .searchDishes(q)
+      .then((page) => {
+        if (!cancelled) setDishes({ q, items: page.items, total: page.total });
+      })
+      .catch(() => {
+        if (!cancelled) setDishes({ q, items: [], total: 0 });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [q]);
+  const dishRow = q && dishes?.q === q && dishes.items.length ? dishes : null;
 
   const refresh = async () => {
     setRefreshing(true);
@@ -344,6 +364,7 @@ export default function ExploreScreen() {
           />
         )}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + TAB_BAR_SPACE }]}
+        ListHeaderComponent={dishRow && current?.items.length ? <DishSearchRow dishes={dishRow.items} total={dishRow.total} /> : null}
         ListEmptyComponent={empty}
         ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.orange} style={styles.more} /> : null}
         onEndReached={loadMore}

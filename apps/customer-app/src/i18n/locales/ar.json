@@ -69,7 +69,14 @@
     "list": "القائمة",
     "showMap": "اعرض على الخريطة",
     "showList": "اعرض كقائمة",
-    "mapShowing": "{{n}} من {{total}} على الخريطة، مرّر القائمة للمزيد"
+    "mapShowing": "{{n}} من {{total}} على الخريطة، مرّر القائمة للمزيد",
+    "dishes_zero": "لا أطباق",
+    "dishes_one": "طبق واحد",
+    "dishes_two": "طبقان",
+    "dishes_few": "{{count}} أطباق",
+    "dishes_many": "{{count}} طبقاً",
+    "dishes_other": "{{count}} طبق",
+    "places": "المطاعم"
   },
   "days": [
     "الأحد",

@@ -69,7 +69,10 @@
     "list": "List",
     "showMap": "Show on map",
     "showList": "Show as list",
-    "mapShowing": "{{n}} of {{total}} on the map - scroll the list for more"
+    "mapShowing": "{{n}} of {{total}} on the map - scroll the list for more",
+    "dishes_one": "1 dish",
+    "dishes_other": "{{count}} dishes",
+    "places": "Places"
   },
   "days": [
     "Sunday",

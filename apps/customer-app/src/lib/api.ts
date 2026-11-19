@@ -548,6 +548,8 @@ export const api = {
   offers: (page = 1, query: OffersQuery = {}) => get<Paginated<Offer>>('/discover/offers' + toQueryString({ page, ...query })),
   budgetDishes: (page = 1, query: BudgetQuery = {}) =>
     get<Paginated<BudgetDish>>('/discover/budget-dishes' + toQueryString({ page, ...query })),
+  // Explore search's dish row: dishes whose name matches the search words.
+  searchDishes: (q: string) => get<Paginated<BudgetDish>>('/discover/dishes' + toQueryString({ q })),
   // The Home "healthy dishes" row (same card shape as the 5,000-or-less dishes).
   healthyDishes: (page = 1) => get<Paginated<BudgetDish>>('/discover/healthy-dishes' + toQueryString({ page })),
   events: (query: EventsQuery = {}) => get<Paginated<EventItem>>('/discover/events' + toQueryString(query)),

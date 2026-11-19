@@ -1,5 +1,19 @@
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsLatitude, IsLongitude, IsOptional, IsUUID, Matches, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsLatitude,
+  IsLongitude,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { PageQueryDto } from '../../common/pagination';
 
 const toBoolean = ({ value }: { value: unknown }) => value === true || value === 'true';
@@ -51,6 +65,13 @@ export class BudgetDishesQueryDto extends PageQueryDto {
   @Transform(toBoolean)
   @IsBoolean()
   healthyOnly?: boolean;
+}
+
+export class DishSearchQueryDto extends PageQueryDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  q!: string;
 }
 
 export class DiscoverEventsQueryDto extends PageQueryDto {

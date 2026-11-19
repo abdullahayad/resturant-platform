@@ -5,6 +5,7 @@ import { pageOffset, type Paginated } from '../common/pagination';
 import { isPromotionLiveNow } from '../promotions/promotion-pricing';
 import { isOpenAt, opensAfterMidnight } from './open-now';
 import type { DiscoverQueryDto, DiscoverSort } from './dto/discover-query.dto';
+import { containsPattern, foldSearchText, foldSql } from './search-text';
 
 // Ratings are ranked with a "smoothed" average: every restaurant starts
 // with PRIOR_WEIGHT imaginary reviews of PRIOR_MEAN stars, so one lucky
@@ -202,19 +203,13 @@ export class DiscoverService {
     // Healthy mode: only restaurants whose Healthy tag an admin approved.
     if (query.healthyOnly) and.push({ healthyStatus: 'APPROVED' });
 
-    const q = query.q?.trim();
+    // Search words match restaurant, chain, type, cuisine and dish names,
+    // forgiving Arabic spelling (see search-text.ts).
+    const q = query.q ? foldSearchText(query.q) : '';
     if (q) {
-      const contains = (field: 'nameEn' | 'nameAr') => ({ [field]: { contains: q, mode: 'insensitive' as const } });
-      const nameMatch = [contains('nameEn'), contains('nameAr')];
-      and.push({
-        OR: [
-          ...nameMatch,
-          { chain: { OR: nameMatch } },
-          { businessTypes: { some: { businessType: { OR: nameMatch } } } },
-          { foodCategories: { some: { foodCategory: { OR: nameMatch } } } },
-          { dishes: { some: { isActive: true, moderationStatus: { not: 'HIDDEN' }, OR: nameMatch } } },
-        ],
-      });
+      const ids = await this.restaurantsMatching(q);
+      if (!ids.length) return null;
+      and.push({ id: { in: ids } });
     }
 
     if (query.moodId) {
@@ -258,6 +253,33 @@ export class DiscoverService {
     }
 
     return { where: { AND: and }, afterMidnight };
+  }
+
+  private async restaurantsMatching(folded: string): Promise<string[]> {
+    const pattern = containsPattern(folded);
+    const like = (column: string) => Prisma.sql`${foldSql(Prisma.raw(column))} LIKE ${pattern}`;
+    const either = (alias: string) => Prisma.sql`(${like(`${alias}."nameEn"`)} OR ${like(`${alias}."nameAr"`)})`;
+    const rows = await this.prisma.db.$queryRaw<{ id: string }[]>`
+      SELECT r.id FROM restaurants r
+      LEFT JOIN restaurant_chains c ON c.id = r."chainId"
+      WHERE r.status = 'APPROVED' AND r."publishStatus" = 'APPROVED' AND (
+        ${either('r')}
+        OR (c.id IS NOT NULL AND ${either('c')})
+        OR EXISTS (
+          SELECT 1 FROM restaurant_business_types rb JOIN business_types b ON b.id = rb."businessTypeId"
+          WHERE rb."restaurantId" = r.id AND ${either('b')}
+        )
+        OR EXISTS (
+          SELECT 1 FROM restaurant_food_categories rf JOIN food_categories f ON f.id = rf."foodCategoryId"
+          WHERE rf."restaurantId" = r.id AND ${either('f')}
+        )
+        OR EXISTS (
+          SELECT 1 FROM dishes d
+          WHERE d."restaurantId" = r.id AND d."isActive" AND d."moderationStatus" <> 'HIDDEN' AND ${either('d')}
+        )
+      )
+    `;
+    return rows.map((r) => r.id);
   }
 
   private async restaurantsWithLiveOffer(ids: string[], now: Date): Promise<Set<string>> {
