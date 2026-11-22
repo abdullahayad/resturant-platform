@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -192,7 +193,13 @@ export class RestaurantsService {
       { type: 'register-pending', data, ownerPasswordHash, codeHash },
       { expiresIn: '15m' },
     );
-    await this.sendRegistrationCodeEmail(dto.ownerEmail, code);
+    // Unlike password reset, there's nothing to hide here: if the code
+    // can't be emailed, say so instead of leaving the owner waiting.
+    if (!(await this.sendRegistrationCodeEmail(dto.ownerEmail, code))) {
+      throw new ServiceUnavailableException(
+        "We couldn't send the verification email. Please try again in a few minutes.",
+      );
+    }
     return { pendingToken };
   }
 

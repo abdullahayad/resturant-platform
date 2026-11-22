@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -193,6 +199,14 @@ describe('RestaurantsService', () => {
       expect(email.send).toHaveBeenCalledTimes(1);
       const [, , body] = email.send.mock.calls[0] as [string, string, string];
       expect(body).toMatch(/<h1[^>]*>\d{6}<\/h1>/);
+    });
+
+    it("tells the owner when the code email couldn't be sent", async () => {
+      prisma.db.restaurant.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+      jwt.signAsync.mockResolvedValueOnce('pending-token');
+      email.send.mockResolvedValueOnce(false);
+
+      await expect(service.startRegister(baseRegisterDto)).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('never puts the plaintext password in the signed token', async () => {
