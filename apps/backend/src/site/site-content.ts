@@ -11,8 +11,8 @@ export interface Section {
 }
 
 export const APP_LEGAL_UPDATED: Record<Lang, string> = {
-  en: 'November 16, 2026',
-  ar: '١٦ تشرين الثاني ٢٠٢٦',
+  en: 'November 22, 2026',
+  ar: '٢٢ تشرين الثاني ٢٠٢٦',
 };
 
 export const APP_PRIVACY: Record<Lang, Section[]> = {
@@ -45,7 +45,7 @@ export const APP_PRIVACY: Record<Lang, Section[]> = {
       heading: '4. What others can see',
       body: [
         'Public: reviews show the name you chose, your stars, text and photos, and a "verified visit" badge if a restaurant scanned your visit code. If you become a critic, your critic page shows your reviews and follower count.',
-        'Restaurants: a restaurant you book with receives the name, phone number, party size and notes you entered for that booking. A restaurant you follow, or that scans your visit code, sees your account name - or only the last four digits of your number if you have not set a name. Restaurants never see your full phone number from reviews.',
+        'Restaurants: a restaurant you book with receives the name, phone number, party size and notes you entered for that booking. A restaurant you follow, or that scans your visit code, sees your account name - or only the last four digits of your number if you have not set a name. Restaurants never see your full phone number from reviews. If a restaurant marks that you did not come to a confirmed booking, restaurants you book with later see how many bookings you missed in the last 90 days, and 3 missed bookings in 90 days pause booking for your number until the oldest one is more than 90 days old.',
         'We do not sell your personal information and we do not use it for third-party advertising.',
       ],
     },
@@ -124,7 +124,7 @@ export const APP_PRIVACY: Record<Lang, Section[]> = {
       heading: '٤. ما الذي يراه الآخرون',
       body: [
         'للعامة: تظهر تقييماتك بالاسم الذي اخترته مع النجوم والنص والصور، وشارة "زيارة موثّقة" إذا مسح المطعم رمز زيارتك. إذا أصبحت ناقداً، تعرض صفحتك تقييماتك وعدد متابعيك.',
-        'المطاعم: المطعم الذي تحجز فيه يستلم الاسم والرقم وعدد الأشخاص والملاحظات التي كتبتها لذلك الحجز. والمطعم الذي تتابعه أو يمسح رمز زيارتك يرى اسم حسابك، أو آخر أربعة أرقام من رقمك فقط إذا لم تضع اسماً. لا ترى المطاعم رقمك الكامل من التقييمات.',
+        'المطاعم: المطعم الذي تحجز فيه يستلم الاسم والرقم وعدد الأشخاص والملاحظات التي كتبتها لذلك الحجز. والمطعم الذي تتابعه أو يمسح رمز زيارتك يرى اسم حسابك، أو آخر أربعة أرقام من رقمك فقط إذا لم تضع اسماً. لا ترى المطاعم رقمك الكامل من التقييمات. إذا أشار مطعم إلى أنك لم تحضر لحجز مؤكد، فإن المطاعم التي تحجز فيها لاحقاً ترى عدد الحجوزات التي لم تحضرها خلال آخر 90 يوماً، و3 حجوزات لم تحضرها خلال 90 يوماً توقف الحجز لرقمك حتى يمضي على أقدمها أكثر من 90 يوماً.',
         'لا نبيع معلوماتك الشخصية ولا نستخدمها لإعلانات جهات أخرى.',
       ],
     },

@@ -3,7 +3,7 @@ export interface LegalSection {
   body: string;
 }
 
-export const LEGAL_LAST_UPDATED = 'October 8, 2026';
+export const LEGAL_LAST_UPDATED = 'November 22, 2026';
 
 export const TERMS_OF_SERVICE: LegalSection[] = [
   {
@@ -127,7 +127,9 @@ export const PRIVACY_POLICY: LegalSection[] = [
       'never in plain text). Business information: restaurant name, location, business category, opening ' +
       'hours, menu, photos, and any events or promotions you create. Verification documents: photos of your ' +
       'business license or inspection approval, if you choose to submit them. These are stored privately and ' +
-      'are only visible to platform administrators. Device location: only when you tap the "use my location" ' +
+      'are only visible to platform administrators. Payment account details: the merchant ID and secret key of a ' +
+      'ZainCash or Qi Card account, if you choose to connect one; the secret key is stored encrypted. Camera: ' +
+      'used only while you scan a customer’s visit code; no photo or video is saved or sent. Device location: only when you tap the "use my location" ' +
       'button to place your restaurant on the map. Location is never collected in the background. Camera: only ' +
       'while you are on the "Scan Visit" screen, to read a customer\'s visit QR code. No photos or video are ' +
       'taken or stored - only the code itself is sent to record the visit. Device and ' +
@@ -147,7 +149,11 @@ export const PRIVACY_POLICY: LegalSection[] = [
     body:
       'Your business profile (name, photos, menu, hours, events, promotions, and public reviews) is visible ' +
       'to platform administrators and, once published, is intended to be shown to customers browsing the ' +
-      'platform. We do not sell your information to third parties. We may share information with service ' +
+      'platform. Customer information: when customers book with you or you scan their visit code, you receive ' +
+      'what is needed to serve them - the name, phone number, party size and notes of a booking, a visiting ' +
+      'customer’s account name and visit history with you, and how many bookings that guest recently missed ' +
+      'at restaurants on the platform. You may use it only to serve those customers, not for unrelated ' +
+      'marketing or to pass to others. We do not sell your information to third parties. We may share information with service ' +
       'providers who help us operate the platform (such as hosting, file storage, push notification, crash ' +
       'reporting, and product analytics providers), only for that purpose, or where required by law.',
   },

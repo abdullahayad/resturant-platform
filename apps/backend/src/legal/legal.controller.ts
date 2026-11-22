@@ -4,7 +4,7 @@ import { Controller, Get, Header } from '@nestjs/common';
 // rather than shared across packages — this is the publicly hosted version
 // app stores require a real URL for; the in-app version is what actually
 // governs partner-app usage. Keep both in sync when the content changes.
-const LAST_UPDATED = 'October 8, 2026';
+const LAST_UPDATED = 'November 22, 2026';
 
 interface Section {
   heading: string;
@@ -19,7 +19,9 @@ const PRIVACY_POLICY: Section[] = [
       'never in plain text). Business information: restaurant name, location, business category, opening ' +
       'hours, menu, photos, and any events or promotions you create. Verification documents: photos of your ' +
       'business license or inspection approval, if you choose to submit them. These are stored privately and ' +
-      'are only visible to platform administrators. Device location: only when you tap the "use my location" ' +
+      'are only visible to platform administrators. Payment account details: the merchant ID and secret key of a ' +
+      'ZainCash or Qi Card account, if you choose to connect one; the secret key is stored encrypted. Camera: ' +
+      'used only while you scan a customer’s visit code; no photo or video is saved or sent. Device location: only when you tap the "use my location" ' +
       'button to place your restaurant on the map. Location is never collected in the background. Device and ' +
       'usage information: actions taken in the partner dashboard (such as sign-ins and content you publish), ' +
       'a push notification token if you allow notifications, and crash and error reports, which include your ' +
@@ -37,7 +39,11 @@ const PRIVACY_POLICY: Section[] = [
     body:
       'Your business profile (name, photos, menu, hours, events, promotions, and public reviews) is visible ' +
       'to platform administrators and, once published, is intended to be shown to customers browsing the ' +
-      'platform. We do not sell your information to third parties. We may share information with service ' +
+      'platform. Customer information: when customers book with you or you scan their visit code, you receive ' +
+      'what is needed to serve them - the name, phone number, party size and notes of a booking, a visiting ' +
+      'customer’s account name and visit history with you, and how many bookings that guest recently missed ' +
+      'at restaurants on the platform. You may use it only to serve those customers, not for unrelated ' +
+      'marketing or to pass to others. We do not sell your information to third parties. We may share information with service ' +
       'providers who help us operate the platform (such as hosting, file storage, push notification, crash ' +
       'reporting, and product analytics providers), only for that purpose, or where required by law.',
   },
