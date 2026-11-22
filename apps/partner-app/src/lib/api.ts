@@ -583,6 +583,14 @@ export type ActivityItem =
   | { type: 'reservation'; id: string; createdAt: string; guestName: string; partySize: number; eventTitleEn: string }
   | { type: 'announcement'; id: string; createdAt: string; titleEn: string; titleAr: string };
 
+// Admin portal > App > App updates: the lowest version this app may run.
+export interface AppUpdateRule {
+  minVersion: string | null;
+  mode: 'force' | 'soft';
+  androidUrl: string;
+  iosUrl: string | null;
+}
+
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
 
 export interface StampProgress {
@@ -763,6 +771,7 @@ async function postMultipart<T>(token: string, path: string, file: UploadableFil
 }
 
 export const api = {
+  appUpdateRule: () => get<AppUpdateRule>('/app-version/partner'),
   businessTypes: () => get<MasterDataItem[]>('/master-data/business-types'),
   foodCategories: () => get<MasterDataItem[]>('/master-data/food-categories'),
   facilities: () => get<MasterDataItem[]>('/master-data/facilities'),

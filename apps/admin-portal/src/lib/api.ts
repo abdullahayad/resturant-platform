@@ -566,6 +566,17 @@ export interface AdminEventReservationItem {
   createdAt: string
 }
 
+// App Updates page: the lowest app version allowed, per app.
+export interface AppUpdateRule {
+  minVersion: string | null
+  mode: 'force' | 'soft'
+  iosUrl: string | null
+}
+export interface AppVersionSettings {
+  customer: AppUpdateRule
+  partner: AppUpdateRule
+}
+
 export interface RamadanSettings {
   enabled: boolean
   startDate: string
@@ -976,6 +987,8 @@ export const api = {
 
   homeBanners: () => get<HomeBanner[]>('/home/banners/admin'),
   ramadanSettings: () => get<RamadanSettings>('/home/ramadan/admin'),
+  appVersionSettings: () => get<AppVersionSettings>('/app-version/admin'),
+  updateAppVersionSettings: (payload: AppVersionSettings) => send<AppVersionSettings>('PUT', '/app-version/admin', payload),
   updateRamadanSettings: (payload: RamadanSettings) => send<RamadanSettings>('PUT', '/home/ramadan/admin', payload),
   createHomeBanner: (payload: HomeBannerPayload) => send<HomeBanner>('POST', '/home/banners/admin', payload),
   updateHomeBanner: (id: string, payload: HomeBannerPayload) =>

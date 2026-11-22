@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard,
+  Download,
   ClipboardCheck,
   Store,
   Tags,
@@ -111,6 +112,7 @@ export const workspaces: Workspace[] = [
       { label: 'Master Data', path: '/master-data', icon: Tags },
       { label: 'Cities & Districts', path: '/locations', icon: MapPin },
       { label: 'Feature Flags', path: '/feature-flags', icon: ToggleLeft },
+      { label: 'App Updates', path: '/app-updates', icon: Download },
       { label: 'Admin Users', path: '/admins', icon: ShieldCheck, superAdminOnly: true },
     ],
   },

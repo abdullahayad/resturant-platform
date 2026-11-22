@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { loadSavedLanguage } from '../src/i18n';
 import * as Notifications from 'expo-notifications';
 import { SystemBarShade } from '../src/components/SystemBarShade';
+import { UpdateGate } from '../src/components/UpdateGate';
 import { AreaProvider } from '../src/lib/area';
 import { openFromNotification } from '../src/lib/push';
 import { AuthProvider } from '../src/lib/auth';
@@ -95,6 +96,7 @@ function RootLayout() {
         <Stack.Screen name="critic/[id]" />
       </Stack>
       <SystemBarShade />
+      <UpdateGate />
       </SavedProvider>
       </AreaProvider>
     </AuthProvider>

@@ -19,6 +19,7 @@ import { EventBookingsPage } from '@/pages/EventBookingsPage'
 import { PublishReviewPage } from '@/pages/PublishReviewPage'
 import { ContentModerationPage } from '@/pages/ContentModerationPage'
 import { FeatureFlagsPage } from '@/pages/FeatureFlagsPage'
+import { AppUpdatesPage } from '@/pages/AppUpdatesPage'
 import { CustomersPage } from '@/pages/CustomersPage'
 import { CustomerReportsPage } from '@/pages/CustomerReportsPage'
 import { CustomerSupportPage } from '@/pages/CustomerSupportPage'
@@ -58,6 +59,7 @@ function App() {
           <Route path="event-bookings" element={<EventBookingsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="feature-flags" element={<FeatureFlagsPage />} />
+          <Route path="app-updates" element={<AppUpdatesPage />} />
           <Route path="admins" element={<AdminUsersPage />} />
         </Route>
       </Route>

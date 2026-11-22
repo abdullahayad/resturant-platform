@@ -57,6 +57,14 @@ async function request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: str
 
 const get = <T>(path: string) => request<T>('GET', path);
 
+// Admin > App > App updates: the lowest version this app may run.
+export interface AppUpdateRule {
+  minVersion: string | null;
+  mode: 'force' | 'soft';
+  androidUrl: string;
+  iosUrl: string | null;
+}
+
 export type MoodGroup = 'CLASSIC' | 'PEOPLE' | 'PLACE' | 'TIME' | 'FOOD' | 'SEASONAL';
 
 // A "What's the mood today?" tile, managed from the admin portal's
@@ -538,6 +546,7 @@ function toQueryString(query: object): string {
 
 export const api = {
   moods: () => get<Mood[]>('/moods'),
+  appUpdateRule: () => get<AppUpdateRule>('/app-version/customer'),
   restaurants: (query: DiscoverQuery = {}) =>
     get<Paginated<RestaurantCard>>('/discover/restaurants' + toQueryString(query)),
   featured: () => get<RestaurantCard[]>('/discover/featured'),

@@ -45,5 +45,13 @@
     "unread_one": "You have a new announcement from the platform team.",
     "unread_other": "You have {{count}} new announcements from the platform team.",
     "view": "View"
+  },
+  "update": {
+    "title": "A new version of LiGETA Restaurant is here",
+    "text": "Please update the app to keep managing your restaurant. It only takes a moment.",
+    "textSoft": "Update now to get the latest features and fixes.",
+    "button": "Update now",
+    "later": "Later",
+    "version": "Your version: {{version}}"
   }
 }

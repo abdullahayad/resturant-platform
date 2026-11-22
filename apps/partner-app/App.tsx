@@ -20,6 +20,7 @@ import { AuthContext } from './src/lib/AuthContext';
 import { IntroOverlay } from './src/components/IntroOverlay';
 import { AnalyticsProvider, useAnalytics } from './src/lib/analytics';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { UpdateGate } from './src/components/UpdateGate';
 
 type AuthView = 'landing' | 'register' | 'signIn' | 'forgotPassword';
 type Session = StoredSession;
@@ -38,6 +39,7 @@ export default function App() {
           <ThemeProvider>
             <LanguageProvider>
               <AppContent />
+              <UpdateGate />
             </LanguageProvider>
           </ThemeProvider>
         </AnalyticsProvider>
