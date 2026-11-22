@@ -75,5 +75,6 @@
     "saved": "Saved - customers see it on your page.",
     "failed": "Could not save. Check your connection.",
     "needReward": "Write the reward in both languages to switch it on."
-  }
+  },
+  "scanAfterPublish": "Available once LiGETA approves and publishes your restaurant. Send it for review from the Inbox."
 }

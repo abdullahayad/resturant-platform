@@ -22,5 +22,6 @@
     "APPROVED": "Approved",
     "REJECTED": "Rejected",
     "REVOKED": "Revoked"
-  }
+  },
+  "featuredAfterPublish": "You can request to be featured once LiGETA approves and publishes your restaurant. Send it for review from the Inbox."
 }

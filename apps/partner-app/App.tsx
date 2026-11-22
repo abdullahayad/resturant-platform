@@ -214,9 +214,14 @@ function AppContent() {
           {view === 'register' && (
             <RegisterRestaurantScreen
               onBack={() => setView('landing')}
-              onRegistered={() => {
+              onRegistered={(signedIn) => {
                 track('restaurant_registered');
-                setView('landing');
+                if (signedIn) {
+                  identify(signedIn.restaurant.id, { name: signedIn.restaurant.nameEn, status: signedIn.restaurant.status });
+                  setSession({ token: signedIn.accessToken, restaurant: signedIn.restaurant, staff: signedIn.staff });
+                } else {
+                  setView('signIn');
+                }
               }}
             />
           )}

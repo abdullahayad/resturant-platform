@@ -8,6 +8,7 @@ import type { ThemeColors } from '../theme/colors';
 import { FormField } from '../components/FormField';
 import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
+import { useIsPublished } from '../hooks/useIsPublished';
 import { api, type FeaturedPlacementItem } from '../lib/api';
 import { radii, cardShadow } from '../theme/tokens';
 
@@ -20,6 +21,7 @@ function formatDateRange(p: FeaturedPlacementItem, t: TFunction): string {
 
 export function AdvertisingScreen() {
   const { token } = useAuth();
+  const published = useIsPublished();
   const { colors } = useTheme();
   const { t } = useTranslation('advertising');
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -107,7 +109,14 @@ export function AdvertisingScreen() {
         </View>
       )}
 
-      {!pendingRequest && (
+      {!pendingRequest && published === false && (
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>{t('requestToBeFeatured')}</Text>
+          <Text style={styles.cardMeta}>{t('featuredAfterPublish')}</Text>
+        </View>
+      )}
+
+      {!pendingRequest && published !== false && (
         <View style={styles.formCard}>
           <Text style={styles.formTitle}>{t('requestToBeFeatured')}</Text>
           <FormField

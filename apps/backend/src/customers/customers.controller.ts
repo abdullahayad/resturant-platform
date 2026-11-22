@@ -38,6 +38,7 @@ import {
 } from './dto/customer.dto';
 import { PageQueryDto } from '../common/pagination';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
+import { PublishedPartnerGuard } from '../auth/guards/published-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
@@ -289,14 +290,15 @@ export class VisitsController {
   ) {}
 
   // The cashier hands over a stamp-card reward from the scan result.
-  @UseGuards(ApprovedPartnerGuard)
+  // Visits and rewards reach customers' levels, so only once published.
+  @UseGuards(PublishedPartnerGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('reward')
   reward(@Req() req: { user: PartnerJwtPayload }, @Body() dto: RedeemStampRewardDto) {
     return this.stampCards.redeem(req.user, dto.customerId);
   }
 
-  @UseGuards(ApprovedPartnerGuard)
+  @UseGuards(PublishedPartnerGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('scan')
   scan(@Req() req: { user: PartnerJwtPayload }, @Body() dto: ScanVisitDto) {

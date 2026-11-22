@@ -12,6 +12,7 @@ import { StarRating } from '../components/StarRating';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { useAuth } from '../lib/AuthContext';
+import { useIsPublished } from '../hooks/useIsPublished';
 import { api, type Review, type ReviewSummary } from '../lib/api';
 import { setReviewsLastSeen } from '../lib/reviewsSeen/storage';
 import { ReviewQrModal } from '../components/ReviewQrModal';
@@ -30,6 +31,7 @@ const categoryIcons: Record<string, LucideIcon> = {
 
 export function CustomerReviewsScreen() {
   const { token, enabledKeys, restaurant } = useAuth();
+  const published = useIsPublished();
   const { colors } = useTheme();
   const { t } = useTranslation('reviews');
   const tier = useBreakpoint();
@@ -245,11 +247,13 @@ export function CustomerReviewsScreen() {
               </View>
               <View style={styles.flex1}>
                 <Text style={styles.qrCardTitle}>{t('scanCardTitle')}</Text>
-                <Text style={styles.qrCardBody}>{t('scanCardBody')}</Text>
+                <Text style={styles.qrCardBody}>{published === false ? t('scanAfterPublish') : t('scanCardBody')}</Text>
               </View>
-              <Pressable style={styles.qrCardButton} onPress={() => setScanVisible(true)}>
-                <Text style={styles.qrCardButtonText}>{t('scanCardButton')}</Text>
-              </Pressable>
+              {published !== false && (
+                <Pressable style={styles.qrCardButton} onPress={() => setScanVisible(true)}>
+                  <Text style={styles.qrCardButtonText}>{t('scanCardButton')}</Text>
+                </Pressable>
+              )}
             </View>
           )}
 

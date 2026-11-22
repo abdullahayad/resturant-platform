@@ -246,6 +246,10 @@ export class RestaurantsService {
           phone: data.phone,
           ownerEmail: data.ownerEmail,
           ownerPasswordHash,
+          // No account approval step: a new owner starts setting up right
+          // away. The publish review is what gates customers seeing them,
+          // and customer-facing actions wait for it (PublishedPartnerGuard).
+          status: 'APPROVED',
           termsAcceptedAt: new Date(),
           provinceId: data.provinceId,
           districtId: data.districtId,

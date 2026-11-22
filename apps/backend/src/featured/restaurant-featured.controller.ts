@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nes
 import { FeaturedService } from './featured.service';
 import { RequestFeaturedDto } from './dto/featured.dto';
 import { ApprovedPartnerGuard } from '../auth/guards/approved-partner.guard';
+import { PublishedPartnerGuard } from '../auth/guards/published-partner.guard';
 import { ManagerOrOwnerGuard } from '../auth/guards/manager-or-owner.guard';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 
@@ -15,7 +16,8 @@ export class RestaurantFeaturedController {
     return this.featured.listForRestaurant(req.user.sub);
   }
 
-  @UseGuards(ApprovedPartnerGuard, ManagerOrOwnerGuard)
+  // Paid placement shows the restaurant to customers - only once published.
+  @UseGuards(PublishedPartnerGuard, ManagerOrOwnerGuard)
   @Post()
   request(@Req() req: { user: PartnerJwtPayload }, @Body() dto: RequestFeaturedDto) {
     return this.featured.request(req.user.sub, dto, req.user);

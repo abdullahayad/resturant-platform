@@ -11,11 +11,13 @@ import { LegalDocumentModal } from '../../components/LegalDocumentModal';
 import { BrandMark } from '../../components/BrandMark';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../lib/legalContent';
 import { localizedName } from '../../lib/localizedName';
-import { api, type MasterDataItem, type Province } from '../../lib/api';
+import { api, type MasterDataItem, type PartnerLoginResult, type Province } from '../../lib/api';
 
 interface RegisterRestaurantScreenProps {
   onBack: () => void;
-  onRegistered: () => void;
+  // With a login result the new owner goes straight into the app; without
+  // one (auto sign-in failed) they're sent back to sign in themselves.
+  onRegistered: (signedIn?: PartnerLoginResult) => void;
 }
 
 // Iraqi domestic numbers are written with or without the leading 0
@@ -169,7 +171,14 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
     setVerifying(true);
     try {
       await api.confirmRegisterRestaurant(pendingToken, verifyCode.trim());
-      setSubmitted(true);
+      // No approval wait any more: sign the owner in so they can start
+      // setting up. If that fails for any reason, show the success screen.
+      try {
+        onRegistered(await api.login(email.trim(), password));
+        return;
+      } catch {
+        setSubmitted(true);
+      }
     } catch (err) {
       setVerifyError(err instanceof Error ? err.message : t('register.genericError'));
     } finally {
@@ -202,7 +211,7 @@ export function RegisterRestaurantScreen({ onBack, onRegistered }: RegisterResta
           </View>
           <Text style={styles.successTitle}>{t('register.successTitle')}</Text>
           <Text style={styles.successBody}>{t('register.successBody')}</Text>
-          <Pressable style={[styles.button, styles.primaryButton]} onPress={onRegistered}>
+          <Pressable style={[styles.button, styles.primaryButton]} onPress={() => onRegistered()}>
             <Text style={styles.primaryButtonText}>{t('register.backToSignIn')}</Text>
           </Pressable>
         </View>
