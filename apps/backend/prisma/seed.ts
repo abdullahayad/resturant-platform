@@ -106,7 +106,7 @@ const facilities = [
   ['Air Conditioning', 'تكييف'],
   ['Wheelchair Accessible', 'مناسب لذوي الإعاقة'],
   ['Card Payment', 'دفع بالبطاقة'],
-  ['Shisha', 'شيشة'],
+  ['Smoking Area', 'منطقة تدخين'],
   ['Kids Area', 'منطقة أطفال'],
   // Dining-occasion tags - so customers can eventually filter by the kind
   // of experience they want, separately from BusinessType (what kind of

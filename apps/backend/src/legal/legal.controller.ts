@@ -4,7 +4,7 @@ import { Controller, Get, Header } from '@nestjs/common';
 // rather than shared across packages — this is the publicly hosted version
 // app stores require a real URL for; the in-app version is what actually
 // governs partner-app usage. Keep both in sync when the content changes.
-const LAST_UPDATED = 'November 22, 2026';
+const LAST_UPDATED = 'November 25, 2026';
 
 interface Section {
   heading: string;
@@ -163,8 +163,9 @@ const TERMS_OF_SERVICE: Section[] = [
     body:
       'You may not: submit false or misleading business information; post content that is unlawful, ' +
       'defamatory, or infringes someone else’s rights; attempt to manipulate reviews or ratings; use the ' +
-      'platform to harass staff, customers, or other restaurants; or attempt to gain unauthorized access to ' +
-      'accounts or data that are not yours.',
+      'platform to harass staff, customers, or other restaurants; list, offer, or advertise alcohol, tobacco, ' +
+      'or shisha products (saying that you have a smoking area is allowed); or attempt to gain unauthorized ' +
+      'access to accounts or data that are not yours.',
   },
   {
     heading: '10. Suspension & Termination',
