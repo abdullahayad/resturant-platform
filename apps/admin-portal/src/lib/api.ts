@@ -566,6 +566,15 @@ export interface AdminEventReservationItem {
   createdAt: string
 }
 
+export interface InfoOverdueItem {
+  id: string
+  nameEn: string
+  nameAr: string
+  phone: string
+  everConfirmed: boolean
+  days: number
+}
+
 // App Updates page: the lowest app version allowed, per app.
 export interface AppUpdateRule {
   minVersion: string | null
@@ -987,6 +996,7 @@ export const api = {
 
   homeBanners: () => get<HomeBanner[]>('/home/banners/admin'),
   ramadanSettings: () => get<RamadanSettings>('/home/ramadan/admin'),
+  infoOverdue: () => get<InfoOverdueItem[]>('/info-check/admin'),
   appVersionSettings: () => get<AppVersionSettings>('/app-version/admin'),
   updateAppVersionSettings: (payload: AppVersionSettings) => send<AppVersionSettings>('PUT', '/app-version/admin', payload),
   updateRamadanSettings: (payload: RamadanSettings) => send<RamadanSettings>('PUT', '/home/ramadan/admin', payload),

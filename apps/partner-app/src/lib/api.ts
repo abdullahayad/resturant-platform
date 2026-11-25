@@ -844,6 +844,8 @@ export const api = {
   },
 
   me: (token: string) => get<RestaurantDetail>('/restaurants/me', token),
+  infoCheck: (token: string) => get<{ due: boolean; lastCheckedAt: string }>('/info-check/me', token),
+  confirmInfo: (token: string) => send<{ due: boolean }>('POST', '/info-check/me/confirm', token),
   updateMe: (token: string, payload: UpdateRestaurantProfilePayload) =>
     send<RestaurantDetail>('PATCH', '/restaurants/me', token, payload),
   updateOpeningHours: (token: string, days: OpeningHoursDay[]) =>

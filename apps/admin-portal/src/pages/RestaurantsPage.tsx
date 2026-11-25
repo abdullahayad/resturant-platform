@@ -21,6 +21,7 @@ import { Switch } from '@/components/Switch'
 import { StatusPill, type StatusPillTone } from '@/components/StatusPill'
 import { Pager } from '@/components/Pager'
 import { SupportSessionModal } from '@/components/SupportSessionModal'
+import { InfoOverdueCard } from '@/components/InfoOverdueCard'
 import { ReviewQrModal } from '@/components/ReviewQrModal'
 
 const statusFilters: { key: RestaurantStatus | 'ALL'; label: string }[] = [
@@ -306,6 +307,8 @@ export function RestaurantsPage() {
           Export CSV ({total})
         </button>
       </div>
+
+      <InfoOverdueCard />
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-card px-4 py-2.5">
         <div className="flex flex-wrap items-center gap-1.5">

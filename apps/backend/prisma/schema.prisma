@@ -512,6 +512,11 @@ model Restaurant {
   healthyRejectionReason String?
   healthyReviewedAt      DateTime?
 
+  // "Is your info still correct?" - when the owner/manager last confirmed
+  // it, and when the last reminder went out (see info-check).
+  infoConfirmedAt    DateTime?
+  infoReminderSentAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

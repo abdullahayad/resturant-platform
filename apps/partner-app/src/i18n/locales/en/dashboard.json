@@ -20,5 +20,12 @@
     "review": "New {{rating}}★ review from {{name}}",
     "reservation": "New reservation request from {{name}} for {{event}}",
     "announcement": "New announcement: {{title}}"
+  },
+  "infoCheck": {
+    "title": "Is your info still correct?",
+    "body": "Please check your menu, prices and opening hours, so customers always see the right details.",
+    "yes": "Yes, all correct",
+    "update": "Update now",
+    "failed": "Couldn't save. Check your connection and try again."
   }
 }

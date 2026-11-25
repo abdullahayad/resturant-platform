@@ -42,6 +42,7 @@ import { CustomersModule } from './customers/customers.module';
 import { HealthyModule } from './healthy/healthy.module';
 import { HomeBannersModule } from './home-banners/home-banners.module';
 import { RamadanModule } from './ramadan/ramadan.module';
+import { InfoCheckModule } from './info-check/info-check.module';
 import { AppVersionModule } from './app-version/app-version.module';
 import { AdminActivityModule } from './admin-activity/admin-activity.module';
 
@@ -85,6 +86,7 @@ import { AdminActivityModule } from './admin-activity/admin-activity.module';
     HomeBannersModule,
     RamadanModule,
     AppVersionModule,
+    InfoCheckModule,
     AdminActivityModule,
   ],
   controllers: [AppController, LegalController, SiteController, SupportSessionPageController, ReviewPageController],

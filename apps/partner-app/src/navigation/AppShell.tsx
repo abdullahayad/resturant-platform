@@ -17,6 +17,7 @@ import { useAuth } from '../lib/AuthContext';
 // Dashboard loads eagerly — it's the screen shown immediately on sign-in, so
 // lazy-loading it would only add a loading flash with no benefit. Every
 // other screen is loaded on first visit instead of bundled into app startup.
+import { InfoCheckCard } from '../components/InfoCheckCard';
 import { OverviewDashboardScreen } from '../screens/OverviewDashboardScreen';
 import type { AuthenticatedRestaurant } from '../lib/api';
 
@@ -80,6 +81,7 @@ export function AppShell({ restaurant, onSignOut }: AppShellProps) {
         />
         <AnnouncementBanner active={active} onView={() => setActive('announcements')} />
         <View style={[styles.body, tier === 'phone' && styles.bodyPhone]}>
+          {active === 'dashboard' && <InfoCheckCard onUpdate={() => setActive('menu')} />}
           <Suspense fallback={<LoadingState />}>
             <ActiveScreen />
           </Suspense>
