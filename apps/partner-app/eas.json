@@ -23,6 +23,15 @@
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
+    },
+    "production-apk": {
+      "extends": "production",
+      "environment": "production",
+      "autoIncrement": false,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
