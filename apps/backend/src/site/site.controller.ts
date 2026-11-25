@@ -16,7 +16,14 @@ function langOf(raw?: string): Lang {
   return raw === 'ar' ? 'ar' : 'en';
 }
 
-function layout(opts: { lang: Lang; title: string; path: string; body: string; nonce?: string; script?: string }): string {
+function layout(opts: {
+  lang: Lang;
+  title: string;
+  path: string;
+  body: string;
+  nonce?: string;
+  script?: string;
+}): string {
   const { lang, title, path, body, nonce, script } = opts;
   const other: Lang = lang === 'ar' ? 'en' : 'ar';
   const t = (en: string, ar: string) => (lang === 'ar' ? ar : en);
@@ -97,7 +104,7 @@ export function homePage(lang: Lang): string {
 </section>
 <div class="grid">
   <div class="card"><h2>${t('Discover', 'اكتشف')}</h2><p>${t('Search by area, cuisine, mood or what is open now - including late-night spots and healthy dishes.', 'ابحث حسب المنطقة أو المطبخ أو المزاج أو المفتوح الآن، بما فيها أماكن السهر والأطباق الصحية.')}</p></div>
-  <div class="card"><h2>${t('Offers and events', 'عروض وفعاليات')}</h2><p>${t('See today\'s deals and book a seat at live music nights, buffets and more.', 'شاهد عروض اليوم واحجز مكانك في ليالي الموسيقى والبوفيهات وغيرها.')}</p></div>
+  <div class="card"><h2>${t('Offers and events', 'عروض وفعاليات')}</h2><p>${t("See today's deals and book a seat at live music nights, buffets and more.", 'شاهد عروض اليوم واحجز مكانك في ليالي الموسيقى والبوفيهات وغيرها.')}</p></div>
   <div class="card"><h2>${t('Honest reviews', 'تقييمات صادقة')}</h2><p>${t('Reviews from real visits, verified when the restaurant scans your visit code.', 'تقييمات من زيارات حقيقية، موثّقة عندما يمسح المطعم رمز زيارتك.')}</p></div>
 </div>
 <div class="card">
@@ -117,6 +124,33 @@ export function appTermsPage(lang: Lang): string {
   return layout({ lang, title, path: '/app-terms', body: legalBody(lang, title, APP_TERMS[lang]) });
 }
 
+// The account-deletion link for the restaurant app's store listings.
+export function partnerDeletePage(lang: Lang): string {
+  const t = (en: string, ar: string) => (lang === 'ar' ? ar : en);
+  const mail = 'ligeta.support@gmail.com';
+  const body = `<h1>${t('Delete your LiGETA restaurant account', 'حذف حساب مطعمك في ليگيتا')}</h1>
+<p>${t('This page is for the LiGETA restaurant app (LiGETA Partner).', 'هذه الصفحة خاصة بتطبيق ليگيتا للمطاعم (LiGETA Partner).')}</p>
+<div class="card">
+  <h2>${t('In the app', 'من التطبيق')}</h2>
+  <p>${t('Sign in, open Settings & Staff, scroll to Delete Account and confirm. It happens immediately and cannot be undone.', 'سجّل الدخول وافتح الإعدادات والموظفين، ثم انزل إلى حذف الحساب وأكّد. يتم الحذف فوراً ولا يمكن التراجع عنه.')}</p>
+</div>
+<div class="card">
+  <h2>${t('Without the app', 'بدون التطبيق')}</h2>
+  <p>${t('Send an email from your account email address with the restaurant name to', 'أرسل رسالة من بريد حسابك مع اسم المطعم إلى')} <a href="mailto:${mail}?subject=Delete%20restaurant%20account">${mail}</a>. ${t('We may ask you to confirm that the account is yours.', 'قد نطلب منك تأكيد أن الحساب لك.')}</p>
+</div>
+<div class="card">
+  <h2>${t('What gets deleted', 'ما الذي يُحذف')}</h2>
+  <p>${t('Owner account: the restaurant profile, menu, gallery entries, events, bookings, offers, reviews, staff accounts, payment account details and verification documents. Staff account: only that staff login; the restaurant stays.', 'حساب المالك: ملف المطعم والقائمة ومعرض الصور والفعاليات والحجوزات والعروض والتقييمات وحسابات الموظفين وبيانات حسابات الدفع ووثائق التحقق. حساب الموظف: يُحذف دخول الموظف فقط ويبقى المطعم.')}</p>
+  <p class="muted">${t('Copies of public photos may remain in our file storage after their entries are deleted. Email us to have them erased. Records we must keep for legal or security reasons are explained in the privacy policy.', 'قد تبقى نسخ من الصور العامة في مخزن الملفات بعد حذفها من التطبيق. راسلنا لمسحها. والسجلات التي يجب الاحتفاظ بها لأسباب قانونية أو أمنية موضحة في سياسة الخصوصية.')} <a href="/privacy-policy">${t('Privacy policy', 'سياسة الخصوصية')}</a></p>
+</div>`;
+  return layout({
+    lang,
+    title: t('Delete restaurant account', 'حذف حساب المطعم'),
+    path: '/partner-delete-account',
+    body,
+  });
+}
+
 export function deleteAccountPage(lang: Lang, nonce: string): string {
   const t = (en: string, ar: string) => (lang === 'ar' ? ar : en);
   const body = `<h1>${t('Delete your LiGETA account', 'حذف حسابك في ليگيتا')}</h1>
@@ -124,7 +158,7 @@ export function deleteAccountPage(lang: Lang, nonce: string): string {
 <div class="card">
   <h2>${t('What gets deleted', 'ما الذي يُحذف')}</h2>
   <p>${t('Immediately and permanently: your account, name, phone number, follows, visits, stamp cards, notifications, support messages, helpful votes and sign-in codes.', 'فوراً وبشكل نهائي: حسابك واسمك ورقمك ومتابعاتك وزياراتك وبطاقات الختم وإشعاراتك ورسائل الدعم وأصوات "مفيد" ورموز الدخول.')}</p>
-  <p class="muted">${t('Reviews you posted stay on the restaurant page but are no longer linked to you. Bookings remain in the restaurant\'s own records.', 'تبقى تقييماتك في صفحة المطعم لكنها لا تعود مرتبطة بك. وتبقى الحجوزات في سجلات المطعم.')}</p>
+  <p class="muted">${t("Reviews you posted stay on the restaurant page but are no longer linked to you. Bookings remain in the restaurant's own records.", 'تبقى تقييماتك في صفحة المطعم لكنها لا تعود مرتبطة بك. وتبقى الحجوزات في سجلات المطعم.')}</p>
 </div>
 <div class="card">
   <form id="phoneStep">
@@ -151,10 +185,16 @@ export function deleteAccountPage(lang: Lang, nonce: string): string {
   const messages = {
     invalid: t('Please enter a valid Iraqi mobile number.', 'يُرجى إدخال رقم موبايل عراقي صحيح.'),
     wait: t('Too many tries. Please wait a few minutes and try again.', 'محاولات كثيرة. انتظر بضع دقائق وحاول مجدداً.'),
-    unavailable: t('WhatsApp codes are not available right now. Please use the app (Profile → Delete account) or try again later.', 'رموز واتساب غير متاحة حالياً. استخدم التطبيق (الملف الشخصي ← حذف الحساب) أو حاول لاحقاً.'),
+    unavailable: t(
+      'WhatsApp codes are not available right now. Please use the app (Profile → Delete account) or try again later.',
+      'رموز واتساب غير متاحة حالياً. استخدم التطبيق (الملف الشخصي ← حذف الحساب) أو حاول لاحقاً.',
+    ),
     wrong: t('That code is not correct.', 'الرمز غير صحيح.'),
     expired: t('This code has expired. Go back and request a new one.', 'انتهت صلاحية الرمز. ارجع واطلب رمزاً جديداً.'),
-    blocked: t('This account cannot sign in. Please contact LiGETA support.', 'هذا الحساب لا يمكنه الدخول. يُرجى التواصل مع دعم ليگيتا.'),
+    blocked: t(
+      'This account cannot sign in. Please contact LiGETA support.',
+      'هذا الحساب لا يمكنه الدخول. يُرجى التواصل مع دعم ليگيتا.',
+    ),
     failed: t('Something went wrong. Please try again.', 'حدث خطأ. حاول مجدداً.'),
   };
 
@@ -190,6 +230,12 @@ export class SiteController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   appTerms(@Query('lang') lang?: string) {
     return appTermsPage(langOf(lang));
+  }
+
+  @Get('partner-delete-account')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  partnerDeleteAccount(@Query('lang') lang?: string) {
+    return partnerDeletePage(langOf(lang));
   }
 
   @Get('delete-account')

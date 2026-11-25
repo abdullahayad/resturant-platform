@@ -1,4 +1,11 @@
-import { appPrivacyPage, appTermsPage, deleteAccountPage, homePage, langOf } from './site.controller';
+import {
+  appPrivacyPage,
+  appTermsPage,
+  deleteAccountPage,
+  homePage,
+  langOf,
+  partnerDeletePage,
+} from './site.controller';
 
 describe('public site pages', () => {
   it('falls back to English for anything but ar', () => {
@@ -17,6 +24,11 @@ describe('public site pages', () => {
     expect(html).toContain('<script nonce="abc123">');
     expect(html).toContain("'/v1/customer-auth/request-code'");
     expect(html).toContain("'/v1/customers/me'");
+  });
+
+  it('tells restaurants how to delete their account, in both languages', () => {
+    expect(partnerDeletePage('en')).toContain('mailto:ligeta.support@gmail.com');
+    expect(partnerDeletePage('ar')).toContain('dir="rtl"');
   });
 
   it('home page links to every legal page', () => {

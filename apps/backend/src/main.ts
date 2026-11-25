@@ -30,6 +30,7 @@ const UNVERSIONED_ROUTES = [
   'app-privacy',
   'app-terms',
   'delete-account',
+  'partner-delete-account',
   'docs',
   'docs-json',
   'support-session',

@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { RestaurantsService } from './restaurants.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { StorageService } from '../uploads/storage.service';
 import { PushService } from '../push/push.service';
 import { RestaurantActivityLogService } from '../restaurant-activity-log/restaurant-activity-log.service';
 import type { RegisterRestaurantDto } from './dto/register-restaurant.dto';
@@ -24,6 +25,7 @@ describe('RestaurantsService', () => {
   let jwt: { signAsync: jest.Mock; verifyAsync: jest.Mock };
   let activityLog: { log: jest.Mock };
   let email: { send: jest.Mock };
+  const storage = { deletePrivate: jest.fn() };
   const fakeUser = { sub: 'r1', type: 'partner', restaurantStatus: 'APPROVED', tokenVersion: 0 } as PartnerJwtPayload;
 
   const baseRegisterDto: RegisterRestaurantDto = {
@@ -68,6 +70,7 @@ describe('RestaurantsService', () => {
         district: {
           findUnique: jest.fn(),
         },
+        verificationDocument: { findMany: jest.fn().mockResolvedValue([]) },
         $queryRaw: jest.fn(),
       },
     };
@@ -81,6 +84,7 @@ describe('RestaurantsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwt },
         { provide: EmailService, useValue: email },
+        { provide: StorageService, useValue: storage },
         { provide: PushService, useValue: { sendToRestaurants: jest.fn().mockResolvedValue(undefined) } },
         { provide: RestaurantActivityLogService, useValue: activityLog },
       ],
@@ -481,6 +485,22 @@ describe('RestaurantsService', () => {
   });
 
   describe('deleteAccount', () => {
+    it('removes private license files, and still succeeds if storage fails', async () => {
+      prisma.db.verificationDocument.findMany.mockResolvedValueOnce([{ storageKey: 'a.jpg' }, { storageKey: 'b.jpg' }]);
+      prisma.db.restaurant.delete.mockResolvedValue({});
+      storage.deletePrivate.mockRejectedValueOnce(new Error('down')).mockResolvedValueOnce(undefined);
+
+      const result = await service.deleteAccount({
+        sub: 'r1',
+        type: 'partner',
+        restaurantStatus: 'APPROVED',
+        tokenVersion: 0,
+      });
+
+      expect(result).toEqual({ deleted: 'restaurant' });
+      expect(storage.deletePrivate.mock.calls).toEqual([['a.jpg'], ['b.jpg']]);
+    });
+
     it('deletes only the staff member when a staff login requests deletion', async () => {
       prisma.db.partnerStaffUser.delete.mockResolvedValue({});
 

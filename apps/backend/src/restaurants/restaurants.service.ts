@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -21,6 +22,7 @@ import type { ForgotPasswordDto } from './dto/forgot-password.dto';
 import type { ResetPasswordDto } from './dto/reset-password.dto';
 import type { ModeratePublishDto } from './dto/update-restaurant-status.dto';
 import { EmailService } from '../email/email.service';
+import { StorageService } from '../uploads/storage.service';
 import { PushService } from '../push/push.service';
 import type { PartnerJwtPayload } from '../auth/jwt-payload';
 import { pageOffset } from '../common/pagination';
@@ -98,12 +100,15 @@ const publishReviewSelect = {
 
 @Injectable()
 export class RestaurantsService {
+  private readonly logger = new Logger(RestaurantsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly email: EmailService,
     private readonly push: PushService,
     private readonly activityLog: RestaurantActivityLogService,
+    private readonly storage: StorageService,
   ) {}
 
   // Province code + zone code (if the district has one) + district code +
@@ -916,7 +921,20 @@ export class RestaurantsService {
       summary: 'Deleted the restaurant account',
       user,
     });
+    // License photos live in the private bucket, which the database cascade
+    // can't reach. Files go last: if one fails, the account is still deleted
+    // and the key is logged so it can be removed by hand.
+    const documents = await this.prisma.db.verificationDocument.findMany({
+      where: { restaurantId: user.sub, storageKey: { not: null } },
+      select: { storageKey: true },
+    });
     await this.prisma.db.restaurant.delete({ where: { id: user.sub } });
+    for (const { storageKey } of documents) {
+      if (!storageKey) continue;
+      await this.storage.deletePrivate(storageKey).catch((err: unknown) => {
+        this.logger.error(`Could not delete ${storageKey} after account deletion: ${String(err)}`);
+      });
+    }
     return { deleted: 'restaurant' as const };
   }
 
