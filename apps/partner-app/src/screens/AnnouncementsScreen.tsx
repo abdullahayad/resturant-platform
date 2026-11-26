@@ -65,23 +65,20 @@ function AnnouncementsSection() {
     reload();
   }, [reload]);
 
-  // Visiting this screen counts as having seen whatever's currently loaded
-  // and unread - re-runs as loadMore brings in further pages, so each newly
-  // loaded batch gets the same treatment the first page did.
-  useEffect(() => {
-    const toMark = announcements.filter((a) => !a.readAt && !markedIds.current.has(a.id));
-    if (toMark.length === 0) return;
-    toMark.forEach((a) => markedIds.current.add(a.id));
-    toMark.forEach((a) => {
-      api.markAnnouncementRead(token, a.notification.id).catch(() => {});
-    });
-    const toMarkIds = new Set(toMark.map((a) => a.id));
+  // A message counts as read only once it's opened (expanded) - so unread
+  // ones stay bold white in the list until the owner actually taps them.
+  const markRead = (a: Announcement) => {
+    if (a.readAt || markedIds.current.has(a.id)) return;
+    markedIds.current.add(a.id);
+    api.markAnnouncementRead(token, a.notification.id).catch(() => {});
     setAnnouncements((prev) =>
-      prev.map((a) => (toMarkIds.has(a.id) ? { ...a, readAt: new Date().toISOString() } : a)),
+      prev.map((x) => (x.id === a.id ? { ...x, readAt: new Date().toISOString() } : x)),
     );
-  }, [announcements, token, setAnnouncements]);
+  };
 
-  const toggleExpanded = (id: string) => {
+  const toggleExpanded = (a: Announcement) => {
+    const id = a.id;
+    if (!expandedIds.has(id)) markRead(a);
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -132,7 +129,7 @@ function AnnouncementsSection() {
             const expanded = expandedIds.has(a.id);
             return (
               <View key={a.id} style={[styles.tableRowWrap, index > 0 && styles.tableRowDivider]}>
-                <Pressable style={styles.tableRow} onPress={() => toggleExpanded(a.id)}>
+                <Pressable style={styles.tableRow} onPress={() => toggleExpanded(a)}>
                   <View style={styles.chevronCell}>
                     {expanded ? (
                       <ChevronDown size={16} color={colors.mutedForeground} />
@@ -140,10 +137,16 @@ function AnnouncementsSection() {
                       <ChevronRight size={16} color={colors.mutedForeground} />
                     )}
                   </View>
-                  <Text style={[styles.subjectCell, styles.subjectText]} numberOfLines={1}>
+                  <Text
+                    style={[styles.subjectCell, styles.subjectText, a.readAt ? styles.subjectRead : styles.subjectUnread]}
+                    numberOfLines={1}
+                  >
                     {a.notification.titleEn}
                   </Text>
-                  <Text style={[styles.dateCell, styles.dateText]} numberOfLines={1}>
+                  <Text
+                    style={[styles.dateCell, styles.dateText, !a.readAt && styles.dateUnread]}
+                    numberOfLines={1}
+                  >
                     {new Date(a.notification.createdAt).toLocaleDateString()}
                   </Text>
                   <View style={styles.statusCell}>
@@ -450,6 +453,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   subjectText: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   dateCell: { width: 76 },
   dateText: { fontSize: 11, color: colors.mutedForeground },
+  // Inbox: not opened yet = bold white; opened = normal grey.
+  subjectUnread: { fontWeight: '700', color: colors.foreground },
+  subjectRead: { fontWeight: '400', color: colors.mutedForeground },
+  dateUnread: { fontWeight: '700', color: colors.foreground },
   statusCell: { width: 96, alignItems: 'flex-end' },
 
   rowDetail: { paddingHorizontal: 12, paddingBottom: 14, gap: 6 },
